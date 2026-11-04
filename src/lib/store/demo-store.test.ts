@@ -31,7 +31,9 @@ describe("demo store", () => {
     ).flat() as string[];
     const products = await getStore().listProducts();
     const flagged = products.filter((p) => p.tracked);
-    expect(flagged.length).toBeGreaterThanOrEqual(3);
+    expect(flagged.length).toBeGreaterThanOrEqual(2);
+    // The headphones are the main big-buy and scam-check item, so they must have a price history.
+    expect(flagged.map((p) => p.id)).toContain("ENVDwLq");
     for (const p of flagged) expect(tracked).toContain(p.id);
     for (const p of products.filter((p) => !p.tracked)) expect(tracked).not.toContain(p.id);
   });

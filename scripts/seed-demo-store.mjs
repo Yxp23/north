@@ -15,7 +15,7 @@ const tracked = new Set(
 // [Channel3 id, display name, category, image index (omit to use the main image)]
 // Image indexes were chosen by eye: plain product shot, no people, no visible logo or brand text.
 const PICKS = [
-  ["mvl8NV5", "Shampoo", "personal care", 0], // tracked; back of the bottle, no brand name
+  ["cY1jWjp", "Mild Shampoo", "personal care", 0], // not tracked; front of the bottle, no brand name
   ["ENVDwLq", "Over-Ear Headphones", "electronics", 1], // tracked; front view, no logo
   ["OpovWAw", "Running Series Sneakers", "shoes"], // tracked
   ["VIYcSuc", "Kitchen Sponges", "household", 2],
