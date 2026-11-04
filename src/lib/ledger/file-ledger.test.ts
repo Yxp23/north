@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { FileLedger } from "./file-ledger";
+import { ledgerContract } from "./ledger-contract";
 
 const dirs: string[] = [];
 async function ledger() {
@@ -65,4 +66,12 @@ describe("FileLedger", () => {
     await writeFile(file, "{not json");
     await expect(l.read()).rejects.toThrow();
   });
+});
+
+ledgerContract("File", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "north-contract-"));
+  return {
+    ledger: new FileLedger(path.join(dir, "ledger.json"), "America/New_York", () => new Date("2026-11-04T15:00:00Z")),
+    cleanup: () => rm(dir, { recursive: true, force: true }),
+  };
 });

@@ -13,11 +13,23 @@ export interface Ledger {
 
 // One lock per storage key, kept on globalThis so every bundle of the dev server shares it.
 const g = globalThis as unknown as { __northLocks?: Map<string, Promise<unknown>> };
-function withLock<T>(key: string, run: () => Promise<T>): Promise<T> {
+export function withLock<T>(key: string, run: () => Promise<T>): Promise<T> {
   const locks = (g.__northLocks ??= new Map());
   const next = (locks.get(key) ?? Promise.resolve()).then(run, run);
   locks.set(key, next.catch(() => undefined));
   return next;
+}
+
+/** The same rules the database enforces, so memory, file and Supabase behave alike. */
+export function assertValid(data: LedgerData) {
+  const ids = new Set<string>();
+  const attempts = new Set<string>();
+  for (const p of data.purchases) {
+    if (ids.has(p.id)) throw new Error(`Two purchases share the id ${p.id}`);
+    if (attempts.has(p.attemptId)) throw new Error(`Two purchases share the attempt id ${p.attemptId}`);
+    ids.add(p.id);
+    attempts.add(p.attemptId);
+  }
 }
 
 export abstract class LockedLedger implements Ledger {
@@ -39,6 +51,7 @@ export abstract class LockedLedger implements Ledger {
     return withLock(this.lockKey, async () => {
       const data = await this.loadOrCreate();
       const out = await change(data); // if this throws, nothing is saved
+      assertValid(data);
       await this.save(data);
       return out;
     });

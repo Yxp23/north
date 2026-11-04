@@ -59,7 +59,9 @@ Next.js (whatever `create-next-app@latest` installs) + TypeScript (App Router, `
 - Cache every response.
 
 ### Env (`.env.example`)
-`PAYPAL_ENV`, `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `NEXT_PUBLIC_PAYPAL_CLIENT_ID`, `PAYPAL_WEBHOOK_ID`, `CHANNEL3_API_KEY`, `ANTHROPIC_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+`PAYPAL_ENV`, `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `NEXT_PUBLIC_PAYPAL_CLIENT_ID`, `PAYPAL_WEBHOOK_ID`, `CHANNEL3_API_KEY`, `ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, plus optional `DEMO_MODE`, `DEMO_TIME_ZONE`, `NORTH_USER_ID`.
+
+Supabase keys (checked against current docs on Nov 4): the new **secret key** (`sb_secret_…`, Dashboard > Settings > API Keys) replaces `service_role`, and the **publishable key** replaces `anon`. The secret key bypasses Row Level Security, so it is server-only and never gets a `NEXT_PUBLIC_` prefix. We don't use the publishable key at all: the browser never talks to Supabase. The schema lives in `supabase/migrations/` (RLS on, no policies, and all writes go through three SQL functions that only the secret key can run).
 
 Note: the default Next.js `.gitignore` has `.env*`, which also hides `.env.example`, so add `!.env.example`.
 
