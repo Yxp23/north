@@ -1,0 +1,113 @@
+{
+  "seededAt": "2026-11-04",
+  "products": [
+    {
+      "id": "mvl8NV5",
+      "name": "Shampoo",
+      "category": "personal care",
+      "priceCents": 5250,
+      "currency": "USD",
+      "imageUrl": "https://cdn.trychannel3.com/ed28bf6e-e298-486a-816c-50e490577aaa?aid=01M6MAVJ0SDJSCH395QE90ABGC&mid=hYFd",
+      "tracked": true
+    },
+    {
+      "id": "ENVDwLq",
+      "name": "Over-Ear Headphones",
+      "category": "electronics",
+      "priceCents": 34900,
+      "currency": "USD",
+      "imageUrl": "https://cdn.trychannel3.com/a1e9c6a2-542e-4551-9031-c80978055aba?aid=01M6MAVJNHPYFBRB9S7VX0AFRW&mid=Pu5r",
+      "tracked": true
+    },
+    {
+      "id": "OpovWAw",
+      "name": "Running Series Sneakers",
+      "category": "shoes",
+      "priceCents": 7254,
+      "currency": "USD",
+      "imageUrl": "https://cdn.trychannel3.com/cfdffc59-f8a8-4d24-8bd0-20cfc490fbc2?aid=01M6MAVJT7NKAB0237VN6E6MN4&mid=hHvi",
+      "tracked": true
+    },
+    {
+      "id": "VIYcSuc",
+      "name": "Kitchen Sponges",
+      "category": "household",
+      "priceCents": 1000,
+      "currency": "USD",
+      "imageUrl": "https://cdn.trychannel3.com/71d67cd6-29db-4f0c-99ec-a062c9cbacf9?aid=01M6MAVJYERVESY3CRK0NKC72F&mid=14ii",
+      "tracked": false
+    },
+    {
+      "id": "ioVqCKq",
+      "name": "Plain Cotton Terry Bath Towel",
+      "category": "household",
+      "priceCents": 890,
+      "currency": "USD",
+      "imageUrl": "https://cdn.trychannel3.com/58605121-2512-4ffe-b34b-c42b644380c5?aid=01M6MAVK2NQKJVFNRWTMTQ6FXG&mid=Mnrl",
+      "tracked": false
+    },
+    {
+      "id": "Qez8uoD",
+      "name": "Plain Notebook A5",
+      "category": "school and office",
+      "priceCents": 250,
+      "currency": "USD",
+      "imageUrl": "https://cdn.trychannel3.com/95d6604d-be28-41d3-89f8-91be1dab3dca?aid=01M6MAVK8ZR2D29Z19SKHMF34P&mid=hUzI",
+      "tracked": false
+    },
+    {
+      "id": "z6AiKn7",
+      "name": "Plain T-Shirt",
+      "category": "clothes",
+      "priceCents": 2799,
+      "currency": "USD",
+      "imageUrl": "https://cdn.trychannel3.com/08faf804-3156-412a-9abb-4c35aa8fabe6?aid=01M6MAVKEBHQRXTQV40NWT2X0J&mid=Z87s",
+      "tracked": false
+    },
+    {
+      "id": "7b5sz6i",
+      "name": "White T-Shirt",
+      "category": "clothes",
+      "priceCents": 6500,
+      "currency": "USD",
+      "imageUrl": "https://cdn.trychannel3.com/c4ca73ae-45ce-4ce8-9cc7-66ed4b783e63?aid=01M6MAVKM0KS9AMXX3AG086Q48&mid=rWaY",
+      "tracked": false
+    },
+    {
+      "id": "0HzVACz",
+      "name": "Cotton Crew Socks",
+      "category": "clothes",
+      "priceCents": 2247,
+      "currency": "USD",
+      "imageUrl": "https://cdn.trychannel3.com/75a2b523-8a9a-4cc3-8316-be216c4cbe6c?aid=01M6MAVKQSNBZYKZZSSGSM9QGV&mid=9Sgk",
+      "tracked": false
+    },
+    {
+      "id": "3swBTuK",
+      "name": "Canvas Tote Bag",
+      "category": "bags",
+      "priceCents": 1499,
+      "currency": "USD",
+      "imageUrl": "https://cdn.trychannel3.com/8f86d4fa-090e-440e-9800-4c82049f379e?aid=01M6MAVKXHZWRRZHHG93Q4VFFA&mid=dNAl",
+      "tracked": false
+    },
+    {
+      "id": "k1pWyMx",
+      "name": "Umbrella",
+      "category": "rain gear",
+      "priceCents": 1000,
+      "currency": "USD",
+      "imageUrl": "https://cdn.trychannel3.com/8e2d181b-c9f6-4f6f-bd7f-c4973c98c885?aid=01M6MAVM74PS0JM64SNAPVFR05&mid=IW9D",
+      "tracked": false
+    },
+    {
+      "id": "e16fOKW",
+      "name": "Stainless Steel Water Bottle",
+      "category": "kitchen",
+      "priceCents": 3700,
+      "currency": "USD",
+      "imageUrl": "https://cdn.trychannel3.com/gyMVxco?aid=01M6MAVMDVGZPA9NWZHM5ABRY6&mid=7Mul",
+      "tracked": false
+    }
+  ]
+}
