@@ -38,6 +38,9 @@ export type PurchaseRecord = {
   failureReason?: string;
 };
 
+/** The saved PayPal account (a vault token). Server-only: never sent to the browser. */
+export type PaypalVault = { vaultId: string; customerId?: string; savedAt: string };
+
 export type AuditEntry = { at: string; type: string; detail: string };
 
 export type LedgerData = {
@@ -49,6 +52,8 @@ export type LedgerData = {
   weeklyBudgetCents: number;
   timeZone: string;
   rules: StoredRules;
+  /** Set once the user connects PayPal. Kept when the demo is reset. */
+  paypalVault?: PaypalVault;
   purchases: PurchaseRecord[];
   webhookEventIds: string[];
   audit: AuditEntry[];

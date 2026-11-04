@@ -48,6 +48,18 @@ describe("FileLedger", () => {
     expect((await l.read()).baseBalanceCents).toBe(160_000);
   });
 
+  it("keeps the connected PayPal when the demo is reset", async () => {
+    const { ledger: l } = await ledger();
+    await l.update((d) => {
+      d.paypalVault = { vaultId: "V1", savedAt: "2026-11-04T00:00:00Z" };
+      d.baseBalanceCents = 5;
+    });
+    await l.reset();
+    const d = await l.read();
+    expect(d.baseBalanceCents).toBe(160_000);
+    expect(d.paypalVault?.vaultId).toBe("V1");
+  });
+
   it("fails loudly on a damaged file instead of wiping it", async () => {
     const { file, ledger: l } = await ledger();
     await writeFile(file, "{not json");

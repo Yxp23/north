@@ -38,6 +38,7 @@ async function call(
   path: string,
   body?: unknown,
   requestId?: string,
+  quiet = false, // true: log only the status (the body holds a saved-account token)
 ): Promise<PayPalResult> {
   const token = await getAccessToken();
   const headers: Record<string, string> = {
@@ -59,38 +60,67 @@ async function call(
   } catch {
     parsed = text;
   }
-  // Log the raw response: the saved-account flow is unconfirmed, so we need to see it.
-  console.log(`[paypal] ${method} ${path} -> ${res.status}`, JSON.stringify(parsed));
+  console.log(`[paypal] ${method} ${path} -> ${res.status}`, quiet ? "(body not logged)" : JSON.stringify(parsed));
   return { ok: res.ok, status: res.status, body: parsed };
 }
 
 const money = (amount: string) => ({ currency_code: "USD", value: amount });
 
-/** First purchase: PayPal popup approval, and ask PayPal to save the account on success. */
-export function createVaultOrder(amount: string, returnBase: string) {
-  return call("POST", "/v2/checkout/orders", {
-    intent: "CAPTURE",
-    purchase_units: [{ amount: money(amount), description: "North spike purchase" }],
+/**
+ * Save PayPal WITHOUT a purchase (vault-only), in three steps. No order and no money is involved:
+ *  1. getClientToken: a browser-safe token so the PayPal popup can start.
+ *  2. createSetupToken: the server asks PayPal for a one-time setup token. The popup approves it.
+ *  3. createPaymentToken: after approval the server swaps the setup token for the permanent
+ *     token (the vault id), and keeps it server-side. It is never sent to the browser.
+ */
+export async function getClientToken(): Promise<string> {
+  const id = process.env.PAYPAL_CLIENT_ID;
+  const secret = process.env.PAYPAL_CLIENT_SECRET;
+  if (!id || !secret) throw new Error("PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET are not set");
+  const res = await fetch(`${BASE}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString("base64")}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=client_credentials&response_type=client_token&intent=sdk_init",
+  });
+  const json = await res.json();
+  console.log(`[paypal] POST /v1/oauth2/token (client token) -> ${res.status}`);
+  if (!res.ok || !json.access_token) throw new Error(`PayPal client token failed: ${res.status}`);
+  return json.access_token;
+}
+
+export function createSetupToken(returnBase: string) {
+  return call("POST", "/v3/vault/setup-tokens", {
     payment_source: {
       paypal: {
-        attributes: {
-          vault: { store_in_vault: "ON_SUCCESS", usage_type: "MERCHANT", customer_type: "CONSUMER" },
-        },
+        usage_type: "MERCHANT",
+        customer_type: "CONSUMER",
+        description: "Save PayPal to North",
         experience_context: {
-          return_url: `${returnBase}/spike/paypal?result=return`,
-          cancel_url: `${returnBase}/spike/paypal?result=cancel`,
-          shipping_preference: "NO_SHIPPING",
-          user_action: "PAY_NOW",
+          brand_name: "North",
+          locale: "en-US",
+          return_url: `${returnBase}/connect?result=return`,
+          cancel_url: `${returnBase}/connect?result=cancel`,
+          vault_instruction: "ON_PAYER_APPROVAL",
         },
       },
     },
   });
 }
 
+export const createPaymentToken = (setupToken: string) =>
+  call(
+    "POST",
+    "/v3/vault/payment-tokens",
+    { payment_source: { token: { id: setupToken, type: "SETUP_TOKEN" } } },
+    undefined,
+    true,
+  );
+
 export const captureOrder = (orderId: string, requestId?: string) =>
   call("POST", `/v2/checkout/orders/${orderId}/capture`, {}, requestId);
-
-export const getOrder = (orderId: string) => call("GET", `/v2/checkout/orders/${orderId}`);
 
 /**
  * Later purchase with the saved account: no popup. Confirmed in sandbox: comes back COMPLETED.
@@ -116,8 +146,8 @@ export function createOrderWithVault(vaultId: string, amount: string, opts: { cu
   );
 }
 
-export const refundCapture = (captureId: string) =>
-  call("POST", `/v2/payments/captures/${captureId}/refund`, {});
+export const refundCapture = (captureId: string, requestId?: string) =>
+  call("POST", `/v2/payments/captures/${captureId}/refund`, {}, requestId);
 
 /**
  * Ask PayPal whether a webhook really came from PayPal.
@@ -137,14 +167,7 @@ export async function verifyWebhookSignature(headers: Headers, rawBody: string):
   return r.ok && r.body?.verification_status === "SUCCESS";
 }
 
-/** Pull the saved-account token out of a capture or order response. */
-export function extractVault(body: any): { vaultId?: string; customerId?: string; status?: string } {
-  const vault = body?.payment_source?.paypal?.attributes?.vault;
-  return { vaultId: vault?.id, customerId: vault?.customer?.id, status: vault?.status };
-}
-
 /** Pull the capture id out of a capture response (or a COMPLETED order). */
 export function extractCaptureId(body: any): string | undefined {
   return body?.purchase_units?.[0]?.payments?.captures?.[0]?.id;
 }
-export const SPIKE_AMOUNT = "5.00"; // fixed spike price; the browser never sets an amount

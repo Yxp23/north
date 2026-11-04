@@ -4,6 +4,7 @@ import path from "node:path";
 
 // Proves the charge step can't be reached from anywhere except guarded checkout.
 const SRC = path.resolve(__dirname, "../..");
+const ROOT = path.resolve(SRC, "..");
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -43,5 +44,35 @@ describe("the charge step is only reachable through guarded checkout", () => {
 
   it("the old unguarded saved-account route is gone", () => {
     expect(sources.some((s) => s.file.includes("charge-saved"))).toBe(false);
+  });
+
+  // No PayPal order can be created except by createOrderWithVault, which only guarded checkout reaches.
+  it("the PayPal orders endpoint appears only inside src/lib/paypal.ts (also checking scripts)", () => {
+    const everything = [
+      ...sources.map((s) => ({ file: `src/${s.file}`, text: s.text })),
+      ...files(path.join(ROOT, "scripts")).map((f) => ({ file: path.relative(ROOT, f), text: readFileSync(f, "utf8") })),
+    ];
+    const hits = everything.filter((s) => s.text.includes("checkout/orders")).map((s) => s.file);
+    expect(hits).toEqual(["src/lib/paypal.ts"]);
+  });
+
+  it("inside paypal.ts, only createOrderWithVault creates an order", () => {
+    const text = sources.find((s) => s.file === "lib/paypal.ts")!.text;
+    const creates = [...text.matchAll(/call\(\s*"POST",\s*["`]\/v2\/checkout\/orders["`]/g)];
+    expect(creates).toHaveLength(1);
+    const fn = text.slice(text.indexOf("export function createOrderWithVault"));
+    const end = fn.indexOf("\nexport ", 10);
+    expect(fn.slice(0, end === -1 ? undefined : end)).toMatch(/call\(\s*"POST",\s*"\/v2\/checkout\/orders"/);
+  });
+
+  it("nothing calls PayPal's order-capture or order-create from routes or pages", () => {
+    for (const r of sources.filter((s) => s.file.startsWith("app/"))) {
+      expect(r.text).not.toMatch(/captureOrder|createOrder|checkout\/orders/);
+    }
+  });
+
+  it("the spike pages and their routes are gone", () => {
+    expect(sources.some((s) => /(^|\/)spike\//.test(s.file))).toBe(false);
+    expect(sources.some((s) => s.file.includes("create-order") || s.file.includes("capture-order"))).toBe(false);
   });
 });

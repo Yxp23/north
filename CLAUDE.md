@@ -34,13 +34,19 @@ Next.js (whatever `create-next-app@latest` installs) + TypeScript (App Router, `
   - `window.paypal.createInstance({ clientId, components: ["paypal-payments"], pageType: "checkout" })`
   - `sdk.createPayPalOneTimePaymentSession({ onApprove, onCancel, onError })`. `onApprove` receives `{ orderId }`.
   - In the click handler: `session.start({ presentationMode: "auto" }, createOrderPromise)`. **No `await` before `session.start`**, or the popup gets blocked. `createOrderPromise` resolves to `{ orderId }`.
-- **First purchase that saves PayPal:** `POST /v2/checkout/orders` with `intent: "CAPTURE"` and `payment_source.paypal.attributes.vault = { store_in_vault: "ON_SUCCESS", usage_type: "MERCHANT", customer_type: "CONSUMER" }`, plus an `experience_context` (return/cancel URLs, `shipping_preference: "NO_SHIPPING"`).
-- **After approval:** `POST /v2/checkout/orders/{id}/capture`. The token is at `payment_source.paypal.attributes.vault.id`, with status `"VAULTED"`; the customer ID is at `vault.customer.id`. If the token isn't in the capture response, `GET /v2/checkout/orders/{id}` and read it there.
+- **Saving PayPal (no purchase, no charge): vault-only with setup tokens.** Verified in sandbox on Nov 4 up to the PayPal login popup:
+  - Server: `POST /v1/oauth2/token` with `grant_type=client_credentials&response_type=client_token&intent=sdk_init` gives a browser-safe client token.
+  - Browser: `createInstance({ clientToken, components: ["paypal-payments"], pageType: "checkout" })`, then `sdk.findEligibleMethods({ currencyCode: "USD", paymentFlow: "VAULT_WITHOUT_PAYMENT" })`, then `sdk.createPayPalSavePaymentSession({ onApprove, onCancel, onError })`.
+  - Click handler (no `await` before it): `session.start({ presentationMode: "auto" }, promise)`, where the promise resolves to `{ setupToken: id }`. `onApprove` receives `data.vaultSetupToken`.
+  - Server: `POST /v3/vault/setup-tokens` with `payment_source.paypal { usage_type: "MERCHANT", customer_type: "CONSUMER", experience_context { return_url, cancel_url, vault_instruction: "ON_PAYER_APPROVAL" } }` returns `PAYER_ACTION_REQUIRED` and an `id`.
+  - After approval: `POST /v3/vault/payment-tokens` with `{ payment_source: { token: { id: <setup token>, type: "SETUP_TOKEN" } } }`. The response `id` is the permanent vault token. Keep it server-side; never send it to the browser or log it.
+  - The old way (a $5 purchase with `store_in_vault`) is gone: it moved money outside the Guardian.
 - **Later purchase, no popup:** `POST /v2/checkout/orders` with `payment_source: { paypal: { vault_id } }`. **Confirmed in sandbox on Nov 4:** the order comes back `COMPLETED` immediately, with no popup and no separate capture. Still handle `APPROVED` or `CREATED` (capture it) as a safety net, and log the raw response.
 - **Refund:** `POST /v2/payments/captures/{captureId}/refund`. **Confirmed in sandbox on Nov 4.** A second refund on the same capture returns `CAPTURE_FULLY_REFUNDED`; the app must treat that as success and show "Already refunded", not an error.
 - Send a `PayPal-Request-Id` (UUID) on every POST, so retries never charge twice.
 - **Sandbox app setup:** check Accept payments, then turn on Vault under Advanced options. Log in to the popup with the personal sandbox account.
 - **Fallback if saved-account charges fail:** one-tap approval per purchase.
+- **Webhooks in the sandbox are only partly reliable.** In testing, PayPal sometimes never created an event (its own event log had no entry), so about half of the events arrived. Never depend on a webhook alone: record the payment from the capture response and the refund from the refund response, and use webhooks only to confirm. Every event that did arrive verified fine.
 - **Webhooks can't reach localhost.** For local testing, use a tunnel (`npx cloudflared tunnel --url http://localhost:3000`) or deploy to Vercel early, then register `/api/paypal/webhook` in the sandbox app for `PAYMENT.CAPTURE.COMPLETED` and `PAYMENT.CAPTURE.REFUNDED`. Verify signatures with `POST /v1/notifications/verify-webhook-signature`. Until then, record payments from the capture response.
 - PayPal requires risk data (FraudNet) for token payments in production. It isn't needed in sandbox; mention it in the README as production work.
 

@@ -7,7 +7,7 @@ export interface Ledger {
   read(): Promise<LedgerData>;
   /** Read, change, save as one step. Steps never overlap, so two taps can't spend the same money. */
   update<T>(change: (data: LedgerData) => T | Promise<T>): Promise<T>;
-  /** Back to the starting demo state. */
+  /** Back to the starting demo state (keeps the connected PayPal). */
   reset(): Promise<void>;
 }
 
@@ -44,8 +44,14 @@ export abstract class LockedLedger implements Ledger {
     });
   }
 
+  /** Back to the starting demo state. The connected PayPal stays, so you don't have to connect again. */
   reset() {
-    return withLock(this.lockKey, () => this.save(defaultLedgerData(this.clock(), this.timeZone)));
+    return withLock(this.lockKey, async () => {
+      const fresh = defaultLedgerData(this.clock(), this.timeZone);
+      const old = await this.load();
+      if (old?.paypalVault) fresh.paypalVault = old.paypalVault;
+      await this.save(fresh);
+    });
   }
 }
 

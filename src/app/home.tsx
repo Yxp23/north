@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
 import { setDemoHour, useDemoHour } from "@/lib/demo-hour";
 import { formatMoney } from "@/lib/format";
-import type { HomeSummary, PurchaseStatus } from "@/lib/ledger/types";
+import type { HomeSummary, PurchaseStatus, PurchaseView } from "@/lib/ledger/types";
 
 type Summary = HomeSummary & { paypalSaved: boolean; demoMode: boolean };
 
@@ -62,7 +62,7 @@ export function Home() {
         <div role="note" className="rounded-2xl border-2 border-warn-ink bg-warn-bg p-4 text-warn-ink">
           <p className="text-lg font-semibold">PayPal is not connected yet.</p>
           <p>You need it to buy things.</p>
-          <Link href="/spike/paypal" className="mt-2 inline-block rounded-lg px-1 py-2 font-semibold underline">
+          <Link href="/connect" className="mt-2 inline-block rounded-lg px-1 py-2 font-semibold underline">
             Connect PayPal
           </Link>
         </div>
@@ -100,28 +100,74 @@ export function Home() {
           <p className="text-lg">No buys yet.</p>
         ) : (
           <ul className="space-y-3" aria-live="polite">
-            {data.purchases.map((p) => {
-              const st = STATUS[p.status];
-              return (
-                <li key={p.id} className={`${card} flex items-center gap-4`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.imageUrl} alt="" className="h-20 w-20 shrink-0 rounded-xl bg-white object-contain" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-lg font-semibold">{p.name}</p>
-                    <p className="text-lg">{formatMoney(p.amountCents)}</p>
-                    <p className={`mt-1 inline-block rounded-full px-3 py-1 text-base font-semibold ${st.cls}`}>
-                      <span aria-hidden="true">{st.icon} </span>{st.label}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
+            {data.purchases.map((p) => (
+              <PurchaseRow key={p.id} p={p} onChange={load} />
+            ))}
           </ul>
         )}
       </section>
 
       {data.demoMode && <DemoTools onChange={load} />}
     </div>
+  );
+}
+
+// One buy in the list. A paid buy has a "Get my money back" button, with one question first.
+function PurchaseRow({ p, onChange }: { p: PurchaseView; onChange: () => void }) {
+  const st = STATUS[p.status];
+  const [step, setStep] = useState<"idle" | "asking" | "working">("idle");
+  const [message, setMessage] = useState("");
+
+  async function refund() {
+    setStep("working");
+    try {
+      const res = await fetch("/api/refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purchaseId: p.id }),
+      });
+      const out = await res.json();
+      setMessage(
+        out.kind === "refunded" ? `Done. ${formatMoney(p.amountCents)} is coming back to you.`
+        : out.kind === "already_refunded" ? "Already refunded."
+        : out.kind === "pending" ? "PayPal is sending your money back. It can take a moment."
+        : "I could not refund this. Please try again.",
+      );
+    } catch {
+      setMessage("I could not refund this. Please try again.");
+    }
+    setStep("idle");
+    onChange();
+  }
+
+  return (
+    <li className={`${card} space-y-3`}>
+      <div className="flex items-center gap-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={p.imageUrl} alt="" className="h-20 w-20 shrink-0 rounded-xl bg-white object-contain" />
+        <div className="min-w-0 flex-1">
+          <p className="text-lg font-semibold">{p.name}</p>
+          <p className="text-lg">{formatMoney(p.amountCents)}</p>
+          <p className={`mt-1 inline-block rounded-full px-3 py-1 text-base font-semibold ${st.cls}`}>
+            <span aria-hidden="true">{st.icon} </span>{st.label}
+          </p>
+        </div>
+      </div>
+      {message && <p role="status" className="text-lg font-semibold">{message}</p>}
+      {p.status === "paid" && step === "idle" && (
+        <button type="button" className={btnSecondary} onClick={() => setStep("asking")}>
+          Get my money back
+        </button>
+      )}
+      {step === "asking" && (
+        <div role="group" aria-label={`Refund ${p.name}?`} className="space-y-2">
+          <p className="text-lg font-semibold">Refund {p.name}? You will get {formatMoney(p.amountCents)} back.</p>
+          <button type="button" className={btnPrimary} onClick={refund}>Yes, refund it</button>
+          <button type="button" className={btnSecondary} onClick={() => setStep("idle")}>No, keep it</button>
+        </div>
+      )}
+      {step === "working" && <p role="status" className="text-lg">Asking PayPal…</p>}
+    </li>
   );
 }
 

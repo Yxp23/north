@@ -122,6 +122,14 @@ export function markPaid(
   }
 }
 
+/** Mark a buy refunded (and remember when). Safe to call twice. */
+export function markRefunded(data: LedgerData, purchaseId: string, now: Date) {
+  const p = data.purchases.find((x) => x.id === purchaseId);
+  if (!p || p.status === "refunded") return;
+  p.status = "refunded";
+  p.refundedAt = now.toISOString();
+}
+
 /** Apply a verified, parsed webhook. Safe to call twice with the same event. */
 export function applyWebhook(data: LedgerData, ev: ParsedWebhook, now: Date): { changed: boolean; note: string } {
   if (ev.kind === "ignored") return { changed: false, note: `ignored ${ev.eventType}` };
@@ -149,8 +157,7 @@ export function applyWebhook(data: LedgerData, ev: ParsedWebhook, now: Date): { 
     addAudit(data, "webhook_unknown_refund", `refund ${ev.refundId} for ${ev.captureId ?? "unknown capture"}`, now);
     return { changed: false, note: "unknown refund" };
   }
-  p.status = "refunded";
-  p.refundedAt = now.toISOString();
+  markRefunded(data, p.id, now);
   addAudit(data, "webhook_refunded", `${p.id} refund ${ev.refundId}`, now);
   return { changed: true, note: "refunded" };
 }
