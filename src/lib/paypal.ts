@@ -49,7 +49,8 @@ async function call(
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    // A string body is already JSON (used when the exact bytes matter, like webhook verification).
+    body: body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body),
   });
   const text = await res.text();
   let parsed: any = null;
@@ -86,22 +87,55 @@ export function createVaultOrder(amount: string, returnBase: string) {
   });
 }
 
-export const captureOrder = (orderId: string) =>
-  call("POST", `/v2/checkout/orders/${orderId}/capture`, {});
+export const captureOrder = (orderId: string, requestId?: string) =>
+  call("POST", `/v2/checkout/orders/${orderId}/capture`, {}, requestId);
 
 export const getOrder = (orderId: string) => call("GET", `/v2/checkout/orders/${orderId}`);
 
-/** Later purchase with the saved account: no popup. Unconfirmed in the docs, so callers log everything. */
-export function createOrderWithVault(vaultId: string, amount: string) {
-  return call("POST", "/v2/checkout/orders", {
-    intent: "CAPTURE",
-    purchase_units: [{ amount: money(amount), description: "North spike saved-account purchase" }],
-    payment_source: { paypal: { vault_id: vaultId } },
-  });
+/**
+ * Later purchase with the saved account: no popup. Confirmed in sandbox: comes back COMPLETED.
+ * This moves money, so only src/lib/checkout/gateway.ts may call it (a test enforces that),
+ * and that file is only reached after a Guardian approval.
+ */
+export function createOrderWithVault(vaultId: string, amount: string, opts: { customId: string; requestId: string }) {
+  return call(
+    "POST",
+    "/v2/checkout/orders",
+    {
+      intent: "CAPTURE",
+      purchase_units: [
+        {
+          amount: money(amount),
+          description: "North purchase",
+          custom_id: opts.customId, // comes back on the webhook, so we can match the payment
+        },
+      ],
+      payment_source: { paypal: { vault_id: vaultId } },
+    },
+    opts.requestId,
+  );
 }
 
 export const refundCapture = (captureId: string) =>
   call("POST", `/v2/payments/captures/${captureId}/refund`, {});
+
+/**
+ * Ask PayPal whether a webhook really came from PayPal.
+ * Needs the raw body and the paypal-transmission-* headers. Anything but SUCCESS means reject.
+ * The raw text is sent as-is, because PayPal checks the signature against the exact bytes.
+ */
+export async function verifyWebhookSignature(headers: Headers, rawBody: string): Promise<boolean> {
+  const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+  if (!webhookId) throw new Error("PAYPAL_WEBHOOK_ID is not set");
+  const h = (name: string) => headers.get(name) ?? "";
+  const body =
+    `{"auth_algo":${JSON.stringify(h("paypal-auth-algo"))},"cert_url":${JSON.stringify(h("paypal-cert-url"))},` +
+    `"transmission_id":${JSON.stringify(h("paypal-transmission-id"))},"transmission_sig":${JSON.stringify(h("paypal-transmission-sig"))},` +
+    `"transmission_time":${JSON.stringify(h("paypal-transmission-time"))},"webhook_id":${JSON.stringify(webhookId)},` +
+    `"webhook_event":${rawBody}}`;
+  const r = await call("POST", "/v1/notifications/verify-webhook-signature", body);
+  return r.ok && r.body?.verification_status === "SUCCESS";
+}
 
 /** Pull the saved-account token out of a capture or order response. */
 export function extractVault(body: any): { vaultId?: string; customerId?: string; status?: string } {

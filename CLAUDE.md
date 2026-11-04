@@ -4,13 +4,14 @@ North is an AI money helper for adults with cognitive disabilities, built solo f
 
 **Tagline:** "You set the rules. You can override them."
 
-## What it does (the three demo beats, in priority order)
+## What it does (the demo beats, in priority order)
 1. **This week's money:** a picture-first home screen showing the weekly budget, protected rent and bills, and what's left. Every PayPal purchase is tracked automatically through webhooks. Bill reminders are in plain words.
 2. **Your rules, your call:** the user writes rules in their own words ("don't let me buy big stuff late at night"). The AI turns them into structured rules, validates them and reads them back to confirm. Every wait screen offers **Wait** or **Buy now**, so the user can always override. Changing a rule takes one day.
 3. **Scam check + Guardian block:** before paying, compare a deal's price against Channel3's 30-day price history (low/typical/high) and other sellers. A product listing with hidden prompt-injection text tricks the agent, and the Money Guardian (plain code) refuses to pay. An agent activity panel shows each step in plain words.
-4. **If time:** photo reorder. Photo of an empty item, Channel3 image search, top 3 with pictures, one tap, saved PayPal pays. Plus a one-tap refund.
+4. **Supporter view (Sun Nov 8):** a read-only weekly summary the user chooses to share. The supporter can leave a note but can't spend, block or change anything.
+5. **If time:** photo reorder. Photo of an empty item, Channel3 image search, top 3 with pictures, one tap, saved PayPal pays. Plus a one-tap refund.
 
-**Cut, don't build:** Price Watcher agent (keep only "remind me tomorrow"), supporter view, separate fair-price feature.
+**Cut, don't build:** Price Watcher agent (keep only "remind me tomorrow"), separate fair-price feature.
 
 ## Hard rules
 - **Only the Money Guardian can approve a payment.** It's deterministic code with unit tests. No LLM can move money. The checkout code runs only after the Guardian approves.
@@ -59,15 +60,14 @@ Note: the default Next.js `.gitignore` has `.env*`, which also hides `.env.examp
 ## Plan
 | Day | Goal |
 |---|---|
-| Wed Nov 4 | Scaffold. PayPal test page: save on first purchase, charge again with no popup, refund. Channel3 test page: text and photo search. Start price tracking on the demo items. |
-| Thu Nov 5 | Money Guardian (approve, wait or refuse, each with a reason) with full unit tests. Demo store seeded with Channel3 products. |
-| Fri Nov 6 | "This week's money" screen and webhooks (deploy to Vercel or use a tunnel). **Checkpoint:** saved PayPal, the Guardian and webhooks all work end to end. |
-| Sat Nov 7 | Rules in the user's own words, AI to structured rules, read back to confirm, Wait / Buy now screen, one-day change delay. |
-| Sun Nov 8 | Scam check with price history, the injection block, the activity panel, and an eval set (about 30 ads and links plus 10 injection listings). |
-| Mon Nov 9 | Photo reorder, refund, and Agent Toolkit for orders/status if not done yet. **Feature freeze tonight.** |
-| Tue Nov 10 | Accessibility pass, run the evals, deploy, README, fresh-clone test. |
-| Wed Nov 11 | Video and Devpost draft. |
-| Thu Nov 12 | Submit by noon Eastern. |
+| Wed Nov 4 | Home screen ("This week's money") + webhooks + Guardian wired into checkout. |
+| Thu Nov 5 | Rules in the user's own words, AI to structured rules, read back to confirm, Wait / Buy now, one-day change delay. |
+| Fri Nov 6 | Scam check with price history, the injection block, the activity panel, and evals (about 30 ads and links plus 10 injection listings). |
+| Sat Nov 7 | Photo reorder + refund. |
+| Sun Nov 8 | Supporter view: a read-only weekly summary the user chooses to share. The supporter can leave a note but can't spend or block anything. **Feature freeze Sunday night.** |
+| Mon Nov 9 | Accessibility pass, run the evals, deploy, README, fresh-clone test. |
+| Tue Nov 10 | Video and Devpost. |
+| Wed Nov 11 | Buffer, then submit. (Deadline is Thu Nov 12, noon Eastern.) |
 
 ## Working style
 I'm one person on a tight deadline. Do one day's task at a time, keep the code simple and readable, comment the non-obvious parts, and typecheck and build before saying something is done. Tell me plainly when something doesn't work instead of working around it silently.

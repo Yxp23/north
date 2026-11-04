@@ -1,5 +1,6 @@
 "use client";
-// Day-1 spike: save PayPal on the first purchase, charge again with no popup, refund.
+// Spike page: connect PayPal (first purchase saves it) and refund. Saved-account purchases now go
+// through the Guardian at /shop, so the old no-popup button is gone.
 // Throwaway test page. Raw API responses are shown on purpose so we can see what PayPal really returns.
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -89,13 +90,6 @@ export default function PayPalSpike() {
     sessionRef.current.start({ presentationMode: "auto" }, createOrderPromise);
   }
 
-  async function chargeSaved() {
-    addLog("Charging saved PayPal (no popup)...");
-    const r = await post("/api/paypal/charge-saved");
-    addLog(`Saved-account charge (HTTP ${r.status})`, r.json);
-    if (r.json.captureId) setCaptureId(r.json.captureId);
-  }
-
   async function refund() {
     if (!captureId) return;
     const r = await post("/api/paypal/refund", { captureId });
@@ -127,11 +121,8 @@ export default function PayPalSpike() {
         <button className={btn} disabled={!sdkReady} onClick={firstPurchase}>
           1. First purchase $5.00 (popup, saves PayPal)
         </button>
-        <button className={btn} disabled={!saved} onClick={chargeSaved}>
-          2. Buy again $5.00 (no popup)
-        </button>
         <button className={btn} disabled={!captureId} onClick={refund}>
-          3. Refund last purchase
+          2. Refund last purchase
         </button>
         <button className="rounded-lg border px-5 py-3" onClick={forget}>
           Forget saved account
