@@ -58,7 +58,8 @@ export function Connect() {
             const res = await fetch("/api/paypal/vault/payment-token", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ vaultSetupToken: token }),
+              // receivedKeys: field NAMES only, so a failure can be diagnosed from the server log.
+              body: JSON.stringify({ vaultSetupToken: token, receivedKeys: Object.keys(data ?? {}) }),
             });
             setState(res.ok ? "connected" : "error");
           },

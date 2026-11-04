@@ -56,6 +56,23 @@ describe("Supabase specifics", () => {
     }
   });
 
+  it("the secret key (service role) can read and write every table, including the audit_log id counter", async () => {
+    const uid = randomUUID();
+    await new SupabaseLedger(pgRpc(db), uid, "UTC", clock).read(); // creates the user
+    await db.exec("set role service_role");
+    try {
+      for (const t of ["users", "rules", "purchases", "audit_log", "webhook_events"]) {
+        await expect(db.query(`select count(*) from public.${t}`)).resolves.toBeDefined();
+      }
+      await db.query("insert into public.audit_log (user_id, type, detail) values ($1, 't', 'd')", [uid]);
+      await db.query("insert into public.webhook_events (event_id, user_id) values ($1, $2)", [`WH-${uid}`, uid]);
+      await db.query("update public.users set display_name = 'x' where id = $1", [uid]);
+      await db.query("delete from public.audit_log where user_id = $1", [uid]);
+    } finally {
+      await db.exec("reset role");
+    }
+  });
+
   it("rules are stored as versions with an effective_at 24 hours after the change", async () => {
     const uid = randomUUID();
     const l = new SupabaseLedger(pgRpc(db), uid, "America/New_York", clock);

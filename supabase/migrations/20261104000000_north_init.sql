@@ -1,6 +1,7 @@
 -- North: database schema.
 --
 -- How to apply: open your Supabase project > SQL Editor > New query, paste this whole file, Run.
+-- THEN run 20261104000100_north_grants.sql the same way (new Supabase projects need explicit GRANTs).
 -- (Or with the Supabase CLI: `supabase db push`.) Safe to read first; it only creates new things.
 --
 -- Security model:

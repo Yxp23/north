@@ -38,7 +38,7 @@ async function call(
   path: string,
   body?: unknown,
   requestId?: string,
-  quiet = false, // true: log only the status (the body holds a saved-account token)
+  quiet = false, // true: do not log a SUCCESS body (it holds a saved-account token)
 ): Promise<PayPalResult> {
   const token = await getAccessToken();
   const headers: Record<string, string> = {
@@ -60,7 +60,8 @@ async function call(
   } catch {
     parsed = text;
   }
-  console.log(`[paypal] ${method} ${path} -> ${res.status}`, quiet ? "(body not logged)" : JSON.stringify(parsed));
+  // Success bodies can hold a saved-account token, so those are never logged. Error bodies hold no token, and we need them.
+  console.log(`[paypal] ${method} ${path} -> ${res.status}`, quiet && res.ok ? "(body not logged)" : JSON.stringify(parsed));
   return { ok: res.ok, status: res.status, body: parsed };
 }
 
