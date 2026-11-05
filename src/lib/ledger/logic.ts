@@ -1,8 +1,9 @@
 // Ledger rules: pure functions over LedgerData (no files, no network).
 import type { ParsedWebhook } from "../paypal-webhook";
 import type { Rules, UserState } from "../guardian";
-import type { AuditEntry, HomeSummary, LedgerData, PurchaseRecord, StoredChangeable, StoredRules } from "./types";
+import type { AuditEntry, HomeSummary, LedgerData, PurchaseRecord, StoredChangeable, StoredRules, WaitingItem, WaitingView } from "./types";
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- upgradeLedgerData reads old, loosely shaped data */
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The starting demo state. Rules look 30 days old, so they are fully in effect. */
@@ -16,14 +17,29 @@ export function defaultLedgerData(now: Date, timeZone: string): LedgerData {
     weeklyBudgetCents: 40_000, // $400.00 a week
     timeZone,
     rules: {
-      waitOverCents: settled(5000), // wait on buys over $50.00
-      waitAfterHour: settled({ afterHour: 22, untilHour: 5 }), // wait from 10 PM to 5 AM
+      // Demo rules: wait on buys over $50.00 (gentle), and wait on buys after 9 PM (firm, a day).
+      waitOverCents: settled({ cents: 5000, strength: "gentle" as const }),
+      waitAfterHour: settled({ afterHour: 21, untilHour: 5, strength: "firm" as const, waitHours: 24 }),
       essentials: settled(["household", "personal care", "groceries", "medicine"]),
     },
     purchases: [],
+    waitingList: [],
     webhookEventIds: [],
     audit: [],
   };
+}
+
+/** Fill in what older saved data lacks (a waiting list, rule strength), so a dev file from before still works. */
+export function upgradeLedgerData(d: LedgerData): LedgerData {
+  d.waitingList ??= [];
+  const up = (r: StoredChangeable<any>) => {
+    const fix = (v: any) => (typeof v === "number" ? { cents: v, strength: "gentle" } : v && v.strength === undefined && !Array.isArray(v) ? { ...v, strength: "gentle" } : v);
+    r.value = fix(r.value);
+    r.previous = fix(r.previous);
+  };
+  up(d.rules.waitOverCents);
+  up(d.rules.waitAfterHour);
+  return d;
 }
 
 // ---- dates -----------------------------------------------------------------
@@ -79,6 +95,22 @@ export function buildUserState(data: LedgerData, now: Date): UserState {
   };
 }
 
+/** The "Buy now" taps this week, from the audit log. */
+export function buyNowThisWeek(data: LedgerData, now: Date): number {
+  const start = weekStartDate(now, data.timeZone);
+  return data.audit.filter((a) => a.type === "override" && localDate(new Date(a.at), data.timeZone) >= start).length;
+}
+
+/** The waiting-list entry for a product that is still waiting (there is at most one). */
+export function activeWaiting(data: LedgerData, productId: string): WaitingItem | undefined {
+  return data.waitingList.find((w) => w.productId === productId && w.status === "waiting");
+}
+
+export const waitingView = (w: WaitingItem, now: Date): WaitingView => ({
+  id: w.id, productId: w.productId, name: w.name, imageUrl: w.imageUrl, amountCents: w.amountCents,
+  remindAt: w.remindAt, ready: now.getTime() >= new Date(w.remindAt).getTime(),
+});
+
 export function summarize(data: LedgerData, now: Date): HomeSummary {
   const spent = spentThisWeekCents(data, now);
   const spendable = balanceCents(data) - data.protectedCents;
@@ -92,6 +124,11 @@ export function summarize(data: LedgerData, now: Date): HomeSummary {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, 10)
       .map((p) => ({ id: p.id, name: p.name, imageUrl: p.imageUrl, amountCents: p.amountCents, status: p.status, at: p.createdAt })),
+    waitingList: data.waitingList
+      .filter((w) => w.status === "waiting")
+      .sort((a, b) => a.remindAt.localeCompare(b.remindAt))
+      .map((w) => waitingView(w, now)),
+    buyNowThisWeek: buyNowThisWeek(data, now),
   };
 }
 

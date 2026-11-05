@@ -11,8 +11,8 @@ const state: UserState = {
   spentThisWeekCents: 0,
   timeZone: "UTC",
   rules: {
-    waitOverCents: settled(5000),
-    waitAfterHour: settled({ afterHour: 22, untilHour: 5 }),
+    waitOverCents: settled({ cents: 5000, strength: "gentle" as const }),
+    waitAfterHour: settled({ afterHour: 22, untilHour: 5, strength: "gentle" as const }),
     essentials: settled(["household"]),
   },
 };

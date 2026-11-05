@@ -2,8 +2,8 @@
 // The database keeps each rule as dated VERSIONS (see the migration); the Guardian wants
 // { value, changedAt, previous }. These functions translate between the two.
 import { RULE_DELAY_MS } from "../guardian/rules";
-import type { LateNightWindow } from "../guardian";
-import type { AuditEntry, LedgerData, PurchaseRecord, StoredChangeable, StoredRules } from "./types";
+import type { BigBuyRule, LateNightRule, RuleId } from "../guardian";
+import type { AuditEntry, LedgerData, PurchaseRecord, StoredChangeable, StoredRules, WaitingItem } from "./types";
 
 // ---- row shapes (what ledger_load returns / ledger_apply takes) ------------------------------
 
@@ -19,13 +19,18 @@ export type PurchaseRow = {
   refunded_at: Ts | null; paypal_order_id: string | null; capture_id: string | null; paid_via: "checkout" | "webhook" | null;
   webhook_confirmed_at: Ts | null; overrode_wait: boolean; decision_code: string; failure_reason: string | null;
 };
+export type WaitingRow = {
+  id: string; product_id: string; name: string; category: string; image_url: string; amount_cents: number; currency: string;
+  created_at: Ts; remind_at: Ts; wait_hours: number; rules: RuleId[]; status: WaitingItem["status"]; purchase_id: string | null;
+};
 export type Snapshot = {
-  user: UserRow; rules: RuleRow[]; purchases: PurchaseRow[];
+  user: UserRow; rules: RuleRow[]; purchases: PurchaseRow[]; waiting_list: WaitingRow[];
   audit: { at: Ts; type: string; detail: string }[]; webhook_event_ids: string[];
 };
 export type Changes = {
   user?: Record<string, unknown>;
   purchases?: PurchaseRow[];
+  waiting_list?: WaitingRow[];
   audit?: { at: string; type: string; detail: string }[];
   webhook_event_ids?: string[];
   rules?: Required<Pick<RuleRow, "kind" | "enabled" | "params" | "created_at" | "effective_at">>[];
@@ -42,14 +47,19 @@ const RULES = [
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- params is free-form jsonb; each kind reads its own shape */
 function toParams(kind: RuleKind, value: any): unknown {
-  if (kind === "wait_over_amount") return { cents: value };
   if (kind === "essentials") return { categories: value };
-  return { afterHour: (value as LateNightWindow).afterHour, untilHour: (value as LateNightWindow).untilHour };
+  const strength = value.strength ?? "gentle";
+  const wait = value.waitHours ? { waitHours: value.waitHours } : {}; // firm only
+  if (kind === "wait_over_amount") return { cents: value.cents, strength, ...wait };
+  return { afterHour: value.afterHour, untilHour: value.untilHour, strength, ...wait };
 }
+/** Rows saved before rule strength existed have no "strength": they were all gentle. */
 function fromParams(kind: RuleKind, params: any): any {
-  if (kind === "wait_over_amount") return params.cents;
   if (kind === "essentials") return params.categories;
-  return { afterHour: params.afterHour, untilHour: params.untilHour };
+  const strength = params.strength ?? "gentle";
+  const wait = params.waitHours ? { waitHours: params.waitHours } : {};
+  if (kind === "wait_over_amount") return { cents: params.cents, strength, ...wait } satisfies BigBuyRule;
+  return { afterHour: params.afterHour, untilHour: params.untilHour, strength, ...wait } satisfies LateNightRule;
 }
 
 const iso = (v: string | Date) => new Date(v).toISOString();
@@ -93,7 +103,22 @@ function purchaseFromRow(r: PurchaseRow): PurchaseRecord {
   return p;
 }
 
+function waitingFromRow(r: WaitingRow): WaitingItem {
+  const w: WaitingItem = {
+    id: r.id, productId: r.product_id, name: r.name, category: r.category, imageUrl: r.image_url, amountCents: Number(r.amount_cents),
+    currency: r.currency, createdAt: iso(r.created_at), remindAt: iso(r.remind_at), waitHours: Number(r.wait_hours),
+    rules: r.rules, status: r.status,
+  };
+  if (r.purchase_id) w.purchaseId = r.purchase_id;
+  return w;
+}
+
 export function fromSnapshot(s: Snapshot): { data: LedgerData; version: number } {
+  // An older ledger_load has no waiting_list. Its ledger_apply would also silently DROP waiting-list items,
+  // so refuse to run at all until the database is up to date.
+  if (!Array.isArray(s.waiting_list)) {
+    throw new Error("The database is out of date. Run supabase/migrations/20261105000000_north_rule_strength.sql in the Supabase SQL Editor.");
+  }
   const u = s.user;
   const data: LedgerData = {
     version: 1,
@@ -107,6 +132,7 @@ export function fromSnapshot(s: Snapshot): { data: LedgerData; version: number }
       essentials: ruleFromVersions("essentials", s.rules),
     },
     purchases: s.purchases.map(purchaseFromRow),
+    waitingList: s.waiting_list.map(waitingFromRow),
     webhookEventIds: [...s.webhook_event_ids].reverse(), // the database sends newest first
     audit: s.audit.map((a): AuditEntry => ({ at: iso(a.at), type: a.type, detail: a.detail })),
   };
@@ -136,7 +162,8 @@ export function ledgerSeed(d: LedgerData) {
     }),
   };
 }
-const emptyValue = (kind: RuleKind) => (kind === "wait_over_amount" ? 0 : kind === "essentials" ? [] : { afterHour: 0, untilHour: 0 });
+const emptyValue = (kind: RuleKind) =>
+  kind === "wait_over_amount" ? { cents: 0, strength: "gentle" } : kind === "essentials" ? [] : { afterHour: 0, untilHour: 0, strength: "gentle" };
 
 function purchaseToRow(p: PurchaseRecord): PurchaseRow {
   return {
@@ -145,6 +172,14 @@ function purchaseToRow(p: PurchaseRecord): PurchaseRow {
     refunded_at: p.refundedAt ?? null, paypal_order_id: p.paypalOrderId ?? null, capture_id: p.captureId ?? null,
     paid_via: p.paidVia ?? null, webhook_confirmed_at: p.webhookConfirmedAt ?? null, overrode_wait: p.overrodeWait,
     decision_code: p.decisionCode, failure_reason: p.failureReason ?? null,
+  };
+}
+
+function waitingToRow(w: WaitingItem): WaitingRow {
+  return {
+    id: w.id, product_id: w.productId, name: w.name, category: w.category, image_url: w.imageUrl, amount_cents: w.amountCents,
+    currency: w.currency, created_at: w.createdAt, remind_at: w.remindAt, wait_hours: w.waitHours, rules: w.rules,
+    status: w.status, purchase_id: w.purchaseId ?? null,
   };
 }
 
@@ -173,6 +208,13 @@ export function diffChanges(before: LedgerData, after: LedgerData): Changes | nu
   }
   const purchases = after.purchases.filter((p) => !same(old.get(p.id), p)).map(purchaseToRow);
   if (purchases.length) c.purchases = purchases;
+
+  const oldWaiting = new Map(before.waitingList.map((w) => [w.id, w]));
+  for (const id of oldWaiting.keys()) {
+    if (!after.waitingList.some((w) => w.id === id)) throw new Error(`A waiting-list item (${id}) can't be deleted`);
+  }
+  const waiting = after.waitingList.filter((w) => !same(oldWaiting.get(w.id), w)).map(waitingToRow);
+  if (waiting.length) c.waiting_list = waiting;
 
   const seen = new Set(before.audit.map(auditKey));
   const audit = after.audit.filter((a) => !seen.has(auditKey(a)));

@@ -1,6 +1,6 @@
 // Storage for the ledger. Today it is a JSON file (and memory for tests).
 // A Supabase version can replace it later by implementing the same `Ledger` interface.
-import { defaultLedgerData } from "./logic";
+import { defaultLedgerData, upgradeLedgerData } from "./logic";
 import type { LedgerData } from "./types";
 
 export interface Ledger {
@@ -30,6 +30,21 @@ export function assertValid(data: LedgerData) {
     ids.add(p.id);
     attempts.add(p.attemptId);
   }
+  const waitingIds = new Set<string>();
+  const waitingProducts = new Set<string>();
+  for (const w of data.waitingList) {
+    if (waitingIds.has(w.id)) throw new Error(`Two waiting-list items share the id ${w.id}`);
+    waitingIds.add(w.id);
+    if (w.status !== "waiting") continue;
+    if (waitingProducts.has(w.productId)) throw new Error(`${w.productId} is already on the waiting list`);
+    waitingProducts.add(w.productId);
+  }
+}
+
+/** History is never erased: purchases and waiting-list items can change status, but not disappear. */
+export function assertNoDeletes(before: LedgerData, after: LedgerData) {
+  for (const p of before.purchases) if (!after.purchases.some((x) => x.id === p.id)) throw new Error(`A purchase (${p.id}) can't be deleted`);
+  for (const w of before.waitingList) if (!after.waitingList.some((x) => x.id === w.id)) throw new Error(`A waiting-list item (${w.id}) can't be deleted`);
 }
 
 export abstract class LockedLedger implements Ledger {
@@ -40,7 +55,8 @@ export abstract class LockedLedger implements Ledger {
   constructor(protected readonly timeZone: string, protected readonly clock: () => Date = () => new Date()) {}
 
   private async loadOrCreate(): Promise<LedgerData> {
-    return (await this.load()) ?? defaultLedgerData(this.clock(), this.timeZone);
+    const saved = await this.load();
+    return saved ? upgradeLedgerData(saved) : defaultLedgerData(this.clock(), this.timeZone);
   }
 
   read() {
@@ -50,8 +66,10 @@ export abstract class LockedLedger implements Ledger {
   update<T>(change: (data: LedgerData) => T | Promise<T>): Promise<T> {
     return withLock(this.lockKey, async () => {
       const data = await this.loadOrCreate();
+      const before = structuredClone(data);
       const out = await change(data); // if this throws, nothing is saved
       assertValid(data);
+      assertNoDeletes(before, data);
       await this.save(data);
       return out;
     });

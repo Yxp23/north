@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
 import { setDemoHour, useDemoHour } from "@/lib/demo-hour";
 import { formatMoney } from "@/lib/format";
-import type { HomeSummary, PurchaseStatus, PurchaseView } from "@/lib/ledger/types";
+import type { HomeSummary, PurchaseStatus, PurchaseView, WaitingView } from "@/lib/ledger/types";
 
 type Summary = HomeSummary & { paypalSaved: boolean; demoMode: boolean };
 
@@ -94,6 +94,17 @@ export function Home() {
 
       <Link href="/shop" className={btnPrimary}>Shop for something</Link>
 
+      {data.waitingList.length > 0 && (
+        <section aria-labelledby="waiting-h" className="space-y-3">
+          <h2 id="waiting-h" className="text-2xl font-bold">Waiting list</h2>
+          <ul className="space-y-3">
+            {data.waitingList.map((w) => (
+              <WaitingRow key={w.id} w={w} />
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section aria-labelledby="buys-h" className="space-y-3">
         <h2 id="buys-h" className="text-2xl font-bold">Your last buys</h2>
         {data.purchases.length === 0 ? (
@@ -109,6 +120,31 @@ export function Home() {
 
       {data.demoMode && <DemoTools onChange={load} />}
     </div>
+  );
+}
+
+// One saved buy. Waiting until the wait is over; then it can be bought like any other buy.
+function WaitingRow({ w }: { w: WaitingView }) {
+  const when = new Date(w.remindAt).toLocaleString("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" });
+  return (
+    <li className={`${card} space-y-3`}>
+      <div className="flex items-center gap-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={w.imageUrl} alt="" className="h-20 w-20 shrink-0 rounded-xl bg-white object-contain" />
+        <div className="min-w-0 flex-1">
+          <p className="text-lg font-semibold">{w.name}</p>
+          <p className="text-lg">{formatMoney(w.amountCents)}</p>
+          <p className="mt-1 inline-block rounded-full bg-warn-bg px-3 py-1 text-base font-semibold text-warn-ink">
+            {w.ready ? "Ready. You can buy it." : `I'll remind you. Ready ${when}.`}
+          </p>
+        </div>
+      </div>
+      {w.ready && (
+        <Link href={`/shop/${w.productId}`} className={btnPrimary}>
+          Look at it again
+        </Link>
+      )}
+    </li>
   );
 }
 

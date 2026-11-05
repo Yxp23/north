@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decide, type Purchase, type Rules, type UserState } from "./index";
+import { decide, type BigBuyRule, type LateNightRule, type Purchase, type Rules, type Strength, type UserState } from "./index";
 
 // ---- helpers -------------------------------------------------------------
 // All money is in whole cents. All times are UTC unless a test says otherwise.
@@ -7,13 +7,16 @@ import { decide, type Purchase, type Rules, type UserState } from "./index";
 const NOW = new Date("2026-11-05T15:00:00Z"); // 3 PM UTC
 const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 60 * 60 * 1000);
 
+const big = (cents: number, strength: Strength = "gentle", waitHours?: number): BigBuyRule => ({ cents, strength, waitHours });
+const late = (afterHour: number, untilHour: number, strength: Strength = "gentle", waitHours?: number): LateNightRule => ({ afterHour, untilHour, strength, waitHours });
+
 /** A rule that has been in place for a long time (the normal case). */
 const settled = <T>(value: T) => ({ value, changedAt: hoursAgo(24 * 30), previous: null as T | null });
 
 function makeRules(over: Partial<Rules> = {}): Rules {
   return {
-    waitOverCents: settled(5000), // wait on buys over $50.00
-    waitAfterHour: settled({ afterHour: 22, untilHour: 5 }), // wait from 10 PM to 5 AM
+    waitOverCents: settled(big(5000)), // wait on buys over $50.00
+    waitAfterHour: settled(late(22, 5)), // wait from 10 PM to 5 AM
     essentials: settled(["groceries", "medicine"]),
     ...over,
   };
@@ -189,7 +192,7 @@ describe("wait on late-night buys", () => {
 
   it("handles a window that does not cross midnight", () => {
     const state = makeState({
-      rules: makeRules({ waitAfterHour: settled({ afterHour: 1, untilHour: 5 }) }),
+      rules: makeRules({ waitAfterHour: settled(late(1, 5)) }),
     });
     expect(decide(makePurchase({ at: at("2026-11-05T02:00:00Z") }), state).decision).toBe("wait");
     expect(decide(makePurchase({ at: at("2026-11-05T23:00:00Z") }), state).decision).toBe("approve");
@@ -249,14 +252,14 @@ describe("big buy at night", () => {
 describe("a changed rule waits 24 hours", () => {
   it("a brand-new wait rule added 23 hours ago does not apply yet", () => {
     const state = makeState({
-      rules: makeRules({ waitOverCents: { value: 5000, changedAt: hoursAgo(23), previous: null } }),
+      rules: makeRules({ waitOverCents: { value: big(5000), changedAt: hoursAgo(23), previous: null } }),
     });
     expect(decide(makePurchase({ amountCents: 9000 }), state).decision).toBe("approve");
   });
 
   it("a rule changed 24 hours ago does apply", () => {
     const state = makeState({
-      rules: makeRules({ waitOverCents: { value: 5000, changedAt: hoursAgo(24), previous: null } }),
+      rules: makeRules({ waitOverCents: { value: big(5000), changedAt: hoursAgo(24), previous: null } }),
     });
     expect(decide(makePurchase({ amountCents: 9000 }), state).decision).toBe("wait");
   });
@@ -264,21 +267,21 @@ describe("a changed rule waits 24 hours", () => {
   it("loosening a limit 23 hours ago keeps the old, stricter limit", () => {
     // Was: wait over $50. Changed to: wait over $200. Not in effect yet.
     const state = makeState({
-      rules: makeRules({ waitOverCents: { value: 20_000, changedAt: hoursAgo(23), previous: 5000 } }),
+      rules: makeRules({ waitOverCents: { value: big(20_000), changedAt: hoursAgo(23), previous: big(5000) } }),
     });
     expect(decide(makePurchase({ amountCents: 9000 }), state).decision).toBe("wait");
   });
 
   it("loosening a limit 25 hours ago uses the new limit", () => {
     const state = makeState({
-      rules: makeRules({ waitOverCents: { value: 20_000, changedAt: hoursAgo(25), previous: 5000 } }),
+      rules: makeRules({ waitOverCents: { value: big(20_000), changedAt: hoursAgo(25), previous: big(5000) } }),
     });
     expect(decide(makePurchase({ amountCents: 9000 }), state).decision).toBe("approve");
   });
 
   it("turning a rule off 23 hours ago does not turn it off yet", () => {
     const state = makeState({
-      rules: makeRules({ waitOverCents: { value: null, changedAt: hoursAgo(23), previous: 5000 } }),
+      rules: makeRules({ waitOverCents: { value: null, changedAt: hoursAgo(23), previous: big(5000) } }),
     });
     expect(decide(makePurchase({ amountCents: 9000 }), state).decision).toBe("wait");
   });
@@ -289,9 +292,9 @@ describe("a changed rule waits 24 hours", () => {
       rules: makeRules({
         // New hours would start at 11 PM. Old hours started at 10 PM.
         waitAfterHour: {
-          value: { afterHour: 23, untilHour: 5 },
+          value: late(23, 5),
           changedAt: new Date(buyAt.getTime() - 23 * 3600_000), // 23 hours before the purchase
-          previous: { afterHour: 22, untilHour: 5 },
+          previous: late(22, 5),
         },
       }),
     });

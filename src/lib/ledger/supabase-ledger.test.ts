@@ -27,7 +27,7 @@ describe("Supabase specifics", () => {
     const t = await db.query<{ relname: string; relrowsecurity: boolean }>(
       `select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' order by relname`,
     );
-    expect(t.rows.map((r) => r.relname)).toEqual(["audit_log", "purchases", "rules", "users", "webhook_events"]);
+    expect(t.rows.map((r) => r.relname)).toEqual(["audit_log", "purchases", "rules", "users", "waiting_list", "webhook_events"]);
     expect(t.rows.every((r) => r.relrowsecurity)).toBe(true);
     const policies = await db.query(`select 1 from pg_policies where schemaname = 'public'`);
     expect(policies.rows).toHaveLength(0);
@@ -61,7 +61,7 @@ describe("Supabase specifics", () => {
     await new SupabaseLedger(pgRpc(db), uid, "UTC", clock).read(); // creates the user
     await db.exec("set role service_role");
     try {
-      for (const t of ["users", "rules", "purchases", "audit_log", "webhook_events"]) {
+      for (const t of ["users", "rules", "purchases", "waiting_list", "audit_log", "webhook_events"]) {
         await expect(db.query(`select count(*) from public.${t}`)).resolves.toBeDefined();
       }
       await db.query("insert into public.audit_log (user_id, type, detail) values ($1, 't', 'd')", [uid]);
@@ -77,14 +77,14 @@ describe("Supabase specifics", () => {
     const uid = randomUUID();
     const l = new SupabaseLedger(pgRpc(db), uid, "America/New_York", clock);
     const changedAt = "2026-11-04T10:00:00.000Z";
-    await l.update((d) => void (d.rules.waitOverCents = { value: 20_000, changedAt, previous: 5000 }));
+    await l.update((d) => void (d.rules.waitOverCents = { value: { cents: 20_000, strength: "gentle" }, changedAt, previous: { cents: 5000, strength: "gentle" } }));
     const rows = await db.query<{ enabled: boolean; params: { cents?: number }; created_at: Date; effective_at: Date }>(
       `select enabled, params, created_at, effective_at from public.rules where user_id = $1 and kind = 'wait_over_amount' order by effective_at`,
       [uid],
     );
     expect(rows.rows).toHaveLength(2); // the starting rule, then the change
-    expect(rows.rows[0].params).toEqual({ cents: 5000 });
-    expect(rows.rows[1].params).toEqual({ cents: 20_000 });
+    expect(rows.rows[0].params).toEqual({ cents: 5000, strength: "gentle" });
+    expect(rows.rows[1].params).toEqual({ cents: 20_000, strength: "gentle" });
     expect(rows.rows[1].created_at.toISOString()).toBe(changedAt);
     expect(rows.rows[1].effective_at.toISOString()).toBe("2026-11-05T10:00:00.000Z");
   });
@@ -141,6 +141,22 @@ describe("Supabase specifics", () => {
     );
     await expect(busy.update((d) => void (d.baseBalanceCents += 1))).rejects.toThrow(/busy/);
   }, 20_000);
+
+  it("refuses to run against a database that has not had the latest migration (it would drop waiting-list items)", async () => {
+    const raw = pgRpc(db);
+    const old = new SupabaseLedger(
+      {
+        rpc: async (fn, args) => {
+          const r = await raw.rpc(fn, args);
+          if (fn === "ledger_load" && r.data) delete (r.data as Record<string, unknown>).waiting_list; // what the old function returned
+          return r;
+        },
+      },
+      randomUUID(), "UTC", clock,
+    );
+    await expect(old.read()).rejects.toThrow(/out of date.*20261105000000_north_rule_strength/);
+    await expect(old.update(() => undefined)).rejects.toThrow(/out of date/);
+  });
 
   it("reports a database error without hiding it", async () => {
     const bad = new SupabaseLedger({ rpc: async () => ({ data: null, error: { message: "boom" } }) }, randomUUID(), "UTC", clock);

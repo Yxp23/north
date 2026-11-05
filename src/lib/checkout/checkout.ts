@@ -4,10 +4,10 @@
 // approval (see guardian/approval.ts). The price always comes from the store, never from the caller.
 // Money is reserved (a "pending" buy) in the same locked step as the decision, so two quick taps
 // can't both spend the same money.
-import { requestApproval, withApproval, type Approval, type GuardianResult } from "../guardian";
+import { requestApproval, withApproval, type Approval, type GuardianResult, type RuleId } from "../guardian";
 import type { Ledger } from "../ledger/ledger";
-import { addAudit, buildUserState, markPaid } from "../ledger/logic";
-import type { PurchaseRecord, PurchaseView } from "../ledger/types";
+import { activeWaiting, addAudit, buildUserState, markPaid, waitingView } from "../ledger/logic";
+import type { PurchaseRecord, PurchaseView, WaitingView } from "../ledger/types";
 import type { StoreProvider } from "../store";
 
 export type ChargeArgs = {
@@ -50,7 +50,11 @@ export type CheckoutInput = {
 
 export type CheckoutOutcome =
   | { kind: "paid"; purchase: PurchaseView; result?: GuardianResult }
+  /** Gentle rule: Wait, or buy now? */
   | { kind: "wait"; result: GuardianResult }
+  /** Firm rule: saved on the waiting list. No Buy now. */
+  | { kind: "waitlisted"; result: GuardianResult; item: WaitingView }
+  /** A hard wall or a locked rule. Never an override. */
   | { kind: "refused"; result: GuardianResult }
   | { kind: "needs_paypal"; result: GuardianResult }
   | { kind: "failed"; message: string; purchase?: PurchaseView }
@@ -63,7 +67,10 @@ const view = (p: PurchaseRecord): PurchaseView => ({
 
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
-type Gate = { early: CheckoutOutcome } | { approval: Approval; purchaseId: string };
+const RULE_LABEL: Record<RuleId, string> = { big_buy: "wait on big buys", late_night: "wait on late-night buys" };
+const ruleList = (ids: RuleId[]) => `${ids.length > 1 ? "rules" : "rule"}: ${ids.map((id) => `${RULE_LABEL[id]} (${id})`).join(", ")}`;
+
+type Gate = { early: CheckoutOutcome } | { approval: Approval; purchaseId: string; waitingId?: string };
 
 export async function checkout(input: CheckoutInput, deps: CheckoutDeps): Promise<CheckoutOutcome> {
   const product = await deps.store.getProduct(input.productId);
@@ -82,18 +89,44 @@ export async function checkout(input: CheckoutInput, deps: CheckoutDeps): Promis
       return { early: { kind: "failed", message: existing.failureReason ?? "That did not go through.", purchase: view(existing) } };
     }
 
+    // Was this product saved on the waiting list earlier? Then its wait counts (from OUR record, never the browser).
+    const waiting = activeWaiting(data, product.id);
+
     const { result, approval } = requestApproval(
-      { amountCents: product.priceCents, item: product.name, category: product.category, at, overrideWait: input.overrideWait },
+      {
+        amountCents: product.priceCents, item: product.name, category: product.category, at, overrideWait: input.overrideWait,
+        waitlist: waiting ? { since: new Date(waiting.createdAt), waitHours: waiting.waitHours } : undefined,
+      },
       buildUserState(data, now),
     );
     addAudit(data, "decision", `${product.name} ${dollars(product.priceCents)}: ${result.decision} (${result.code})`, now);
 
     if (!approval) {
+      if (result.decision === "waitlist") {
+        // Firm rule: save it (once), don't charge. If it is already saved, say when it will be ready.
+        let item = waiting;
+        if (!item) {
+          item = {
+            id: `wait_${deps.newId().replace(/^pur_/, "")}`, productId: product.id, name: product.name, category: product.category,
+            imageUrl: product.imageUrl, amountCents: product.priceCents, currency: product.currency,
+            createdAt: at.toISOString(), // the same clock the Guardian used, so the wait is measured on it (the real time, outside demo mode)
+            remindAt: (result.remindAt ?? now).toISOString(), waitHours: result.waitHours ?? 24, rules: result.triggered, status: "waiting",
+          };
+          data.waitingList.push(item);
+          addAudit(data, "waitlisted", `${product.name} ${dollars(product.priceCents)}: saved, remind ${item.remindAt}`, now);
+        }
+        return { early: { kind: "waitlisted", result, item: waitingView(item, now) } };
+      }
       return { early: result.decision === "wait" ? { kind: "wait", result } : { kind: "refused", result } };
     }
     if (!vaultId) {
       addAudit(data, "needs_paypal", "approved, but no saved PayPal", now);
       return { early: { kind: "needs_paypal", result } };
+    }
+
+    // Every "Buy now" is logged: what, how much, which rule. (The home screen counts these.)
+    if (result.overridden) {
+      addAudit(data, "override", `Buy now: ${product.name}, ${dollars(product.priceCents)}, ${ruleList(result.overriddenRules)}`, now);
     }
 
     const purchaseId = deps.newId();
@@ -102,7 +135,12 @@ export async function checkout(input: CheckoutInput, deps: CheckoutDeps): Promis
       imageUrl: product.imageUrl, amountCents: product.priceCents, currency: product.currency, status: "pending",
       createdAt: now.toISOString(), overrodeWait: result.overridden, decisionCode: result.code,
     });
-    return { approval, purchaseId };
+    // Claim the waiting-list item right away, so a second tap can't buy it twice.
+    if (waiting) {
+      waiting.status = "bought";
+      waiting.purchaseId = purchaseId;
+    }
+    return { approval, purchaseId, waitingId: waiting?.id };
   });
 
   if ("early" in gate) return gate.early;
@@ -135,6 +173,12 @@ export async function checkout(input: CheckoutInput, deps: CheckoutDeps): Promis
     if (p.status === "pending") {
       p.status = "failed";
       p.failureReason = charged.error;
+      // The charge failed, so the saved item goes back on the waiting list.
+      const w = data.waitingList.find((x) => x.id === gate.waitingId);
+      if (w && w.purchaseId === p.id) {
+        w.status = "waiting";
+        w.purchaseId = undefined;
+      }
     }
     addAudit(data, "charge_failed", `${p.id}: ${charged.error}`, now);
     return p.status === "paid"

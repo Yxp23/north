@@ -6,7 +6,7 @@ North is an AI money helper for adults with cognitive disabilities, built solo f
 
 ## What it does (the demo beats, in priority order)
 1. **This week's money:** a picture-first home screen showing the weekly budget, protected rent and bills, and what's left. Every PayPal purchase is tracked automatically through webhooks. Bill reminders are in plain words.
-2. **Your rules, your call:** the user writes rules in their own words ("don't let me buy big stuff late at night"). The AI turns them into structured rules, validates them and reads them back to confirm. Every wait screen offers **Wait** or **Buy now**, so the user can always override. Changing a rule takes one day.
+2. **Your rules, your call:** the user writes rules in their own words ("don't let me buy big stuff late at night"). The AI turns them into structured rules, validates them and reads them back to confirm. Each wait rule gets a **strength** the user picks when making it (gentle, firm or locked: see "Guardian rule strength"). Changing a rule takes one day.
 3. **Scam check + Guardian block:** before paying, compare a deal's price against Channel3's 30-day price history (low/typical/high) and other sellers. A product listing with hidden prompt-injection text tricks the agent, and the Money Guardian (plain code) refuses to pay. An agent activity panel shows each step in plain words.
 4. **Money to a person (Sun Nov 8):** sending money to a person goes through the Guardian with its own rules. AI reads the request message for warning signs (secrecy, rush, someone new). "Ask my supporter first" is a button on the decision screen (no separate supporter screen). The supporter can't spend, block or change anything.
 5. **Also planned:** "Money in real things" (Sat): prices as user-chosen everyday items ("$72 = about 6 lunches") and tap-to-hear on every screen. Photo reorder (Sat). Photo of an empty item, Channel3 image search, top 3 with pictures, one tap, saved PayPal pays. Plus a one-tap refund.
@@ -22,6 +22,20 @@ North is an AI money helper for adults with cognitive disabilities, built solo f
 - **Plain language:** about a 5th-grade reading level. One decision per screen, big tap targets, undo, no timers, WCAG 2.2 AA.
 - **No real brand names or logos** in demo data or the video (contest rule).
 - The client secret and API keys are server-only. `.env.local` is never committed.
+
+## Guardian rule strength (built Nov 4; the UI to pick it is on the rules day)
+Each wait rule (wait on buys over $X, wait on buys after an hour) has a strength the user chooses when they make it. Strength is stored inside the rule (`rules.params.strength`, plus `waitHours` for firm), so changing it is a rule change and takes one day like any other.
+- **Gentle:** "You asked me to wait on big buys. Wait, or buy now?" Buy now works right away.
+- **Firm:** no Buy now today. The buy goes on the **waiting list**: "You asked me to wait a day on buys after 9pm. I saved it. I'll remind you tomorrow." The wait is 24 hours by default, set per rule. After the wait it is a normal buy, still checked against the budget and protected money. A saved item **keeps its own timer**: it can't be bought until its full wait has passed, whatever the time of day (at noon after an 11pm save it is still "not time yet"), and Buy now does not shorten it. Tapping Buy on the same product again after the wait buys it.
+- **Locked:** never, while the rule is on: "You said never buy this kind of thing. To change that, edit your rule. It takes a day." No override, ever. The only ways around it: the one-day rule-change delay (the old rule stays in force for 24 hours, even when the change loosens or removes the lock), or, once built on Sunday, the supporter saying yes through "Ask my supporter first".
+- **Essentials (the must-have list) pass ALL user rules**: gentle, firm, locked and a saved item's timer. A locked late-night rule must never block groceries at 11pm. They never pass the hard walls.
+- **Hard walls** (refuse, no override, any strength, even after a served wait or for an essential): protected rent and bill money, going over the weekly budget, a seller flagged as a scam, any buy an AI agent started from untrusted listing text, and an unreadable price or time.
+- **When rules disagree, the strictest wins:** locked, then firm, then gentle. Order of checks: walls, essentials, locked, the saved item's timer, firm, gentle.
+- **AI can only add caution.** The only AI-fed Guardian inputs are the two flags (`sellerFlaggedScam`, `agentStartedFromUntrustedText`), and they can only refuse. No AI output can approve a buy or weaken a rule.
+- **Every Buy now is logged** to the audit log (type `override`: what, how much, which rule), so the home screen can show "You chose Buy now 2 times this week" (`buyNowThisWeek` is already in `/api/summary`).
+- **Demo user's starting rules:** wait on buys over $50 (gentle); wait on buys after 9pm (firm, 24 hours); $1,200 of rent and bills protected (a hard wall). Essentials: household, personal care, groceries, medicine.
+- **Demo flow:** headphones at noon get "Wait, or buy now?" (gentle). Headphones at 11 PM are saved for later with no Buy now (firm), and stay "not time yet" even at noon. Use the Demo tools clock.
+- The full decision table is `docs/guardian-decision-table.md`. It is generated from the real code, and a test fails if it drifts.
 
 ## Stack
 Next.js (whatever `create-next-app@latest` installs) + TypeScript (App Router, `src/`), Supabase Postgres (users, rules, budgets, receipts, audit log), and Claude through the Anthropic API with tool use for the agents (key: `ANTHROPIC_API_KEY`). PayPal Agent Toolkit (`@paypal/agent-toolkit`) lets the Concierge agent create orders and check order status. Check its current docs before using it, and if it can't use a saved-account token, keep the saved-account charge in our own checkout code. Unit tests for the Guardian; an eval script for scam/injection detection; GitHub Actions; MIT license.
@@ -70,10 +84,10 @@ Note: the default Next.js `.gitignore` has `.env*`, which also hides `.env.examp
 | Day | Goal |
 |---|---|
 | Wed Nov 4 | Home screen ("This week's money") + webhooks + Guardian wired into checkout. |
-| Thu Nov 5 | Rules in the user's own words, AI to structured rules, read back to confirm, Wait / Buy now, one-day change delay. |
+| Thu Nov 5 | Rules in the user's own words, AI to structured rules, read back to confirm, one-day change delay. **Rule strength UI:** the user picks gentle, firm or locked for each wait rule (firm also gets a wait time, default 24 hours), explained in plain words in the read-back. **Waiting list screen:** remind me, drop it, buy when ready. "You chose Buy now N times this week" on the home screen. (The Guardian side of strength is already built.) |
 | Fri Nov 6 | Scam check with price history, the injection block, the activity panel, and evals (about 30 ads and links plus 10 injection listings). Use the PayPal Agent Toolkit (`@paypal/agent-toolkit`) for the agent's PayPal actions (check its current docs first; keep the saved-account charge in our own guarded checkout if the toolkit can't use the vault token). |
 | Sat Nov 7 | Photo reorder + refund. Also "Money in real things": prices shown as user-chosen everyday items ("$72 = about 6 lunches"), plus tap-to-hear on every screen. |
-| Sun Nov 8 | "Money to a person" guard: sending money to people goes through the Guardian with its own rules. AI reads the request message for warning signs (secrecy, rush, someone new). An "Ask my supporter first" button replaces the separate supporter screen. Also package the Guardian as a standalone npm package plus an MCP server. **Feature freeze Sunday night.** |
+| Sun Nov 8 | "Money to a person" guard: sending money to people goes through the Guardian with its own rules. AI reads the request message for warning signs (secrecy, rush, someone new). An "Ask my supporter first" button replaces the separate supporter screen; the supporter saying yes is the only non-delay way past a locked rule. Also package the Guardian as a standalone npm package plus an MCP server. **Feature freeze Sunday night.** |
 | Mon Nov 9 | Accessibility pass, run the evals, deploy, README, fresh-clone test. |
 | Tue Nov 10 | Video and Devpost. |
 | Wed Nov 11 | Buffer, then submit. (Deadline is Thu Nov 12, noon Eastern.) |

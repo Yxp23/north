@@ -1,12 +1,12 @@
-import type { LateNightWindow } from "../guardian";
+import type { BigBuyRule, LateNightRule, RuleId } from "../guardian";
 
 // What we keep. Dates are ISO strings so the data saves as plain JSON.
 
 export type StoredChangeable<T> = { value: T | null; changedAt: string; previous: T | null };
 
 export type StoredRules = {
-  waitOverCents: StoredChangeable<number>;
-  waitAfterHour: StoredChangeable<LateNightWindow>;
+  waitOverCents: StoredChangeable<BigBuyRule>;
+  waitAfterHour: StoredChangeable<LateNightRule>;
   essentials: StoredChangeable<string[]>;
 };
 
@@ -41,6 +41,27 @@ export type PurchaseRecord = {
 /** The saved PayPal account (a vault token). Server-only: never sent to the browser. */
 export type PaypalVault = { vaultId: string; customerId?: string; savedAt: string };
 
+/** A buy saved by a FIRM rule. After the wait it is a normal buy (the Guardian checks everything again). */
+export type WaitingItem = {
+  id: string;
+  productId: string;
+  name: string;
+  category: string;
+  imageUrl: string;
+  /** The price when it was saved. When you buy, the price is read from the store again. */
+  amountCents: number;
+  currency: string;
+  createdAt: string;
+  /** When the wait is over and we remind the user. */
+  remindAt: string;
+  waitHours: number;
+  /** Which rules made it wait. */
+  rules: RuleId[];
+  status: "waiting" | "bought" | "dropped";
+  /** The buy it became. */
+  purchaseId?: string;
+};
+
 export type AuditEntry = { at: string; type: string; detail: string };
 
 export type LedgerData = {
@@ -55,6 +76,7 @@ export type LedgerData = {
   /** Set once the user connects PayPal. Kept when the demo is reset. */
   paypalVault?: PaypalVault;
   purchases: PurchaseRecord[];
+  waitingList: WaitingItem[];
   webhookEventIds: string[];
   audit: AuditEntry[];
 };
@@ -69,6 +91,18 @@ export type PurchaseView = {
   at: string;
 };
 
+/** What the home screen shows for one waiting-list item. */
+export type WaitingView = {
+  id: string;
+  productId: string;
+  name: string;
+  imageUrl: string;
+  amountCents: number;
+  remindAt: string;
+  /** True once the wait is over. */
+  ready: boolean;
+};
+
 export type HomeSummary = {
   weeklyBudgetCents: number;
   spentThisWeekCents: number;
@@ -77,4 +111,7 @@ export type HomeSummary = {
   protectedCents: number;
   weekStart: string;
   purchases: PurchaseView[];
+  waitingList: WaitingView[];
+  /** How many times the user tapped "Buy now" this week. */
+  buyNowThisWeek: number;
 };

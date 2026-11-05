@@ -81,6 +81,15 @@ export function BuyScreen({ product }: { product: StoreProduct }) {
             <Link href="/" className={btnPrimary}>Wait</Link>
           </div>
         );
+      case "waitlisted":
+        return (
+          <div className="space-y-4">
+            <h1 ref={headingRef} tabIndex={-1} className={h1}>Saved for later</h1>
+            <p className="text-xl">{o.result.reason}</p>
+            <Link href="/" className={btnPrimary}>See my money</Link>
+            <Link href="/shop" className={btnSecondary}>Back to the shop</Link>
+          </div>
+        );
       case "refused":
         return (
           <div className="space-y-4">

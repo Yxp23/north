@@ -55,7 +55,7 @@ describe("spending and balance", () => {
     expect(s.protectedCents).toBe(120_000);
     expect(s.weeklyBudgetCents).toBe(40_000);
     expect(s.timeZone).toBe(TZ);
-    expect(s.rules.waitOverCents.value).toBe(5000);
+    expect(s.rules.waitOverCents.value).toEqual({ cents: 5000, strength: "gentle" });
     expect(s.rules.waitOverCents.changedAt).toBeInstanceOf(Date);
   });
 

@@ -44,41 +44,58 @@ await post("/api/demo/reset");
 await refresh();
 check((await (await fetch(BASE + "/api/summary")).json()).paypalSaved === true, "PayPal is connected (saved, no popup needed)");
 
-// 1. Cheap item approves and charges the saved PayPal with no popup.
-let r = await buy(NOTEBOOK);
+// 1. Cheap item approves and charges the saved PayPal with no popup. (Pretend it is noon, so the
+//    real time of day can't matter: the demo rules wait on buys after 9 PM.)
+let r = await buy(NOTEBOOK, { pretendHour: 12 });
 check(r.json?.kind === "paid", "Notebook ($2.50) is approved and paid with no popup", `kind=${r.json?.kind}`);
 await refresh();
 let nb = ledger().purchases.find((p) => p.productId === NOTEBOOK);
 check(nb?.status === "paid" && !!nb?.captureId, "Ledger shows it paid with a PayPal capture id", `capture=${nb?.captureId}`);
 
-// 3. $349 headphones at 11 PM wait. Nothing is charged.
-await refresh();
+// 2. FIRM rule (after 9 PM): $349 headphones at 11 PM are saved for later. No Buy now. Nothing is charged.
 const before = ledger().purchases.length;
 r = await buy(HEADPHONES, { pretendHour: 23 });
-check(r.json?.kind === "wait" && r.json?.result?.canOverride === true, "Headphones ($349) at 11 PM wait", r.json?.result?.reason);
-await refresh();
-check(ledger().purchases.length === before, "Nothing was charged or recorded for the wait");
-
-// 4. Buy now pays.
+check(r.json?.kind === "waitlisted" && r.json?.result?.canOverride === false, "Headphones at 11 PM (firm rule): saved for later, no Buy now", r.json?.result?.reason);
 r = await buy(HEADPHONES, { pretendHour: 23, overrideWait: true });
-check(r.json?.kind === "paid", "Buy now pays the $349 headphones", `kind=${r.json?.kind}`);
+check(r.json?.kind === "waitlisted", "Buy now does not hurry a firm wait", `kind=${r.json?.kind}`);
 await refresh();
-const hp = ledger().purchases.find((p) => p.productId === HEADPHONES && p.status !== "failed");
+check(ledger().purchases.length === before, "Nothing was charged or recorded for the waiting-list buys");
+check(ledger().waitingList.filter((w) => w.status === "waiting").length === 1, "Exactly one item is on the waiting list (not saved twice)");
+check(!ledger().audit.some((e) => e.type === "override"), "A firm wait is not logged as a Buy now");
 
-// 5. Over the protected money: refused, and Buy now can't change it.
+// 3. A saved item keeps its OWN timer: at noon after the 11 PM save it is still "not time yet".
+r = await buy(HEADPHONES, { pretendHour: 12 });
+check(r.json?.kind === "waitlisted" && r.json?.result?.code === "waitlist_not_yet", "Saved headphones at noon: still 'not time yet' (the timer ignores the time of day)", r.json?.result?.reason);
+r = await buy(HEADPHONES, { pretendHour: 12, overrideWait: true });
+check(r.json?.kind === "waitlisted", "Buy now does not shorten the timer", `kind=${r.json?.kind}`);
+
+// 4. GENTLE rule (over $50): the sneakers ($72.54) at noon get "Wait, or buy now?", and Buy now pays.
 r = await buy(SNEAKERS, { pretendHour: 12 });
-check(r.json?.kind === "refused" && r.json?.result?.code === "protected_money", "Sneakers ($72.54) are refused: protected money", r.json?.result?.reason);
+check(r.json?.kind === "wait" && r.json?.result?.canOverride === true, "Sneakers ($72.54) at noon (gentle rule): Wait, or buy now?", r.json?.result?.reason);
 r = await buy(SNEAKERS, { pretendHour: 12, overrideWait: true });
+check(r.json?.kind === "paid", "Buy now pays the sneakers", `kind=${r.json?.kind}`);
+await refresh();
+const sn = ledger().purchases.find((p) => p.productId === SNEAKERS && p.status !== "failed");
+const ov = ledger().audit.filter((e) => e.type === "override");
+check(ov.length === 1 && ov[0].detail.includes("$72.54") && ov[0].detail.includes("big_buy"), "That Buy now was logged: what, how much, which rule", ov[0]?.detail);
+check((await (await fetch(BASE + "/api/summary")).json()).buyNowThisWeek === 1, "The home screen data says: Buy now chosen 1 time this week");
+check(ledger().waitingList.filter((w) => w.status === "waiting").length === 1, "The saved headphones are still on the waiting list");
+
+// 5. Over the protected money: refused, and Buy now can't change it. ($400 spendable - $2.50 - $72.54 is
+//    less than the $349 headphones. Walls come first, even for a saved item.)
+r = await buy(HEADPHONES, { pretendHour: 12 });
+check(r.json?.kind === "refused" && r.json?.result?.code === "protected_money", "Headphones ($349) are now refused: protected money", r.json?.result?.reason);
+r = await buy(HEADPHONES, { pretendHour: 12, overrideWait: true });
 check(r.json?.kind === "refused", "Buy now can't override a refuse");
 
 // 6. A fake webhook is rejected.
-r = await post("/api/paypal/webhook", { id: "WH-FAKE", event_type: "PAYMENT.CAPTURE.REFUNDED", resource: { id: "R", links: [{ rel: "up", href: "x/captures/" + hp?.captureId }] } });
+r = await post("/api/paypal/webhook", { id: "WH-FAKE", event_type: "PAYMENT.CAPTURE.REFUNDED", resource: { id: "R", links: [{ rel: "up", href: "x/captures/" + sn?.captureId }] } });
 check(r.status === 401, "A forged webhook is rejected (401)", `HTTP ${r.status}`);
 await refresh();
-check(ledger().purchases.find((p) => p.id === hp?.id)?.status !== "refunded", "…and changed nothing");
+check(ledger().purchases.find((p) => p.id === sn?.id)?.status !== "refunded", "…and changed nothing");
 
 // 7. Refunds update the screen right away. (Also cleans up the sandbox.)
-for (const [label, p] of [["notebook", nb], ["headphones", hp]]) {
+for (const [label, p] of [["notebook", nb], ["sneakers", sn]]) {
   const rr = await post("/api/refund", { purchaseId: p?.id });
   check(rr.json?.kind === "refunded" || rr.json?.kind === "pending", `Refund requested for the ${label}`, rr.json?.kind);
   await refresh();
@@ -96,8 +113,8 @@ check(s.leftCents === 40000 && s.spentThisWeekCents === 0, "Home screen is back 
 // 8. PayPal's webhooks (reported separately, see the note at the top).
 console.log("\nWaiting up to 90s for PayPal's webhooks...");
 const expected = [
-  ["completed", "notebook", nb?.id], ["completed", "headphones", hp?.id],
-  ["refunded", "notebook", nb?.id], ["refunded", "headphones", hp?.id],
+  ["completed", "notebook", nb?.id], ["completed", "sneakers", sn?.id],
+  ["refunded", "notebook", nb?.id], ["refunded", "sneakers", sn?.id],
 ];
 const seen = (kind, id) => ledger().audit.some((e) => e.type === `webhook_${kind}` && e.detail.startsWith(id));
 await waitFor(() => expected.every(([k, , id]) => seen(k, id)), 90);

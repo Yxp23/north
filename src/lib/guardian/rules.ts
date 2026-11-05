@@ -41,3 +41,23 @@ export function isEssential(p: Purchase, list: string[] | null): boolean {
   const category = normalize(p.category);
   return category !== "" && list.some((entry) => normalize(entry) === category);
 }
+
+// ---- plain-language pieces for the reasons ---------------------------------------------------
+
+/** 21 -> "9pm", 0 -> "12am", 12 -> "12pm". */
+export function hourLabel(hour: number): string {
+  return `${hour % 12 === 0 ? 12 : hour % 12}${hour >= 12 ? "pm" : "am"}`;
+}
+
+/** 24 -> "a day", 48 -> "2 days", 12 -> "12 hours". */
+export function durationLabel(hours: number): string {
+  if (hours % 24 === 0) return hours === 24 ? "a day" : `${hours / 24} days`;
+  return hours === 1 ? "1 hour" : `${hours} hours`;
+}
+
+/** 24 -> "tomorrow", 48 -> "in 2 days", 12 -> "in 12 hours". */
+export function remindLabel(hours: number): string {
+  if (hours === 24) return "tomorrow";
+  if (hours % 24 === 0) return `in ${hours / 24} days`;
+  return `in ${hours === 1 ? "1 hour" : `${hours} hours`}`;
+}
