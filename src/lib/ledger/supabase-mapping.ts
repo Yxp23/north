@@ -66,21 +66,35 @@ const iso = (v: string | Date) => new Date(v).toISOString();
 const ms = (v: string) => new Date(v).getTime();
 
 /**
- * Newest version -> value. changedAt = effective_at - 24h, so the Guardian's "counts after 24 hours"
- * lines up exactly with effective_at. previous = the version that was in force when the newest was asked for.
+ * Versions -> one rule. Each row is one time the user asked for a change:
+ *   created_at = when they asked, effective_at = when it starts to count (24 hours later, or at once
+ *   for a stricter change).
+ * The NEWEST ASK wins. A change still waiting when a newer ask arrives never starts: a stricter change
+ * that starts at once must replace a loosening that was still waiting.
+ * changedAt = effective_at - 24h, so the Guardian's "counts after 24 hours" lines up with effective_at.
+ * previous = the version that was in force when the newest ask was made.
  */
 function ruleFromVersions(kind: RuleKind, rows: RuleRow[]): StoredChangeable<any> {
-  const versions = rows.filter((r) => r.kind === kind).sort((a, b) => ms(a.effective_at) - ms(b.effective_at) || ms(a.created_at) - ms(b.created_at));
-  const newest = versions.at(-1);
+  const asked = rows.filter((r) => r.kind === kind).sort((a, b) => ms(a.created_at) - ms(b.created_at) || ms(a.effective_at) - ms(b.effective_at));
+  const newest = asked.at(-1);
   if (!newest) return { value: null, changedAt: new Date(0).toISOString(), previous: null };
-  const older = versions.slice(0, -1).filter((r) => ms(r.effective_at) <= ms(newest.created_at));
-  const inForce = older.at(-1);
+  // Walk through the asks in order. A newer ask throws away older ones that had not started yet.
+  const timeline: RuleRow[] = [];
+  for (const r of asked.slice(0, -1)) {
+    while (timeline.length && ms(timeline.at(-1)!.effective_at) > ms(r.created_at)) timeline.pop();
+    timeline.push(r);
+  }
+  while (timeline.length && ms(timeline.at(-1)!.effective_at) > ms(newest.created_at)) timeline.pop();
+  const inForce = timeline.at(-1);
   const val = (r: RuleRow) => (r.enabled ? fromParams(kind, r.params) : null);
-  return {
+  const out: StoredChangeable<any> = {
     value: val(newest),
     changedAt: new Date(ms(newest.effective_at) - RULE_DELAY_MS).toISOString(),
     previous: inForce ? val(inForce) : null,
   };
+  // A change that started at once was asked for later than its changedAt. Keep the real time.
+  if (ms(newest.created_at) !== ms(out.changedAt)) out.askedAt = iso(newest.created_at);
+  return out;
 }
 
 // ---- snapshot -> LedgerData ------------------------------------------------------------------
@@ -229,10 +243,11 @@ export function diffChanges(before: LedgerData, after: LedgerData): Changes | nu
     const b = before.rules[key] as StoredChangeable<unknown>;
     const a = after.rules[key] as StoredChangeable<unknown>;
     if (same({ v: b.value, t: b.changedAt }, { v: a.value, t: a.changedAt })) continue;
-    // A change is asked for at changedAt and starts to count 24 hours later.
+    // A change starts to count 24 hours after changedAt (a change that starts at once is dated 24 hours
+    // back). It was asked for at askedAt, or at changedAt when there is no askedAt.
     rules.push({
       kind, enabled: a.value !== null, params: toParams(kind, a.value ?? emptyValue(kind)),
-      created_at: a.changedAt, effective_at: new Date(ms(a.changedAt) + RULE_DELAY_MS).toISOString(),
+      created_at: a.askedAt ?? a.changedAt, effective_at: new Date(ms(a.changedAt) + RULE_DELAY_MS).toISOString(),
     });
   }
   if (rules.length) c.rules = rules;

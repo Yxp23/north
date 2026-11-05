@@ -2,7 +2,14 @@ import type { BigBuyRule, LateNightRule, RuleId } from "../guardian";
 
 // What we keep. Dates are ISO strings so the data saves as plain JSON.
 
-export type StoredChangeable<T> = { value: T | null; changedAt: string; previous: T | null };
+export type StoredChangeable<T> = {
+  value: T | null;
+  /** The Guardian counts `value` from changedAt + 24 hours. A change that starts at once is dated 24 hours back. */
+  changedAt: string;
+  previous: T | null;
+  /** When the user really asked, only when that differs from changedAt (a change that started at once). */
+  askedAt?: string;
+};
 
 export type StoredRules = {
   waitOverCents: StoredChangeable<BigBuyRule>;

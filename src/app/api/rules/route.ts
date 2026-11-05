@@ -1,0 +1,30 @@
+import { connection } from "next/server";
+import { effective } from "@/lib/guardian";
+import { getLedger } from "@/lib/ledger/server";
+import { toRules } from "@/lib/ledger/logic";
+import { dollarsLabel } from "@/lib/rules/describe";
+import { saveRules } from "@/lib/rules/save";
+import { summarizeRules } from "@/lib/rules/summary";
+
+// GET: my rules in plain words. POST: save rules the user confirmed (checked again, tighten-only, one-day delay).
+export async function GET() {
+  await connection();
+  const now = new Date();
+  const data = await getLedger().read();
+  const rules = toRules(data.rules);
+  const essentials = effective(rules.essentials, now) ?? [];
+  return Response.json({
+    rules: summarizeRules(rules, now),
+    always: [
+      `Your rent and bills money (${dollarsLabel(data.protectedCents)}) is protected. I never spend it.`,
+      `I never go over your plan for the week (${dollarsLabel(data.weeklyBudgetCents)}).`,
+      essentials.length ? `These never have to wait: ${essentials.join(", ")}.` : "Nothing is on your must-have list.",
+    ],
+  });
+}
+
+export async function POST(req: Request) {
+  const body = await req.json().catch(() => null);
+  const result = await saveRules(body, { ledger: getLedger(), now: () => new Date() });
+  return Response.json(result, { status: result.ok ? 200 : 400 });
+}

@@ -32,16 +32,19 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to the page
         </a>
         <header className="border-b border-line bg-card">
-          <nav aria-label="Main" className="mx-auto flex max-w-xl items-center justify-between gap-2 px-4 py-3">
+          <nav aria-label="Main" className="mx-auto flex max-w-xl flex-wrap items-center justify-between gap-x-1 px-3 py-1">
             <Link href="/" className="rounded-lg px-2 py-2 text-2xl font-bold">
               North
             </Link>
-            <div className="flex gap-1 text-lg font-semibold">
-              <Link href="/" className="rounded-lg px-3 py-3">
+            <div className="flex flex-wrap text-base font-semibold">
+              <Link href="/" className="whitespace-nowrap rounded-lg px-2.5 py-3">
                 My money
               </Link>
-              <Link href="/shop" className="rounded-lg px-3 py-3">
+              <Link href="/shop" className="whitespace-nowrap rounded-lg px-2.5 py-3">
                 Shop
+              </Link>
+              <Link href="/rules" className="whitespace-nowrap rounded-lg px-2.5 py-3">
+                My rules
               </Link>
             </div>
           </nav>

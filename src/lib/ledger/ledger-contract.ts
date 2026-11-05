@@ -187,6 +187,44 @@ export function ledgerContract(name: string, make: () => Promise<LedgerHarness>)
         expect(d.rules.waitOverCents).toEqual({ value: null, changedAt, previous: big(5000) });
       }));
 
+    // A stricter change starts at once: it is dated 24 hours back, with the real time kept as askedAt.
+    it("a change that starts at once is kept, and counts right away", () =>
+      withLedger(async (l) => {
+        const changedAt = new Date(NOW.getTime() - 24 * 3600_000).toISOString();
+        const askedAt = NOW.toISOString();
+        await l.update((d) => void (d.rules.waitOverCents = { value: big(3000, "firm", 24), changedAt, previous: big(5000), askedAt }));
+        const d = await l.read();
+        expect(d.rules.waitOverCents).toEqual({ value: big(3000, "firm", 24), changedAt, previous: big(5000), askedAt });
+        const { effective } = await import("../guardian/rules");
+        expect(effective(buildUserState(d, NOW).rules.waitOverCents, NOW)).toEqual(big(3000, "firm", 24));
+      }));
+
+    it("a change that starts at once replaces a weaker change that was still waiting", () =>
+      withLedger(async (l) => {
+        const { effective } = await import("../guardian/rules");
+        const hour = 3600_000;
+        // 3 hours ago the user asked to loosen $50 to $90 (waits a day).
+        await l.update((d) => void (d.rules.waitOverCents = { value: big(9000), changedAt: new Date(NOW.getTime() - 3 * hour).toISOString(), previous: big(5000) }));
+        // Now they tighten to $20. It counts at once, and the $90 must never come back.
+        await l.update((d) => void (d.rules.waitOverCents = { value: big(2000), changedAt: new Date(NOW.getTime() - 24 * hour).toISOString(), previous: big(5000), askedAt: NOW.toISOString() }));
+        const rule = buildUserState(await l.read(), NOW).rules.waitOverCents;
+        expect(rule.value).toEqual(big(2000));
+        expect(effective(rule, NOW)).toEqual(big(2000));
+        expect(effective(rule, new Date(NOW.getTime() + 48 * hour))).toEqual(big(2000));
+      }));
+
+    it("turning a rule off after a stricter change that started at once still works", () =>
+      withLedger(async (l) => {
+        const { effective } = await import("../guardian/rules");
+        const hour = 3600_000;
+        await l.update((d) => void (d.rules.waitOverCents = { value: big(2000), changedAt: new Date(NOW.getTime() - 24 * hour).toISOString(), previous: big(5000), askedAt: NOW.toISOString() }));
+        const later = new Date(NOW.getTime() + 2 * hour);
+        await l.update((d) => void (d.rules.waitOverCents = { value: null, changedAt: later.toISOString(), previous: big(2000) }));
+        const rule = buildUserState(await l.read(), later).rules.waitOverCents;
+        expect(effective(rule, new Date(later.getTime() + 23 * hour))).toEqual(big(2000));
+        expect(effective(rule, new Date(later.getTime() + 24 * hour))).toBeNull();
+      }));
+
     it("keeps a changed essentials list and late-night window", () =>
       withLedger(async (l) => {
         const changedAt = new Date(NOW.getTime() - 3600_000).toISOString();
