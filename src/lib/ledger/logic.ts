@@ -24,6 +24,7 @@ export function defaultLedgerData(now: Date, timeZone: string): LedgerData {
     },
     purchases: [],
     waitingList: [],
+    flaggedSellers: [],
     webhookEventIds: [],
     audit: [],
   };
@@ -32,6 +33,7 @@ export function defaultLedgerData(now: Date, timeZone: string): LedgerData {
 /** Fill in what older saved data lacks (a waiting list, rule strength), so a dev file from before still works. */
 export function upgradeLedgerData(d: LedgerData): LedgerData {
   d.waitingList ??= [];
+  d.flaggedSellers ??= [];
   const up = (r: StoredChangeable<any>) => {
     const fix = (v: any) => (typeof v === "number" ? { cents: v, strength: "gentle" } : v && v.strength === undefined && !Array.isArray(v) ? { ...v, strength: "gentle" } : v);
     r.value = fix(r.value);
@@ -138,6 +140,20 @@ export function addAudit(data: LedgerData, type: string, detail: string, now: Da
   const entry: AuditEntry = { at: now.toISOString(), type, detail };
   data.audit.push(entry);
   if (data.audit.length > 300) data.audit.splice(0, data.audit.length - 300);
+}
+
+const bareDomain = (d: string) => d.trim().toLowerCase().replace(/^www\./, "");
+
+/** Remember a seller as a scam. Returns false if they were already flagged. A flag is never removed. */
+export function flagSeller(data: LedgerData, domain: string, reason: string, now: Date): boolean {
+  const d = bareDomain(domain);
+  if (!d || data.flaggedSellers.some((f) => f.domain === d)) return false;
+  data.flaggedSellers.push({ domain: d, flaggedAt: now.toISOString(), reason });
+  return true;
+}
+
+export function isSellerFlagged(data: Pick<LedgerData, "flaggedSellers">, domain: string | undefined): boolean {
+  return !!domain && data.flaggedSellers.some((f) => f.domain === bareDomain(domain));
 }
 
 /** Mark a buy paid. A refunded buy stays refunded (events can arrive out of order). */

@@ -30,6 +30,11 @@ export function assertValid(data: LedgerData) {
     ids.add(p.id);
     attempts.add(p.attemptId);
   }
+  const flagged = new Set<string>();
+  for (const f of data.flaggedSellers) {
+    if (flagged.has(f.domain)) throw new Error(`${f.domain} is already flagged`);
+    flagged.add(f.domain);
+  }
   const waitingIds = new Set<string>();
   const waitingProducts = new Set<string>();
   for (const w of data.waitingList) {
@@ -44,6 +49,7 @@ export function assertValid(data: LedgerData) {
 /** History is never erased: purchases and waiting-list items can change status, but not disappear. */
 export function assertNoDeletes(before: LedgerData, after: LedgerData) {
   for (const p of before.purchases) if (!after.purchases.some((x) => x.id === p.id)) throw new Error(`A purchase (${p.id}) can't be deleted`);
+  for (const f of before.flaggedSellers) if (!after.flaggedSellers.some((x) => x.domain === f.domain)) throw new Error(`A flagged seller (${f.domain}) can't be removed`);
   for (const w of before.waitingList) if (!after.waitingList.some((x) => x.id === w.id)) throw new Error(`A waiting-list item (${w.id}) can't be deleted`);
 }
 

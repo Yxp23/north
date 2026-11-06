@@ -1,17 +1,11 @@
 // Server wiring for the Concierge. It READS the ledger (to know the user's rules and money) and nothing else:
 // agent code never writes to the ledger, never saves a rule, and never touches checkout. A test enforces that.
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
+import { getAnthropic, NOT_SET_UP } from "../client";
 import { getLedger } from "../../ledger/server";
 import { toRules } from "../../ledger/logic";
 import type { StepEvent } from "../loop";
 import { runConcierge, type ConciergePayload } from "./concierge";
-
-let client: Anthropic | undefined;
-function anthropic(): Anthropic {
-  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not set");
-  return (client ??= new Anthropic({ timeout: 45_000, maxRetries: 1 }));
-}
 
 export async function runConciergeForUser(opts: {
   text: string;
@@ -20,9 +14,9 @@ export async function runConciergeForUser(opts: {
 }): Promise<{ payload: ConciergePayload; steps: StepEvent[] }> {
   let model;
   try {
-    model = anthropic();
+    model = getAnthropic();
   } catch {
-    return { payload: { kind: "error", message: "The AI helper is not set up yet. Please tell the person who set up North." }, steps: [] };
+    return { payload: { kind: "error", message: NOT_SET_UP }, steps: [] };
   }
   const data = await getLedger().read();
   const out = await runConcierge({

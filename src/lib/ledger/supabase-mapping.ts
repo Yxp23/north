@@ -3,7 +3,7 @@
 // { value, changedAt, previous }. These functions translate between the two.
 import { RULE_DELAY_MS } from "../guardian/rules";
 import type { BigBuyRule, LateNightRule, RuleId } from "../guardian";
-import type { AuditEntry, LedgerData, PurchaseRecord, StoredChangeable, StoredRules, WaitingItem } from "./types";
+import type { AuditEntry, FlaggedSeller, LedgerData, PurchaseRecord, StoredChangeable, StoredRules, WaitingItem } from "./types";
 
 // ---- row shapes (what ledger_load returns / ledger_apply takes) ------------------------------
 
@@ -23,14 +23,16 @@ export type WaitingRow = {
   id: string; product_id: string; name: string; category: string; image_url: string; amount_cents: number; currency: string;
   created_at: Ts; remind_at: Ts; wait_hours: number; rules: RuleId[]; status: WaitingItem["status"]; purchase_id: string | null;
 };
+export type FlaggedRow = { domain: string; flagged_at: Ts; reason: string };
 export type Snapshot = {
-  user: UserRow; rules: RuleRow[]; purchases: PurchaseRow[]; waiting_list: WaitingRow[];
+  user: UserRow; rules: RuleRow[]; purchases: PurchaseRow[]; waiting_list: WaitingRow[]; flagged_sellers: FlaggedRow[];
   audit: { at: Ts; type: string; detail: string }[]; webhook_event_ids: string[];
 };
 export type Changes = {
   user?: Record<string, unknown>;
   purchases?: PurchaseRow[];
   waiting_list?: WaitingRow[];
+  flagged_sellers?: FlaggedRow[];
   audit?: { at: string; type: string; detail: string }[];
   webhook_event_ids?: string[];
   rules?: Required<Pick<RuleRow, "kind" | "enabled" | "params" | "created_at" | "effective_at">>[];
@@ -133,6 +135,10 @@ export function fromSnapshot(s: Snapshot): { data: LedgerData; version: number }
   if (!Array.isArray(s.waiting_list)) {
     throw new Error("The database is out of date. Run supabase/migrations/20261105000000_north_rule_strength.sql in the Supabase SQL Editor.");
   }
+  // Same for flagged sellers: an old ledger_apply would drop a new flag without saying so.
+  if (!Array.isArray(s.flagged_sellers)) {
+    throw new Error("The database is out of date. Run supabase/migrations/20261106000000_north_flagged_sellers.sql in the Supabase SQL Editor.");
+  }
   const u = s.user;
   const data: LedgerData = {
     version: 1,
@@ -147,6 +153,7 @@ export function fromSnapshot(s: Snapshot): { data: LedgerData; version: number }
     },
     purchases: s.purchases.map(purchaseFromRow),
     waitingList: s.waiting_list.map(waitingFromRow),
+    flaggedSellers: s.flagged_sellers.map((f): FlaggedSeller => ({ domain: f.domain, flaggedAt: iso(f.flagged_at), reason: f.reason })),
     webhookEventIds: [...s.webhook_event_ids].reverse(), // the database sends newest first
     audit: s.audit.map((a): AuditEntry => ({ at: iso(a.at), type: a.type, detail: a.detail })),
   };
@@ -229,6 +236,13 @@ export function diffChanges(before: LedgerData, after: LedgerData): Changes | nu
   }
   const waiting = after.waitingList.filter((w) => !same(oldWaiting.get(w.id), w)).map(waitingToRow);
   if (waiting.length) c.waiting_list = waiting;
+
+  for (const f of before.flaggedSellers) {
+    if (!after.flaggedSellers.some((x) => x.domain === f.domain)) throw new Error(`A flagged seller (${f.domain}) can't be removed`);
+  }
+  const oldFlags = new Set(before.flaggedSellers.map((f) => f.domain));
+  const flags = after.flaggedSellers.filter((f) => !oldFlags.has(f.domain)).map((f) => ({ domain: f.domain, flagged_at: f.flaggedAt, reason: f.reason }));
+  if (flags.length) c.flagged_sellers = flags;
 
   const seen = new Set(before.audit.map(auditKey));
   const audit = after.audit.filter((a) => !seen.has(auditKey(a)));

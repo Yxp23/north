@@ -163,3 +163,48 @@ describe("when the AI service has a problem", () => {
     expect(r.message).not.toMatch(/SECRET|sk-ant/);
   });
 });
+
+describe("details for the 'Show details' toggle", () => {
+  it("each tool step carries its tool call and what it gave back (our words, never the model's prose)", async () => {
+    const m = scripted([reply([text("I will think out loud now"), toolUse("look", { where: "left" })]), reply([toolUse("finish", { answer: "x" })])]);
+    const r = await run(m.client);
+    const done = r.steps.find((s) => s.label === "Looking around…" && s.state === "done");
+    expect(done?.detail).toBe('look({"where":"left"}) → you see a door');
+    expect(JSON.stringify(r.steps)).not.toContain("think out loud");
+  });
+
+  it("long details are cut short", async () => {
+    const big: ToolDef<Final>[] = [
+      { name: "look", description: "d", input_schema: { type: "object", properties: {} }, label: "Looking…", run: () => ({ content: "x".repeat(5000) }) },
+      { name: "finish", description: "d", input_schema: { type: "object", properties: {} }, label: "Done…", run: () => ({ content: "ok", final: { answer: "a" } }) },
+    ];
+    const m = scripted([reply([toolUse("look")]), reply([toolUse("finish")])]);
+    const r = await run(m.client, big);
+    const d = r.steps.find((s) => s.label === "Looking…" && s.state === "done")!.detail!;
+    expect(d.length).toBeLessThan(700);
+    expect(d.endsWith("…")).toBe(true);
+  });
+
+  it("a tool can add plain-word warnings, shown as their own steps", async () => {
+    const t: ToolDef<Final>[] = [
+      { name: "look", description: "d", input_schema: { type: "object", properties: {} }, label: "Reading the listing…", run: () => ({ content: "page", notes: ["Found hidden instructions in the description."] }) },
+      { name: "finish", description: "d", input_schema: { type: "object", properties: {} }, label: "Writing it up…", run: () => ({ content: "ok", final: { answer: "a" } }) },
+    ];
+    const m = scripted([reply([toolUse("look")]), reply([toolUse("finish")])]);
+    const seen: StepEvent[] = [];
+    await run(m.client, t, { onStep: (e: StepEvent) => seen.push(e) });
+    expect(seen).toContainEqual({ label: "Found hidden instructions in the description.", state: "done", warn: true });
+    // The warning comes right after the step that found it, before the next step.
+    const labels = seen.map((e) => e.label);
+    expect(labels.indexOf("Found hidden instructions in the description.")).toBeGreaterThan(labels.indexOf("Reading the listing…"));
+    expect(labels.indexOf("Found hidden instructions in the description.")).toBeLessThan(labels.indexOf("Writing it up…"));
+  });
+
+  it("the first message can hold a picture", async () => {
+    const m = scripted([reply([toolUse("finish", { answer: "x" })])]);
+    const blocks = [{ type: "text" as const, text: "look at this" }, { type: "image" as const, source: { type: "base64" as const, media_type: "image/png" as const, data: "AAAA" } }];
+    await runAgent<Final>({ ...base, client: m.client, user: blocks, tools: tools() });
+    expect(JSON.stringify(m.requests[0].messages[0].content)).toContain('"type":"image"');
+  });
+});
+

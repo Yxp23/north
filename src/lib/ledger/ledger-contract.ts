@@ -308,6 +308,26 @@ export function ledgerContract(name: string, make: () => Promise<LedgerHarness>)
         await expect(l.update((d) => void d.waitingList.splice(0, 1))).rejects.toThrow();
       }));
 
+    // ---- flagged sellers (the scam checker) ---------------------------------------------------
+    it("keeps a flagged seller exactly, and never lets one be removed or added twice", () =>
+      withLedger(async (l) => {
+        const flag = { domain: "cheap-kicks-outlet.example", flaggedAt: "2026-11-06T15:00:00.000Z", reason: "The price isn't real." };
+        await l.update((d) => void d.flaggedSellers.push(flag));
+        expect((await l.read()).flaggedSellers).toEqual([flag]);
+        await expect(l.update((d) => void d.flaggedSellers.push({ ...flag }))).rejects.toThrow(); // already flagged
+        await expect(l.update((d) => void d.flaggedSellers.splice(0, 1))).rejects.toThrow(); // a flag never goes away
+        expect((await l.read()).flaggedSellers).toEqual([flag]);
+      }));
+
+    it("a flag does not roll off when the audit log fills up", () =>
+      withLedger(async (l) => {
+        await l.update((d) => void d.flaggedSellers.push({ domain: "old-scam.example", flaggedAt: "2026-11-06T15:00:00.000Z", reason: "x" }));
+        await l.update((d) => {
+          for (let i = 0; i < 350; i++) d.audit.push({ at: new Date(NOW.getTime() + i).toISOString(), type: "noise", detail: `n${i}` });
+        });
+        expect((await l.read()).flaggedSellers.map((f) => f.domain)).toEqual(["old-scam.example"]);
+      }));
+
     it("counts the Buy now taps this week from the audit log", () =>
       withLedger(async (l) => {
         const { buyNowThisWeek } = await import("./logic");
@@ -330,6 +350,7 @@ export function ledgerContract(name: string, make: () => Promise<LedgerHarness>)
           d.audit.push({ at: "2026-11-04T10:00:00.000Z", type: "x", detail: "y" });
           d.webhookEventIds.push("WH-reset-1");
           d.waitingList.push(waitingItem());
+          d.flaggedSellers.push({ domain: "x.example", flaggedAt: "2026-11-04T10:00:00.000Z", reason: "y" });
           d.rules.waitOverCents = { value: big(1), changedAt: "2026-11-04T10:00:00.000Z", previous: big(5000) };
         });
         await l.reset();
@@ -338,6 +359,7 @@ export function ledgerContract(name: string, make: () => Promise<LedgerHarness>)
         expect(d.purchases).toEqual([]);
         expect(d.audit).toEqual([]);
         expect(d.webhookEventIds).toEqual([]);
+        expect(d.flaggedSellers).toEqual([]);
         expect(d.rules.waitOverCents.value).toEqual(big(5000));
         expect(d.paypalVault?.vaultId).toBe("V1");
       }));

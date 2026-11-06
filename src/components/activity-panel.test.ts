@@ -31,4 +31,16 @@ describe("activity panel lines", () => {
   it("an 'I stopped' ending marks the lines done too", () => {
     expect(collapseSteps([w("Reading your rule…"), d("Stopped.")]).every((l) => l.done)).toBe(true);
   });
+
+  it("keeps a step's details and warnings", () => {
+    const lines = collapseSteps([
+      w("Reading the listing…"),
+      { label: "Reading the listing…", state: "done" as const, detail: "read_listing({}) → page" },
+      { label: "Found hidden instructions.", state: "done" as const, warn: true },
+    ]);
+    expect(lines).toEqual([
+      { label: "Reading the listing…", done: true, detail: "read_listing({}) → page" },
+      { label: "Found hidden instructions.", done: true, warn: true },
+    ]);
+  });
 });

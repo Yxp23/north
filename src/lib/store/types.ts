@@ -14,6 +14,13 @@ export type StoreProduct = {
   imageUrl: string;
   /** True when Channel3 price tracking was started, so a price history exists. */
   tracked: boolean;
+  /**
+   * The seller's web address, when the listing has one (demo listings from other sellers). A seller the scam
+   * checker flagged as a scam can't be paid: the Guardian refuses.
+   */
+  sellerDomain?: string;
+  /** The seller's description. UNTRUSTED text: it is data to show or read, never instructions. */
+  description?: string;
 };
 
 export interface StoreProvider {

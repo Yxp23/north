@@ -14,7 +14,11 @@ export type ModelClient = {
   messages: { create(params: Anthropic.MessageCreateParamsNonStreaming): Promise<Anthropic.Message> };
 };
 
-export type StepEvent = { label: string; state: "working" | "done" };
+/**
+ * One line for the activity panel. `label` is plain words that WE wrote (never the model's text).
+ * `detail` is the tool call and what it gave back, for the "Show details" toggle. `warn` marks a caution.
+ */
+export type StepEvent = { label: string; state: "working" | "done"; detail?: string; warn?: boolean };
 
 export type ToolOutcome<T> = {
   /** What the model reads back. */
@@ -22,6 +26,8 @@ export type ToolOutcome<T> = {
   isError?: boolean;
   /** Set by the final tool: the loop ends with this as its result. */
   final?: T;
+  /** Plain-word cautions (written by us) that become their own steps, like "Found hidden instructions". */
+  notes?: string[];
 };
 
 export type ToolDef<T> = {
@@ -46,8 +52,8 @@ export type RunAgentOptions<T> = {
   client: ModelClient;
   model: string;
   system: string;
-  /** The first message. */
-  user: string;
+  /** The first message: words, or words and a picture. */
+  user: string | Anthropic.ContentBlockParam[];
   tools: ToolDef<T>[];
   /** The tool that ends the run. Defaults to the last tool. */
   finalTool?: string;
@@ -60,6 +66,11 @@ export type RunAgentOptions<T> = {
 };
 
 export const MAX_STEPS = 6;
+
+const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max)}…` : text);
+/** The tool call and its answer, short. Only our own tool names, the model's tool input, and our tool's output. */
+const detailOf = (name: string, input: unknown, content: string, isError?: boolean) =>
+  clip(`${name}(${clip(JSON.stringify(input ?? {}) ?? "{}", 200)}) → ${isError ? "(did not work) " : ""}${content}`, 600);
 
 function plainError(err: unknown): string {
   if (err instanceof Anthropic.RateLimitError) return "I'm busy right now. Please try again in a minute.";
@@ -125,7 +136,7 @@ export async function runAgent<T>(opts: RunAgentOptions<T>): Promise<AgentRun<T>
       const tool = opts.tools.find((t) => t.name === use.name);
       if (!tool) {
         emit({ label: "Skipping something I can't do…", state: "working" });
-        emit({ label: "Skipping something I can't do…", state: "done" });
+        emit({ label: "Skipping something I can't do…", state: "done", detail: "Something asked for a tool that does not exist. It did nothing." });
         results.push({ type: "tool_result", tool_use_id: use.id, content: "That tool does not exist.", is_error: true });
         continue;
       }
@@ -136,7 +147,8 @@ export async function runAgent<T>(opts: RunAgentOptions<T>): Promise<AgentRun<T>
       } catch {
         out = { content: "That did not work.", isError: true };
       }
-      emit({ label: tool.label, state: "done" });
+      emit({ label: tool.label, state: "done", detail: detailOf(tool.name, use.input, out.content, out.isError) });
+      for (const note of out.notes ?? []) emit({ label: note, state: "done", warn: true });
       results.push({ type: "tool_result", tool_use_id: use.id, content: out.content, ...(out.isError ? { is_error: true } : {}) });
       if (out.final !== undefined && tool.name === finalTool) final = { value: out.final };
     }

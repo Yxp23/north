@@ -27,7 +27,7 @@ describe("Supabase specifics", () => {
     const t = await db.query<{ relname: string; relrowsecurity: boolean }>(
       `select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' order by relname`,
     );
-    expect(t.rows.map((r) => r.relname)).toEqual(["audit_log", "purchases", "rules", "users", "waiting_list", "webhook_events"]);
+    expect(t.rows.map((r) => r.relname)).toEqual(["audit_log", "flagged_sellers", "purchases", "rules", "users", "waiting_list", "webhook_events"]);
     expect(t.rows.every((r) => r.relrowsecurity)).toBe(true);
     const policies = await db.query(`select 1 from pg_policies where schemaname = 'public'`);
     expect(policies.rows).toHaveLength(0);
@@ -156,6 +156,21 @@ describe("Supabase specifics", () => {
     );
     await expect(old.read()).rejects.toThrow(/out of date.*20261105000000_north_rule_strength/);
     await expect(old.update(() => undefined)).rejects.toThrow(/out of date/);
+  });
+
+  it("refuses to run against a database without the flagged-sellers table (a flag would be silently lost)", async () => {
+    const raw = pgRpc(db);
+    const old = new SupabaseLedger(
+      {
+        rpc: async (fn, args) => {
+          const r = await raw.rpc(fn, args);
+          if (fn === "ledger_load" && r.data) delete (r.data as Record<string, unknown>).flagged_sellers;
+          return r;
+        },
+      },
+      randomUUID(), "UTC", clock,
+    );
+    await expect(old.read()).rejects.toThrow(/out of date.*20261106000000_north_flagged_sellers/);
   });
 
   it("reports a database error without hiding it", async () => {

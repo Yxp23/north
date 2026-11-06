@@ -53,7 +53,7 @@ async function askConcierge(body: object, onStep: (s: StepEvent) => void): Promi
     for (const line of lines) {
       if (!line.trim()) continue;
       const msg = JSON.parse(line);
-      if (msg.type === "step") onStep({ label: msg.label, state: msg.state });
+      if (msg.type === "step") onStep({ label: msg.label, state: msg.state, detail: msg.detail, warn: msg.warn });
       else if (msg.type === "result") result = msg.payload;
     }
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  applyWebhook, buildUserState, defaultLedgerData, localDate, markPaid, spentThisWeekCents, summarize, weekStartDate,
+  applyWebhook, buildUserState, defaultLedgerData, flagSeller, isSellerFlagged, localDate, upgradeLedgerData, markPaid, spentThisWeekCents, summarize, weekStartDate,
 } from "./logic";
 import type { LedgerData, PurchaseRecord } from "./types";
 
@@ -150,5 +150,37 @@ describe("applyWebhook", () => {
   it("ignores events we don't care about", () => {
     const d = data();
     expect(applyWebhook(d, { kind: "ignored", eventId: "E9", eventType: "X" }, NOW).changed).toBe(false);
+  });
+});
+
+describe("flagged sellers", () => {
+  it("start empty, and older saved data gets an empty list", () => {
+    expect(defaultLedgerData(NOW, TZ).flaggedSellers).toEqual([]);
+    const old = defaultLedgerData(NOW, TZ) as Partial<LedgerData>;
+    delete old.flaggedSellers;
+    expect(upgradeLedgerData(old as LedgerData).flaggedSellers).toEqual([]);
+  });
+
+  it("flagging remembers the seller, the time and the reason", () => {
+    const d = data();
+    expect(flagSeller(d, "Shop.Example", "The price isn't real.", NOW)).toBe(true);
+    expect(d.flaggedSellers).toEqual([{ domain: "shop.example", flaggedAt: NOW.toISOString(), reason: "The price isn't real." }]);
+  });
+
+  it("flagging the same seller again changes nothing", () => {
+    const d = data();
+    flagSeller(d, "shop.example", "one", NOW);
+    expect(flagSeller(d, "SHOP.example", "two", new Date(NOW.getTime() + 1000))).toBe(false);
+    expect(d.flaggedSellers).toHaveLength(1);
+    expect(d.flaggedSellers[0].reason).toBe("one");
+  });
+
+  it("is checked by domain, ignoring capital letters and www", () => {
+    const d = data();
+    flagSeller(d, "shop.example", "x", NOW);
+    expect(isSellerFlagged(d, "shop.example")).toBe(true);
+    expect(isSellerFlagged(d, "WWW.Shop.Example")).toBe(true);
+    expect(isSellerFlagged(d, "other.example")).toBe(false);
+    expect(isSellerFlagged(d, undefined)).toBe(false);
   });
 });

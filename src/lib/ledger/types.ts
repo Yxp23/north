@@ -69,6 +69,9 @@ export type WaitingItem = {
   purchaseId?: string;
 };
 
+/** A seller the scam checker said looks like a scam. The Guardian refuses to pay them. Never removed. */
+export type FlaggedSeller = { domain: string; flaggedAt: string; reason: string };
+
 export type AuditEntry = { at: string; type: string; detail: string };
 
 export type LedgerData = {
@@ -84,6 +87,8 @@ export type LedgerData = {
   paypalVault?: PaypalVault;
   purchases: PurchaseRecord[];
   waitingList: WaitingItem[];
+  /** Sellers flagged as scams. Kept in their own list (not the audit log, which forgets old entries). */
+  flaggedSellers: FlaggedSeller[];
   webhookEventIds: string[];
   audit: AuditEntry[];
 };

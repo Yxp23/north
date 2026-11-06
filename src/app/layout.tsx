@@ -43,6 +43,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/shop" className="whitespace-nowrap rounded-lg px-2.5 py-3">
                 Shop
               </Link>
+              <Link href="/check" className="whitespace-nowrap rounded-lg px-2.5 py-3">
+                Check a deal
+              </Link>
               <Link href="/rules" className="whitespace-nowrap rounded-lg px-2.5 py-3">
                 My rules
               </Link>

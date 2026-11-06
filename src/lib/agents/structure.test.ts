@@ -14,7 +14,7 @@ const agentFiles = files(path.join(SRC, "lib/agents")).filter((f) => !f.endsWith
 
 // Everything an agent could use to reach money, the ledger, or a way to save rules.
 const FORBIDDEN_IMPORTS = [
-  /checkout/, /paypal/i, /gateway/, /refund/, /store\b/, /ledger/, /rules\/(save|change)/, /connect/, /spike/,
+  /checkout/, /paypal/i, /gateway/, /refund/, /store\b/, /ledger/, /rules\/(save|change)/, /proposals/, /connect/, /spike/,
 ];
 
 describe("agent code can't reach money", () => {
@@ -77,5 +77,37 @@ describe("changing or removing a rule by hand is reached only by the user's own 
 
   it("no agent file mentions it at all", () => {
     for (const { file, text } of agentFiles) expect(text, file).not.toMatch(/changeRule|rules\/change/);
+  });
+});
+
+describe("the tricked-agent block comes from code, not from the model behaving well", () => {
+  const all = files(SRC).filter((f) => !f.endsWith(".test.ts")).map((f) => ({ file: rel(f), text: readFileSync(f, "utf8") }));
+  const noComments = (t: string) => t.replace(/\/\/.*$/gm, "");
+  const proposals = all.filter((f) => f.file.startsWith("lib/proposals/")).map((f) => ({ ...f, text: noComments(f.text) }));
+
+  it("the proposals judge is only imported by the helper route", () => {
+    const real = /^import\s+(?!type\b)[^;]*from\s+["'][^"']*proposals\/judge["']/m;
+    expect(all.filter((f) => real.test(f.text)).map((f) => f.file)).toEqual(["app/api/concierge/listing/route.ts"]);
+  });
+
+  it("the judge has no way to charge: no checkout, PayPal, gateway, refund, or approval tokens", () => {
+    expect(proposals.length).toBeGreaterThan(0);
+    for (const { file, text } of proposals) {
+      const imports = [...text.matchAll(/(?:from|import)\s+["']([^"']+)["']/g)].map((m) => m[1]);
+      for (const spec of imports) expect(spec, `${file} imports ${spec}`).not.toMatch(/checkout|paypal|gateway|refund|connect|ledger\/(?!types)/i);
+      expect(text, file).not.toMatch(/requestApproval|withApproval/);
+    }
+  });
+
+  it("the judge marks every suggestion as started by an agent, with no way for a caller to switch that off", () => {
+    const judge = proposals.find((p) => p.file === "lib/proposals/judge.ts")!.text;
+    expect(judge).toMatch(/agentStartedFromUntrustedText:\s*true/);
+    expect(judge).not.toMatch(/agentStartedFromUntrustedText:\s*(?!true\b)\S/);
+    expect(judge).not.toMatch(/startedByUser|userAskedToBuy/);
+  });
+
+  it("checkout never imports the judge, and the judge never imports checkout", () => {
+    const checkout = all.filter((f) => f.file.startsWith("lib/checkout/"));
+    for (const { file, text } of checkout) expect(text, file).not.toMatch(/proposals\//);
   });
 });

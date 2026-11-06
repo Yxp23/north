@@ -416,3 +416,117 @@ describe("locked: never", () => {
     expect((await s.buy(HEADPHONES, { at: NOON })).kind).toBe("refused");
   });
 });
+
+// ---- a seller the scam checker flagged -------------------------------------------------------
+const shady = (over: Partial<StoreProduct> = {}): StoreProduct => ({
+  id: "shady_sneakers", name: "Running Sneakers", category: "shoes", priceCents: 2700, currency: "USD", imageUrl: "/x.svg", tracked: false,
+  sellerDomain: "cheap-kicks-outlet.example", ...over,
+});
+
+describe("a seller flagged as a scam can't be paid", () => {
+  const flag = (ledger: MemoryLedger, domain = "cheap-kicks-outlet.example") =>
+    ledger.update((d) => void d.flaggedSellers.push({ domain, flaggedAt: NOON.toISOString(), reason: "The price isn't real." }));
+
+  it("is refused with the scam reason, and nothing is charged or saved", async () => {
+    const { charge, buy, ledger } = setup({ store: new DemoStore([shady()]) });
+    await flag(ledger);
+    const out = await buy("shady_sneakers");
+    expect(out.kind).toBe("refused");
+    if (out.kind === "refused") expect(out.result).toMatchObject({ code: "scam_seller", reason: "This seller looks like a scam. I won't pay them." });
+    expect(charge).not.toHaveBeenCalled();
+    expect((await ledger.read()).purchases).toHaveLength(0);
+  });
+
+  it("Buy now does not help", async () => {
+    const { charge, buy, ledger } = setup({ store: new DemoStore([shady()]) });
+    await flag(ledger);
+    expect((await buy("shady_sneakers", { overrideWait: true })).kind).toBe("refused");
+    expect(charge).not.toHaveBeenCalled();
+  });
+
+  it("even a must-have item from a flagged seller is refused", async () => {
+    const { charge, buy, ledger } = setup({ store: new DemoStore([shady({ id: "g", category: "groceries" })]) });
+    await flag(ledger);
+    expect((await buy("g")).kind).toBe("refused");
+    expect(charge).not.toHaveBeenCalled();
+  });
+
+  it("the same seller before it is flagged can be bought from (the Guardian only knows what was checked)", async () => {
+    const { charge, buy } = setup({ store: new DemoStore([shady()]) });
+    expect((await buy("shady_sneakers")).kind).toBe("paid");
+    expect(charge).toHaveBeenCalledTimes(1);
+  });
+
+  it("only that seller: other sellers and the store's own products are fine", async () => {
+    const { charge, buy, ledger } = setup({ store: new DemoStore([shady(), shady({ id: "ok_sneakers", sellerDomain: "kickscrew.com" }), shady({ id: "own", sellerDomain: undefined })]) });
+    await flag(ledger);
+    expect((await buy("ok_sneakers")).kind).toBe("paid");
+    expect((await buy("own")).kind).toBe("paid");
+    expect(charge).toHaveBeenCalledTimes(2);
+  });
+
+  it("capital letters and www in the product's seller address don't get around a flag", async () => {
+    const { charge, buy, ledger } = setup({ store: new DemoStore([shady({ sellerDomain: "WWW.Cheap-Kicks-Outlet.example" })]) });
+    await flag(ledger);
+    expect((await buy("shady_sneakers")).kind).toBe("refused");
+    expect(charge).not.toHaveBeenCalled();
+  });
+});
+
+// ---- the steps shown in the activity panel -----------------------------------------------------
+describe("checkout tells the activity panel what it is doing, in plain words", () => {
+  async function steps(productId: string, opts: Parameters<typeof setup>[0] = {}, extra: Partial<Parameters<typeof checkout>[0]> = {}) {
+    const s = setup(opts);
+    const seen: { label: string; state: string; detail?: string; warn?: boolean }[] = [];
+    s.deps.onStep = (e) => seen.push(e);
+    const out = await checkout({ productId, attemptId: "attempt-steps-1", ...extra }, s.deps);
+    return { seen, out, ...s };
+  }
+  const labels = (seen: { label: string }[]) => [...new Set(seen.map((e) => e.label))].filter((l) => l !== "Done.");
+
+  it("a paid buy: look up the price, ask the Guardian, charge PayPal, save the receipt", async () => {
+    const { seen, out } = await steps(NOTEBOOK);
+    expect(out.kind).toBe("paid");
+    expect(labels(seen)).toEqual(["Looking up the price…", "Asking the Money Guardian…", "Charging your saved PayPal…", "Saving your receipt…"]);
+    expect(seen.at(-1)).toMatchObject({ label: "Done.", state: "done" });
+  });
+
+  it("the details show the store price and the Guardian's answer, never a secret", async () => {
+    const { seen } = await steps(NOTEBOOK);
+    const details = seen.map((e) => e.detail ?? "").join("\n");
+    expect(details).toContain("Plain Notebook A5 is $2.50");
+    expect(details).toContain("Money Guardian: approve (ok)");
+    expect(details).not.toContain("VAULT-1");
+  });
+
+  it("a refusal says so, with the Guardian's reason, and never reaches PayPal", async () => {
+    const s = setup({ store: new DemoStore([shady()]) });
+    await s.ledger.update((d) => void d.flaggedSellers.push({ domain: "cheap-kicks-outlet.example", flaggedAt: NOON.toISOString(), reason: "x" }));
+    const seen: { label: string; state: string; warn?: boolean }[] = [];
+    s.deps.onStep = (e) => seen.push(e);
+    await checkout({ productId: "shady_sneakers", attemptId: "a-ref-1" }, s.deps);
+    expect(labels(seen)).toEqual(["Looking up the price…", "Asking the Money Guardian…", "The Money Guardian said no: This seller looks like a scam. I won't pay them."]);
+    expect(seen.find((e) => e.label.startsWith("The Money Guardian said no"))?.warn).toBe(true);
+    expect(s.charge).not.toHaveBeenCalled();
+  });
+
+  it("a gentle wait and a saved-for-later buy say what happened", async () => {
+    const wait = await steps(HEADPHONES, {}, { at: NOON });
+    expect(labels(wait.seen).at(-1)).toBe("The Money Guardian says wait.");
+    const saved = await steps(HEADPHONES, {}, { at: ELEVEN_PM });
+    expect(labels(saved.seen).at(-1)).toBe("The Money Guardian saved it for later.");
+    expect(wait.charge).not.toHaveBeenCalled();
+    expect(saved.charge).not.toHaveBeenCalled();
+  });
+
+  it("a product that is not in the store", async () => {
+    const { seen, out } = await steps("nope");
+    expect(out.kind).toBe("not_found");
+    expect(labels(seen)).toEqual(["Looking up the price…"]);
+  });
+
+  it("works with no listener at all", async () => {
+    const { buy } = setup();
+    expect((await buy(NOTEBOOK)).kind).toBe("paid");
+  });
+});

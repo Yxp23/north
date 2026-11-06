@@ -6,9 +6,10 @@
 // can't both spend the same money.
 import { requestApproval, withApproval, type Approval, type GuardianResult, type RuleId } from "../guardian";
 import type { Ledger } from "../ledger/ledger";
-import { activeWaiting, addAudit, buildUserState, markPaid, waitingView } from "../ledger/logic";
+import { activeWaiting, addAudit, buildUserState, isSellerFlagged, markPaid, waitingView } from "../ledger/logic";
 import type { PurchaseRecord, PurchaseView, WaitingView } from "../ledger/types";
 import type { StoreProvider } from "../store";
+import type { StepEvent } from "../agents/loop"; // a type only: erased when building, so checkout imports no agent code
 
 export type ChargeArgs = {
   vaultId: string;
@@ -36,6 +37,8 @@ export type CheckoutDeps = {
   getVaultId(): Promise<string | null>;
   now(): Date;
   newId(): string;
+  /** Plain-word steps for the activity panel ("Asking the Money Guardian…"). Optional. */
+  onStep?(event: StepEvent): void;
 };
 
 export type CheckoutInput = {
@@ -73,14 +76,31 @@ const ruleList = (ids: RuleId[]) => `${ids.length > 1 ? "rules" : "rule"}: ${ids
 type Gate = { early: CheckoutOutcome } | { approval: Approval; purchaseId: string; waitingId?: string };
 
 export async function checkout(input: CheckoutInput, deps: CheckoutDeps): Promise<CheckoutOutcome> {
+  const outcome = await guardedCheckout(input, deps);
+  deps.onStep?.({ label: "Done.", state: "done" });
+  return outcome;
+}
+
+async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promise<CheckoutOutcome> {
+  // Steps are plain words that WE write. A step is "working" until its work is done.
+  const working = (label: string) => deps.onStep?.({ label, state: "working" });
+  const finished = (label: string, detail?: string) => deps.onStep?.({ label, state: "done", ...(detail ? { detail } : {}) });
+  const said = (label: string, warn = false) => deps.onStep?.({ label, state: "done", ...(warn ? { warn: true } : {}) });
+
+  working("Looking up the price…");
   const product = await deps.store.getProduct(input.productId);
-  if (!product) return { kind: "not_found" };
+  if (!product) {
+    finished("Looking up the price…", "The store does not have that product.");
+    return { kind: "not_found" };
+  }
+  finished("Looking up the price…", `${product.name} is ${dollars(product.priceCents)}. The price comes from the store, never from the browser.`);
 
   const vaultId = await deps.getVaultId();
   const now = deps.now();
   const at = input.at ?? now;
 
   // Step 1 (locked): the Guardian decides, and an approved buy reserves its money right away.
+  working("Asking the Money Guardian…");
   const gate = await deps.ledger.update<Gate>((data) => {
     const existing = data.purchases.find((p) => p.attemptId === input.attemptId);
     if (existing) {
@@ -96,6 +116,8 @@ export async function checkout(input: CheckoutInput, deps: CheckoutDeps): Promis
       {
         amountCents: product.priceCents, item: product.name, category: product.category, at, overrideWait: input.overrideWait,
         waitlist: waiting ? { since: new Date(waiting.createdAt), waitHours: waiting.waitHours } : undefined,
+        // A seller the scam checker flagged can't be paid: the Guardian's hard wall refuses. The list is OUR record.
+        sellerFlaggedScam: isSellerFlagged(data, product.sellerDomain),
       },
       buildUserState(data, now),
     );
@@ -143,9 +165,21 @@ export async function checkout(input: CheckoutInput, deps: CheckoutDeps): Promis
     return { approval, purchaseId, waitingId: waiting?.id };
   });
 
-  if ("early" in gate) return gate.early;
+  // Tell the panel what the Guardian said. (The reason is the Guardian's own plain words.)
+  if ("early" in gate) {
+    const early = gate.early;
+    const answer = "result" in early ? early.result : null;
+    finished("Asking the Money Guardian…", answer ? `Money Guardian: ${answer.decision} (${answer.code}). ${answer.reason}` : "I already handled this tap.");
+    if (early.kind === "refused") said(`The Money Guardian said no: ${early.result.reason}`, true);
+    else if (early.kind === "wait") said("The Money Guardian says wait.");
+    else if (early.kind === "waitlisted") said("The Money Guardian saved it for later.");
+    else if (early.kind === "needs_paypal") said("Connect PayPal first.");
+    return early;
+  }
+  finished("Asking the Money Guardian…", `Money Guardian: ${gate.approval.result.decision} (${gate.approval.result.code}). ${gate.approval.result.reason}`);
 
   // Step 2: the charge. Only runs for a real, unused approval, and charges the approved amount.
+  working("Charging your saved PayPal…");
   let charged: Awaited<ReturnType<PayGateway["charge"]>>;
   try {
     charged = await withApproval(gate.approval, (approved) =>
@@ -161,8 +195,11 @@ export async function checkout(input: CheckoutInput, deps: CheckoutDeps): Promis
     charged = { ok: false, error: e instanceof Error ? e.message : "Could not reach PayPal.", uncertain: true };
   }
 
+  finished("Charging your saved PayPal…", charged.ok ? `PayPal said ${charged.status}.` : "PayPal did not take the payment.");
+
   // Step 3 (locked): record what happened.
-  return deps.ledger.update<CheckoutOutcome>((data) => {
+  working("Saving your receipt…");
+  const recorded = await deps.ledger.update<CheckoutOutcome>((data) => {
     const p = data.purchases.find((x) => x.id === gate.purchaseId)!;
     if (charged.ok) {
       markPaid(data, p.id, { captureId: charged.captureId, orderId: charged.orderId, via: "checkout" }, now);
@@ -191,4 +228,6 @@ export async function checkout(input: CheckoutInput, deps: CheckoutDeps): Promis
           purchase: view(p),
         };
   });
+  finished("Saving your receipt…");
+  return recorded;
 }
