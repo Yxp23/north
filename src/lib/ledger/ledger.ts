@@ -35,6 +35,16 @@ export function assertValid(data: LedgerData) {
     if (flagged.has(f.domain)) throw new Error(`${f.domain} is already flagged`);
     flagged.add(f.domain);
   }
+  const watched = new Set<string>();
+  for (const w of data.priceWatch.watches) {
+    if (watched.has(w.productId)) throw new Error(`${w.productId} is already watched`);
+    watched.add(w.productId);
+  }
+  const noticeIds = new Set<string>();
+  for (const n of data.priceWatch.notices) {
+    if (noticeIds.has(n.id)) throw new Error(`Two price notices share the id ${n.id}`);
+    noticeIds.add(n.id);
+  }
   const waitingIds = new Set<string>();
   const waitingProducts = new Set<string>();
   for (const w of data.waitingList) {

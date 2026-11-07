@@ -328,6 +328,33 @@ export function ledgerContract(name: string, make: () => Promise<LedgerHarness>)
         expect((await l.read()).flaggedSellers.map((f) => f.domain)).toEqual(["old-scam.example"]);
       }));
 
+    // ---- the Price Watcher's watches and news ---------------------------------------------------
+    it("keeps the watched items and the price news exactly, and they can change (a dismissed notice, a new price)", () =>
+      withLedger(async (l) => {
+        const watch = { productId: "ENVDwLq", name: "Over-Ear Headphones", imageUrl: "https://x/y.png", source: "chosen" as const, startedAt: "2026-11-07T10:00:00.000Z", baselineCents: 34_900, lastCents: 28_900, lastAvailable: true, lastCheckedAt: "2026-11-07T11:00:00.000Z", lastNoticeKey: "drop:28900", active: true };
+        const notice = { id: "n1", productId: "ENVDwLq", name: "Over-Ear Headphones", imageUrl: "https://x/y.png", kind: "drop" as const, message: "Cheaper now. Still want them?", priceCents: 28_900, createdAt: "2026-11-07T11:00:00.000Z", dismissed: false };
+        await l.update((d) => {
+          d.priceWatch.watches.push(watch);
+          d.priceWatch.notices.push(notice);
+        });
+        expect((await l.read()).priceWatch).toEqual({ watches: [watch], notices: [notice] });
+        await l.update((d) => {
+          d.priceWatch.notices[0].dismissed = true;
+          d.priceWatch.watches[0].active = false;
+        });
+        const after = (await l.read()).priceWatch;
+        expect(after.notices[0].dismissed).toBe(true);
+        expect(after.watches[0].active).toBe(false);
+      }));
+
+    it("a watch and a notice id can't be saved twice", () =>
+      withLedger(async (l) => {
+        const w = { productId: "P", name: "n", imageUrl: "https://x/y.png", source: "chosen" as const, startedAt: "2026-11-07T10:00:00.000Z", baselineCents: 100, lastAvailable: true, active: true };
+        await expect(l.update((d) => void d.priceWatch.watches.push(w, { ...w }))).rejects.toThrow();
+        const n = { id: "n1", productId: "P", name: "n", imageUrl: "https://x/y.png", kind: "drop" as const, message: "m", createdAt: "2026-11-07T10:00:00.000Z", dismissed: false };
+        await expect(l.update((d) => void d.priceWatch.notices.push(n, { ...n }))).rejects.toThrow();
+      }));
+
     it("counts the Buy now taps this week from the audit log", () =>
       withLedger(async (l) => {
         const { buyNowThisWeek } = await import("./logic");
@@ -351,6 +378,7 @@ export function ledgerContract(name: string, make: () => Promise<LedgerHarness>)
           d.webhookEventIds.push("WH-reset-1");
           d.waitingList.push(waitingItem());
           d.flaggedSellers.push({ domain: "x.example", flaggedAt: "2026-11-04T10:00:00.000Z", reason: "y" });
+          d.priceWatch.watches.push({ productId: "P", name: "n", imageUrl: "https://x/y.png", source: "chosen", startedAt: "2026-11-04T10:00:00.000Z", baselineCents: 100, lastAvailable: true, active: true });
           d.rules.waitOverCents = { value: big(1), changedAt: "2026-11-04T10:00:00.000Z", previous: big(5000) };
         });
         await l.reset();
@@ -360,6 +388,7 @@ export function ledgerContract(name: string, make: () => Promise<LedgerHarness>)
         expect(d.audit).toEqual([]);
         expect(d.webhookEventIds).toEqual([]);
         expect(d.flaggedSellers).toEqual([]);
+        expect(d.priceWatch).toEqual({ watches: [], notices: [] });
         expect(d.rules.waitOverCents.value).toEqual(big(5000));
         expect(d.paypalVault?.vaultId).toBe("V1");
       }));

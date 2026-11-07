@@ -37,8 +37,10 @@ export interface StoreProvider {
   /**
    * `fresh: true` reads the price from the live store right now (checkout does this). Otherwise a read from the
    * last 10 minutes may be used. Null when the product does not exist or nothing is in stock.
+   * `strict: true` throws when the live store can't be reached, instead of using a saved price or giving null
+   * (the Price Watcher uses it: an outage must never look like "sold out").
    */
-  getProduct(id: string, opts?: { fresh?: boolean }): Promise<StoreProduct | null>;
+  getProduct(id: string, opts?: { fresh?: boolean; strict?: boolean }): Promise<StoreProduct | null>;
   /** Words to products. In-stock products only. */
   search(query: string, limit?: number): Promise<StoreProduct[]>;
   /** A picture (raw base64) to products. Empty when the store can't search by picture. */

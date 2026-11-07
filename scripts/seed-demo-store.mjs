@@ -20,7 +20,7 @@ const PICKS = [
   ["OpovWAw", "Running Series Sneakers", "shoes"], // tracked
   ["VIYcSuc", "Kitchen Sponges", "household", 2],
   ["ioVqCKq", "Plain Cotton Terry Bath Towel", "household"],
-  ["Qez8uoD", "Plain Notebook A5", "school and office"],
+  ["912yTCL", "Box of Paper Clips", "school and office", 2], // the loose-clips picture: no packaging text or logo (the old notebook went out of stock)
   ["z6AiKn7", "Plain T-Shirt", "clothes", 0],
   ["7b5sz6i", "White T-Shirt", "clothes"],
   ["0HzVACz", "Cotton Crew Socks", "clothes", 0],

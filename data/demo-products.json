@@ -1,5 +1,5 @@
 {
-  "seededAt": "2026-11-04",
+  "seededAt": "2026-11-07",
   "products": [
     {
       "id": "cY1jWjp",
@@ -7,7 +7,7 @@
       "category": "personal care",
       "priceCents": 970,
       "currency": "USD",
-      "imageUrl": "https://cdn.trychannel3.com/0496aeb4-e2ea-442d-9fad-03c6da00794c?aid=01M6MB4AJY6ZGP35CWXM2Y1ETW&mid=tgBX",
+      "imageUrl": "https://cdn.trychannel3.com/0496aeb4-e2ea-442d-9fad-03c6da00794c?aid=01M6SVTTAJVVJ01BX9SQP1X6QQ&mid=tgBX",
       "tracked": false
     },
     {
@@ -16,7 +16,7 @@
       "category": "electronics",
       "priceCents": 34900,
       "currency": "USD",
-      "imageUrl": "https://cdn.trychannel3.com/a1e9c6a2-542e-4551-9031-c80978055aba?aid=01M6MB4AQPCNMPP3517K9DXS2Z&mid=Pu5r",
+      "imageUrl": "https://cdn.trychannel3.com/a1e9c6a2-542e-4551-9031-c80978055aba?aid=01M6SVTTFP4S36P59NBY6E555Z&mid=Pu5r",
       "tracked": true
     },
     {
@@ -25,7 +25,7 @@
       "category": "shoes",
       "priceCents": 7254,
       "currency": "USD",
-      "imageUrl": "https://cdn.trychannel3.com/cfdffc59-f8a8-4d24-8bd0-20cfc490fbc2?aid=01M6MB4AVRDRPG4SN7H0ZFPQH5&mid=hHvi",
+      "imageUrl": "https://cdn.trychannel3.com/cfdffc59-f8a8-4d24-8bd0-20cfc490fbc2?aid=01M6SVTTKWBXS437G255AE4VCH&mid=hHvi",
       "tracked": true
     },
     {
@@ -34,7 +34,7 @@
       "category": "household",
       "priceCents": 1000,
       "currency": "USD",
-      "imageUrl": "https://cdn.trychannel3.com/71d67cd6-29db-4f0c-99ec-a062c9cbacf9?aid=01M6MB4AZ3T1XG8788EVXKPDQK&mid=14ii",
+      "imageUrl": "https://cdn.trychannel3.com/71d67cd6-29db-4f0c-99ec-a062c9cbacf9?aid=01M6SVTTPRZQBSFX07KY570K96&mid=14ii",
       "tracked": false
     },
     {
@@ -43,16 +43,16 @@
       "category": "household",
       "priceCents": 890,
       "currency": "USD",
-      "imageUrl": "https://cdn.trychannel3.com/58605121-2512-4ffe-b34b-c42b644380c5?aid=01M6MB4B28Z11A2EHANX2WS67Y&mid=Mnrl",
+      "imageUrl": "https://cdn.trychannel3.com/58605121-2512-4ffe-b34b-c42b644380c5?aid=01M6SVTTSR1K6H4M7A7AMBCQ5R&mid=Mnrl",
       "tracked": false
     },
     {
-      "id": "Qez8uoD",
-      "name": "Plain Notebook A5",
+      "id": "912yTCL",
+      "name": "Box of Paper Clips",
       "category": "school and office",
-      "priceCents": 250,
+      "priceCents": 193,
       "currency": "USD",
-      "imageUrl": "https://cdn.trychannel3.com/95d6604d-be28-41d3-89f8-91be1dab3dca?aid=01M6MB4B5YETN0ADS2KP5B13EB&mid=hUzI",
+      "imageUrl": "https://cdn.trychannel3.com/590f9d54-a2c2-4587-9321-dbe9986622bf?aid=01M6SVTTYG1A81R9CVNCJMTH8A&mid=1ACV",
       "tracked": false
     },
     {
@@ -61,7 +61,7 @@
       "category": "clothes",
       "priceCents": 2799,
       "currency": "USD",
-      "imageUrl": "https://cdn.trychannel3.com/08faf804-3156-412a-9abb-4c35aa8fabe6?aid=01M6MB4B9X7ZB5ZHS2PZSB0YD8&mid=Z87s",
+      "imageUrl": "https://cdn.trychannel3.com/08faf804-3156-412a-9abb-4c35aa8fabe6?aid=01M6SVTV1R33AFT3G3CHD7DWY5&mid=Z87s",
       "tracked": false
     },
     {
@@ -70,7 +70,7 @@
       "category": "clothes",
       "priceCents": 6500,
       "currency": "USD",
-      "imageUrl": "https://cdn.trychannel3.com/c4ca73ae-45ce-4ce8-9cc7-66ed4b783e63?aid=01M6MB4BD4CX2FNVY5AK1Q17Q6&mid=rWaY",
+      "imageUrl": "https://cdn.trychannel3.com/c4ca73ae-45ce-4ce8-9cc7-66ed4b783e63?aid=01M6SVTV5AZEDK89SXQG8PSYKT&mid=rWaY",
       "tracked": false
     },
     {
@@ -79,7 +79,7 @@
       "category": "clothes",
       "priceCents": 2247,
       "currency": "USD",
-      "imageUrl": "https://cdn.trychannel3.com/75a2b523-8a9a-4cc3-8316-be216c4cbe6c?aid=01M6MB4BG4SX3M6WH4VVG9FEYZ&mid=9Sgk",
+      "imageUrl": "https://cdn.trychannel3.com/75a2b523-8a9a-4cc3-8316-be216c4cbe6c?aid=01M6SVTV8EDWS43NNQFAZPYNSC&mid=9Sgk",
       "tracked": false
     },
     {
@@ -88,7 +88,7 @@
       "category": "bags",
       "priceCents": 1499,
       "currency": "USD",
-      "imageUrl": "https://cdn.trychannel3.com/8f86d4fa-090e-440e-9800-4c82049f379e?aid=01M6MB4BM7A82JDDTJ15AKT58B&mid=dNAl",
+      "imageUrl": "https://cdn.trychannel3.com/8f86d4fa-090e-440e-9800-4c82049f379e?aid=01M6SVTVF1P9Z9N5JW67HD6DC2&mid=dNAl",
       "tracked": false
     },
     {
@@ -97,7 +97,7 @@
       "category": "rain gear",
       "priceCents": 1000,
       "currency": "USD",
-      "imageUrl": "https://cdn.trychannel3.com/8e2d181b-c9f6-4f6f-bd7f-c4973c98c885?aid=01M6MB4BQH5HTJRJMXQ1B31FF2&mid=IW9D",
+      "imageUrl": "https://cdn.trychannel3.com/8e2d181b-c9f6-4f6f-bd7f-c4973c98c885?aid=01M6SVTVJEYZS25N5BH2T0771B&mid=IW9D",
       "tracked": false
     },
     {
@@ -106,7 +106,7 @@
       "category": "kitchen",
       "priceCents": 3700,
       "currency": "USD",
-      "imageUrl": "https://cdn.trychannel3.com/gyMVxco?aid=01M6MB4BVJE7ST1PGDNB4MA0KV&mid=7Mul",
+      "imageUrl": "https://cdn.trychannel3.com/gyMVxco?aid=01M6SVTVRK035BV3BC6HYWRZHC&mid=7Mul",
       "tracked": false
     }
   ]

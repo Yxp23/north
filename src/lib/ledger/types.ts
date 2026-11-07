@@ -72,6 +72,42 @@ export type WaitingItem = {
 /** A seller the scam checker said looks like a scam. The Guardian refuses to pay them. Never removed. */
 export type FlaggedSeller = { domain: string; flaggedAt: string; reason: string };
 
+/** An item the Price Watcher keeps an eye on: a waiting-list item, or one the user chose to wait on. */
+export type Watch = {
+  productId: string;
+  name: string;
+  imageUrl: string;
+  /** "chosen": the user tapped "Wait and watch". "waiting_list": it is on the waiting list. */
+  source: "chosen" | "waiting_list";
+  startedAt: string;
+  /** The price when the user started waiting. A drop is measured from here. */
+  baselineCents: number;
+  /** The price at the last check (from the store, never from model text). */
+  lastCents?: number;
+  /** Whether it was in stock at the last check. */
+  lastAvailable: boolean;
+  lastCheckedAt?: string;
+  /** "kind:cents" of the last message, so the same news is never told twice. */
+  lastNoticeKey?: string;
+  active: boolean;
+};
+
+/** Price news for the user. It can only inform: "Still want it?" opens the product, and buying goes through the Guardian. */
+export type PriceNotice = {
+  id: string;
+  productId: string;
+  name: string;
+  imageUrl: string;
+  kind: "drop" | "back_to_normal" | "sold_out" | "back_in_stock";
+  /** Plain words. Every price in it was filled in by code from store values. */
+  message: string;
+  priceCents?: number;
+  createdAt: string;
+  dismissed: boolean;
+};
+
+export type PriceWatchData = { watches: Watch[]; notices: PriceNotice[] };
+
 export type AuditEntry = { at: string; type: string; detail: string };
 
 export type LedgerData = {
@@ -89,6 +125,8 @@ export type LedgerData = {
   waitingList: WaitingItem[];
   /** Sellers flagged as scams. Kept in their own list (not the audit log, which forgets old entries). */
   flaggedSellers: FlaggedSeller[];
+  /** What the Price Watcher is watching, and the price news it wrote. */
+  priceWatch: PriceWatchData;
   webhookEventIds: string[];
   audit: AuditEntry[];
 };
@@ -126,4 +164,8 @@ export type HomeSummary = {
   waitingList: WaitingView[];
   /** How many times the user tapped "Buy now" this week. */
   buyNowThisWeek: number;
+  /** Price news the user has not dismissed, newest first. */
+  priceNotices: PriceNotice[];
+  /** What is being watched right now. */
+  watching: { productId: string; name: string; imageUrl: string }[];
 };

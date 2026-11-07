@@ -12,7 +12,12 @@
 import { randomUUID } from "node:crypto";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3100";
-const NOTEBOOK = "Qez8uoD", HEADPHONES = "ENVDwLq", SNEAKERS = "OpovWAw";
+const NOTEBOOK = "912yTCL", HEADPHONES = "ENVDwLq", SNEAKERS = "OpovWAw"; // NOTEBOOK is now the box of paper clips (the old notebook went out of stock)
+
+// Prices come from the live store, so they can move a little. Read them instead of hard-coding them.
+const money = (cents) => `$${(cents / 100).toFixed(2)}`;
+const prices = Object.fromEntries(((await (await fetch(BASE + "/api/products")).json()).products ?? []).map((p) => [p.id, p.priceCents]));
+const SNEAKERS_PRICE = money(prices[SNEAKERS]);
 
 let failures = 0;
 const check = (ok, label, extra = "") => {
@@ -47,7 +52,7 @@ check((await (await fetch(BASE + "/api/summary")).json()).paypalSaved === true, 
 // 1. Cheap item approves and charges the saved PayPal with no popup. (Pretend it is noon, so the
 //    real time of day can't matter: the demo rules wait on buys after 9 PM.)
 let r = await buy(NOTEBOOK, { pretendHour: 12 });
-check(r.json?.kind === "paid", "Notebook ($2.50) is approved and paid with no popup", `kind=${r.json?.kind}`);
+check(r.json?.kind === "paid", `Paper clips (${money(prices[NOTEBOOK])}) are approved and paid with no popup`, `kind=${r.json?.kind}`);
 await refresh();
 let nb = ledger().purchases.find((p) => p.productId === NOTEBOOK);
 check(nb?.status === "paid" && !!nb?.captureId, "Ledger shows it paid with a PayPal capture id", `capture=${nb?.captureId}`);
@@ -71,20 +76,20 @@ check(r.json?.kind === "waitlisted", "Buy now does not shorten the timer", `kind
 
 // 4. GENTLE rule (over $50): the sneakers ($72.54) at noon get "Wait, or buy now?", and Buy now pays.
 r = await buy(SNEAKERS, { pretendHour: 12 });
-check(r.json?.kind === "wait" && r.json?.result?.canOverride === true, "Sneakers ($72.54) at noon (gentle rule): Wait, or buy now?", r.json?.result?.reason);
+check(r.json?.kind === "wait" && r.json?.result?.canOverride === true, `Sneakers (${SNEAKERS_PRICE}) at noon (gentle rule): Wait, or buy now?`, r.json?.result?.reason);
 r = await buy(SNEAKERS, { pretendHour: 12, overrideWait: true });
 check(r.json?.kind === "paid", "Buy now pays the sneakers", `kind=${r.json?.kind}`);
 await refresh();
 const sn = ledger().purchases.find((p) => p.productId === SNEAKERS && p.status !== "failed");
 const ov = ledger().audit.filter((e) => e.type === "override");
-check(ov.length === 1 && ov[0].detail.includes("$72.54") && ov[0].detail.includes("big_buy"), "That Buy now was logged: what, how much, which rule", ov[0]?.detail);
+check(ov.length === 1 && ov[0].detail.includes(SNEAKERS_PRICE) && ov[0].detail.includes("big_buy"), "That Buy now was logged: what, how much, which rule", ov[0]?.detail);
 check((await (await fetch(BASE + "/api/summary")).json()).buyNowThisWeek === 1, "The home screen data says: Buy now chosen 1 time this week");
 check(ledger().waitingList.filter((w) => w.status === "waiting").length === 1, "The saved headphones are still on the waiting list");
 
-// 5. Over the protected money: refused, and Buy now can't change it. ($400 spendable - $2.50 - $72.54 is
+// 5. Over the protected money: refused, and Buy now can't change it. ($400 spendable - the clips - the sneakers is
 //    less than the $349 headphones. Walls come first, even for a saved item.)
 r = await buy(HEADPHONES, { pretendHour: 12 });
-check(r.json?.kind === "refused" && r.json?.result?.code === "protected_money", "Headphones ($349) are now refused: protected money", r.json?.result?.reason);
+check(r.json?.kind === "refused" && r.json?.result?.code === "protected_money", `Headphones (${money(prices[HEADPHONES])}) are now refused: protected money`, r.json?.result?.reason);
 r = await buy(HEADPHONES, { pretendHour: 12, overrideWait: true });
 check(r.json?.kind === "refused", "Buy now can't override a refuse");
 
@@ -103,7 +108,7 @@ for (const [label, p] of [["notebook", nb], ["sneakers", sn]]) {
 }
 // A second refund says "already refunded" (CAPTURE_FULLY_REFUNDED is treated as success).
 r = await post("/api/refund", { purchaseId: nb?.id });
-check(r.json?.kind === "already_refunded", "Refunding the notebook again says 'already refunded'", r.json?.kind);
+check(r.json?.kind === "already_refunded", "Refunding the paper clips again says 'already refunded'", r.json?.kind);
 await refresh();
 check(!JSON.stringify(ledger()).includes("vault"), "The demo ledger view never shows the saved PayPal token");
 

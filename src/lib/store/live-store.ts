@@ -21,7 +21,7 @@ const isLocalOnly = (id: string) => id.startsWith("trap_");
 export class LiveStore implements StoreProvider {
   constructor(private readonly source: StoreSource, private readonly demo: DemoStore = new DemoStore()) {}
 
-  async getProduct(id: string, opts: { fresh?: boolean } = {}): Promise<StoreProduct | null> {
+  async getProduct(id: string, opts: { fresh?: boolean; strict?: boolean } = {}): Promise<StoreProduct | null> {
     if (!SAFE_ID.test(id)) return null;
     const saved = await this.demo.getProduct(id);
     if (isLocalOnly(id)) return saved;
@@ -29,7 +29,8 @@ export class LiveStore implements StoreProvider {
       const raw = await this.source.get(id, { fresh: opts.fresh === true });
       const live = raw ? toStoreProduct(raw) : null;
       return live ? overlay(live, saved) : null; // not found, or nothing in stock: it can't be bought
-    } catch {
+    } catch (e) {
+      if (opts.strict) throw e;
       return saved ? { ...saved, live: false } : null; // the store is down: a demo product keeps its saved price
     }
   }

@@ -3,10 +3,14 @@
 // or refund that PayPal reports by webhook shows up on its own.
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { ActivityPanel } from "@/components/activity-panel";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
+import type { StepEvent } from "@/lib/agents/loop";
 import { setDemoHour, useDemoHour } from "@/lib/demo-hour";
 import { formatMoney } from "@/lib/format";
-import type { HomeSummary, PurchaseStatus, PurchaseView, WaitingView } from "@/lib/ledger/types";
+import type { HomeSummary, PriceNotice, PurchaseStatus, PurchaseView, WaitingView } from "@/lib/ledger/types";
+import { postAgent } from "@/lib/ndjson-client";
+import type { WatchRunResult } from "@/lib/watcher/run";
 
 type Summary = HomeSummary & { paypalSaved: boolean; demoMode: boolean };
 
@@ -93,6 +97,21 @@ export function Home() {
       </section>
 
       <Link href="/shop" className={btnPrimary}>Shop for something</Link>
+      <Link href="/payments" className={btnSecondary}>Ask about my payments</Link>
+
+      {data.priceNotices.length > 0 && (
+        <section aria-labelledby="news-h" className="space-y-3">
+          <h2 id="news-h" className="text-2xl font-bold">Price news</h2>
+          <ul className="space-y-3" aria-live="polite">
+            {data.priceNotices.map((n) => (
+              <NoticeRow key={n.id} n={n} onChange={load} />
+            ))}
+          </ul>
+        </section>
+      )}
+      {data.watching.length > 0 && (
+        <p className="text-lg">I am watching the price of: {data.watching.map((w) => w.name).join(", ")}.</p>
+      )}
 
       {data.waitingList.length > 0 && (
         <section aria-labelledby="waiting-h" className="space-y-3">
@@ -120,6 +139,25 @@ export function Home() {
 
       {data.demoMode && <DemoTools onChange={load} />}
     </div>
+  );
+}
+
+// One piece of price news. It only tells you: "Look at it" opens the product, and a buy still goes through the Money Guardian.
+function NoticeRow({ n, onChange }: { n: PriceNotice; onChange: () => void }) {
+  async function dismiss() {
+    await fetch("/api/watch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dismiss", id: n.id }) }).catch(() => undefined);
+    onChange();
+  }
+  return (
+    <li className={`${card} space-y-3`}>
+      <div className="flex items-center gap-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={n.imageUrl} alt="" className="h-20 w-20 shrink-0 rounded-xl bg-white object-contain" />
+        <p className="min-w-0 flex-1 text-lg font-semibold">{n.message}</p>
+      </div>
+      {n.kind !== "sold_out" && <Link href={`/shop/${n.productId}`} className={btnPrimary}>Look at it</Link>}
+      <button type="button" className={btnSecondary} onClick={dismiss}>Not now</button>
+    </li>
   );
 }
 
@@ -211,6 +249,15 @@ function PurchaseRow({ p, onChange }: { p: PurchaseView; onChange: () => void })
 function DemoTools({ onChange }: { onChange: () => void }) {
   const hour = useDemoHour();
   const [busy, setBusy] = useState(false);
+  const [check, setCheck] = useState<{ events: StepEvent[]; result?: WatchRunResult; error?: string; working: boolean } | null>(null);
+
+  // The Price Watcher: look at the prices of what you are waiting on, now (normally a schedule does this).
+  async function checkPrices(pretendDropPercent?: number) {
+    setCheck({ events: [], working: true });
+    const r = await postAgent<WatchRunResult>("/api/watch/run", { pretendDropPercent }, (events) => setCheck({ events, working: true }));
+    setCheck({ events: r.events, result: r.payload ?? undefined, error: r.error ?? r.payload?.error, working: false });
+    onChange();
+  }
 
   async function reset() {
     setBusy(true);
@@ -235,6 +282,20 @@ function DemoTools({ onChange }: { onChange: () => void }) {
             <option value="12">12:00 PM (noon)</option>
           </select>
         </label>
+        <div className="space-y-2">
+          <button type="button" onClick={() => checkPrices()} disabled={check?.working} className={btnSecondary}>Check prices now</button>
+          <button type="button" onClick={() => checkPrices(20)} disabled={check?.working} className={btnSecondary}>Check prices now (pretend they dropped 20%)</button>
+          {check && (
+            <div className="space-y-2">
+              {!check.working && (
+                <p role="status" className="text-lg font-semibold">
+                  {check.error ? check.error : check.result && check.result.checked === 0 ? "Nothing to watch yet. Wait on something first." : `Checked ${check.result?.checked ?? 0}. ${check.result?.notices.length ? `${check.result.notices.length} piece${check.result.notices.length === 1 ? "" : "s"} of news above.` : "No news."}`}
+                </p>
+              )}
+              <ActivityPanel events={check.events} title="What the Price Watcher did" />
+            </div>
+          )}
+        </div>
         <button type="button" onClick={reset} disabled={busy} className={btnSecondary}>
           {busy ? "Starting over…" : "Start over (clear buys)"}
         </button>

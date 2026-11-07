@@ -3,7 +3,7 @@
 // { value, changedAt, previous }. These functions translate between the two.
 import { RULE_DELAY_MS } from "../guardian/rules";
 import type { BigBuyRule, LateNightRule, RuleId } from "../guardian";
-import type { AuditEntry, FlaggedSeller, LedgerData, PurchaseRecord, StoredChangeable, StoredRules, WaitingItem } from "./types";
+import type { AuditEntry, FlaggedSeller, LedgerData, PriceWatchData, PurchaseRecord, StoredChangeable, StoredRules, WaitingItem } from "./types";
 
 // ---- row shapes (what ledger_load returns / ledger_apply takes) ------------------------------
 
@@ -11,6 +11,8 @@ type Ts = string; // timestamptz as text
 export type UserRow = {
   id: string; time_zone: string; base_balance_cents: number; protected_cents: number; weekly_budget_cents: number;
   paypal_vault_id: string | null; paypal_customer_id: string | null; paypal_saved_at: Ts | null; version: number;
+  /** The Price Watcher's watches and news, as JSON. Missing on a database that has not had the price-watcher migration. */
+  price_watch?: unknown;
 };
 export type RuleRow = { kind: RuleKind; enabled: boolean; params: unknown; source_text?: string | null; created_at: Ts; effective_at: Ts };
 export type PurchaseRow = {
@@ -139,6 +141,10 @@ export function fromSnapshot(s: Snapshot): { data: LedgerData; version: number }
   if (!Array.isArray(s.flagged_sellers)) {
     throw new Error("The database is out of date. Run supabase/migrations/20261106000000_north_flagged_sellers.sql in the Supabase SQL Editor.");
   }
+  // Same for the Price Watcher: an old ledger_apply would drop its news without saying so.
+  if (s.user.price_watch === undefined || s.user.price_watch === null) {
+    throw new Error("The database is out of date. Run supabase/migrations/20261107000000_north_price_watcher.sql in the Supabase SQL Editor.");
+  }
   const u = s.user;
   const data: LedgerData = {
     version: 1,
@@ -154,6 +160,7 @@ export function fromSnapshot(s: Snapshot): { data: LedgerData; version: number }
     purchases: s.purchases.map(purchaseFromRow),
     waitingList: s.waiting_list.map(waitingFromRow),
     flaggedSellers: s.flagged_sellers.map((f): FlaggedSeller => ({ domain: f.domain, flaggedAt: iso(f.flagged_at), reason: f.reason })),
+    priceWatch: priceWatchFromJson(u.price_watch),
     webhookEventIds: [...s.webhook_event_ids].reverse(), // the database sends newest first
     audit: s.audit.map((a): AuditEntry => ({ at: iso(a.at), type: a.type, detail: a.detail })),
   };
@@ -204,6 +211,12 @@ function waitingToRow(w: WaitingItem): WaitingRow {
   };
 }
 
+/** The jsonb column, read defensively: anything that is not a list is an empty list. */
+function priceWatchFromJson(v: unknown): PriceWatchData {
+  const o = (v && typeof v === "object" ? v : {}) as Partial<PriceWatchData>;
+  return { watches: Array.isArray(o.watches) ? o.watches : [], notices: Array.isArray(o.notices) ? o.notices : [] };
+}
+
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const auditKey = (a: AuditEntry) => `${a.at}|${a.type}|${a.detail}`;
 
@@ -221,6 +234,7 @@ export function diffChanges(before: LedgerData, after: LedgerData): Changes | nu
     user.paypal_customer_id = after.paypalVault?.customerId ?? null;
     user.paypal_saved_at = after.paypalVault?.savedAt ?? null;
   }
+  if (!same(before.priceWatch, after.priceWatch)) user.price_watch = after.priceWatch;
   if (Object.keys(user).length) c.user = user;
 
   const old = new Map(before.purchases.map((p) => [p.id, p]));

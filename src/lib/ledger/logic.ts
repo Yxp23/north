@@ -25,6 +25,7 @@ export function defaultLedgerData(now: Date, timeZone: string): LedgerData {
     purchases: [],
     waitingList: [],
     flaggedSellers: [],
+    priceWatch: { watches: [], notices: [] },
     webhookEventIds: [],
     audit: [],
   };
@@ -34,6 +35,7 @@ export function defaultLedgerData(now: Date, timeZone: string): LedgerData {
 export function upgradeLedgerData(d: LedgerData): LedgerData {
   d.waitingList ??= [];
   d.flaggedSellers ??= [];
+  d.priceWatch ??= { watches: [], notices: [] };
   const up = (r: StoredChangeable<any>) => {
     const fix = (v: any) => (typeof v === "number" ? { cents: v, strength: "gentle" } : v && v.strength === undefined && !Array.isArray(v) ? { ...v, strength: "gentle" } : v);
     r.value = fix(r.value);
@@ -131,6 +133,8 @@ export function summarize(data: LedgerData, now: Date): HomeSummary {
       .sort((a, b) => a.remindAt.localeCompare(b.remindAt))
       .map((w) => waitingView(w, now)),
     buyNowThisWeek: buyNowThisWeek(data, now),
+    priceNotices: data.priceWatch.notices.filter((n) => !n.dismissed).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5),
+    watching: data.priceWatch.watches.filter((w) => w.active).map((w) => ({ productId: w.productId, name: w.name, imageUrl: w.imageUrl })),
   };
 }
 

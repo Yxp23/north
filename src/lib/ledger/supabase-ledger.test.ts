@@ -173,6 +173,21 @@ describe("Supabase specifics", () => {
     await expect(old.read()).rejects.toThrow(/out of date.*20261106000000_north_flagged_sellers/);
   });
 
+  it("refuses to run against a database without the price-watcher column (the news would be silently lost)", async () => {
+    const raw = pgRpc(db);
+    const old = new SupabaseLedger(
+      {
+        rpc: async (fn, args) => {
+          const r = await raw.rpc(fn, args);
+          if (fn === "ledger_load" && r.data) delete (r.data as { user: Record<string, unknown> }).user.price_watch;
+          return r;
+        },
+      },
+      randomUUID(), "UTC", clock,
+    );
+    await expect(old.read()).rejects.toThrow(/out of date.*20261107000000_north_price_watcher/);
+  });
+
   it("reports a database error without hiding it", async () => {
     const bad = new SupabaseLedger({ rpc: async () => ({ data: null, error: { message: "boom" } }) }, randomUUID(), "UTC", clock);
     await expect(bad.read()).rejects.toThrow(/ledger_load failed: boom/);

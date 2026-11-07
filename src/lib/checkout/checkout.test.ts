@@ -5,7 +5,7 @@ import { applyWebhook, buildUserState } from "../ledger/logic";
 import { DemoStore } from "../store/demo-store";
 import type { StoreProduct, StoreProvider } from "../store";
 
-const NOTEBOOK = "Qez8uoD"; // $2.50
+const NOTEBOOK = "912yTCL"; // Box of Paper Clips, $1.93: a cheap, plain buy
 const SHAMPOO = "cY1jWjp"; // $9.70, "personal care" (an essential)
 const HEADPHONES = "ENVDwLq"; // $349.00
 const SNEAKERS = "OpovWAw"; // $72.54
@@ -42,9 +42,9 @@ describe("approve goes to the saved-PayPal charge", () => {
     const out = await buy(NOTEBOOK);
     expect(out.kind).toBe("paid");
     expect(charge).toHaveBeenCalledTimes(1);
-    expect(charge.mock.calls[0][0]).toMatchObject({ vaultId: "VAULT-1", amountCents: 250, currency: "USD", customId: "pur_1" });
+    expect(charge.mock.calls[0][0]).toMatchObject({ vaultId: "VAULT-1", amountCents: 193, currency: "USD", customId: "pur_1" });
     const d = await ledger.read();
-    expect(d.purchases[0]).toMatchObject({ status: "paid", amountCents: 250, captureId: "CAP-pur_1", paidVia: "checkout" });
+    expect(d.purchases[0]).toMatchObject({ status: "paid", amountCents: 193, captureId: "CAP-pur_1", paidVia: "checkout" });
     expect(d.audit.some((e) => e.type === "decision")).toBe(true);
   });
 
@@ -406,7 +406,7 @@ describe("locked: never", () => {
     const s = setup();
     await s.ledger.update((d) => void (d.rules.waitAfterHour = { value: { afterHour: 21, untilHour: 5, strength: "locked" }, changedAt: "2026-10-01T00:00:00.000Z", previous: null }));
     expect((await s.buy(SHAMPOO, { at: ELEVEN_PM })).kind).toBe("paid"); // personal care is on the must-have list
-    expect((await s.buy(NOTEBOOK, { at: ELEVEN_PM })).kind).toBe("refused"); // a notebook is not
+    expect((await s.buy(NOTEBOOK, { at: ELEVEN_PM })).kind).toBe("refused"); // a box of paper clips is not
   });
 
   it("a locked rule that was loosened under 24 hours ago still locks", async () => {
@@ -495,7 +495,7 @@ describe("checkout tells the activity panel what it is doing, in plain words", (
   it("the details show the store price and the Guardian's answer, never a secret", async () => {
     const { seen } = await steps(NOTEBOOK);
     const details = seen.map((e) => e.detail ?? "").join("\n");
-    expect(details).toContain("Plain Notebook A5 is $2.50");
+    expect(details).toContain("Box of Paper Clips is $1.93");
     expect(details).toContain("Money Guardian: approve (ok)");
     expect(details).not.toContain("VAULT-1");
   });
@@ -613,6 +613,6 @@ describe("what you still have this week", () => {
     const before = (await import("../ledger/logic")).summarize(await ledger.read(), NOON).leftCents;
     const out = await buy(NOTEBOOK);
     expect(out.kind).toBe("paid");
-    if (out.kind === "paid") expect(out.leftCents).toBe(before - 250);
+    if (out.kind === "paid") expect(out.leftCents).toBe(before - 193);
   });
 });

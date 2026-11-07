@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Ref } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
 import { btnPrimary, btnSecondary } from "@/components/classes";
+import { WatchButton } from "@/components/watch-button";
 import type { StepEvent } from "@/lib/agents/loop";
 import type { CheckoutOutcome } from "@/lib/checkout/checkout";
 import { formatMoney } from "@/lib/format";
@@ -16,7 +17,7 @@ export function CheckoutResult({
 }: {
   outcome: CheckoutOutcome;
   events: StepEvent[];
-  product: { name: string; imageUrl: string };
+  product: { id: string; name: string; imageUrl: string };
   headingRef: Ref<HTMLHeadingElement>;
   /** The user tapped "Buy now" on a wait screen. */
   onBuyNow: () => void;
@@ -56,7 +57,7 @@ export function CheckoutResult({
           <p className="text-xl">{o.result.reason}</p>
           {panel}
           <button type="button" className={btnSecondary} onClick={onBuyNow}>Buy now</button>
-          <Link href="/" className={btnPrimary}>Wait</Link>
+          <WatchButton productId={product.id} />
         </div>
       );
     case "waitlisted":
@@ -64,6 +65,7 @@ export function CheckoutResult({
         <div className="space-y-4">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>Saved for later</h1>
           <p className="text-xl">{o.result.reason}</p>
+          <p className="text-lg">I will also watch the price while you wait, and tell you on the home screen if it changes.</p>
           {panel}
           <Link href="/" className={btnPrimary}>See my money</Link>
           <Link href="/shop" className={btnSecondary}>Back to the shop</Link>

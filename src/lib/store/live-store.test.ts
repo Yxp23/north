@@ -76,6 +76,17 @@ describe("the demo products stay as the fallback", () => {
     expect(await store.getProduct("NEWTHING")).toBeNull();
   });
 
+  it("`strict` throws when the store can't be reached, for demo products and others (an outage is not 'sold out')", async () => {
+    const { store } = setup({ get: async () => { throw new Error("down"); } });
+    await expect(store.getProduct("ENVDwLq", { strict: true })).rejects.toThrow();
+    await expect(store.getProduct("NEWTHING", { strict: true })).rejects.toThrow();
+  });
+
+  it("`strict` still says null for a product that is really out of stock", async () => {
+    const { store } = setup({ get: async (id) => raw(id, { offers: [] }) });
+    expect(await store.getProduct("X1", { strict: true })).toBeNull();
+  });
+
   it("the made-up demo listings never go to the live store", async () => {
     const { source, store } = setup();
     expect((await store.getProduct("trap_earbuds"))!.name).toBe("Wireless Earbuds");
