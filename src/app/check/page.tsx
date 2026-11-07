@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { formatMoney } from "@/lib/format";
 import { getStore } from "@/lib/store";
@@ -7,6 +8,7 @@ import { CheckDeal } from "./check-deal";
 // "?product=ID" fills the box with that listing's ad, so the demo needs no typing.
 async function Inner({ searchParams }: { searchParams: Promise<{ product?: string }> }) {
   const { product: id } = await searchParams;
+  await connection(); // the live store's price changes: read it for this request
   const product = id ? await getStore().getProduct(id) : null;
   const prefill = product ? `${product.name} for ${formatMoney(product.priceCents)}${product.sellerDomain ? ` at https://${product.sellerDomain}/deal` : ""}` : "";
   return <CheckDeal prefill={prefill} />;

@@ -96,6 +96,26 @@ describe("the agent loop", () => {
   });
 });
 
+describe("more than one way to finish", () => {
+  const two: ToolDef<Final>[] = [
+    { name: "ask", description: "ask", input_schema: { type: "object", properties: {} }, label: "Asking…", run: () => ({ content: "ok", final: { answer: "asked" } }) },
+    { name: "finish", description: "finish", input_schema: { type: "object", properties: {} }, label: "Writing it up…", run: () => ({ content: "ok", final: { answer: "finished" } }) },
+    { name: "look", description: "look", input_schema: { type: "object", properties: {} }, label: "Looking…", run: () => ({ content: "see", final: { answer: "sneaky" } }) },
+  ];
+  it("any tool named in finalTools can end the run", async () => {
+    const a = await run(scripted([reply([toolUse("ask")])]).client, two, { finalTools: ["ask", "finish"] });
+    expect(a.result).toEqual({ answer: "asked" });
+    const b = await run(scripted([reply([toolUse("finish")])]).client, two, { finalTools: ["ask", "finish"] });
+    expect(b.result).toEqual({ answer: "finished" });
+  });
+  it("a tool that is not named can't end the run, even if it returns a final value", async () => {
+    const m = scripted([reply([toolUse("look")]), reply([toolUse("finish")])]);
+    const r = await run(m.client, two, { finalTool: "finish", finalTools: ["ask"] });
+    expect(r.result).toEqual({ answer: "finished" });
+    expect(m.calls()).toBe(2);
+  });
+});
+
 describe("what the request looks like", () => {
   it("uses the given model and system prompt, offers only our tools, and never forces a tool", async () => {
     const m = scripted([reply([toolUse("finish", { answer: "x" })])]);

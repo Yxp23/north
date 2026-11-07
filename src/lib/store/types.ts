@@ -1,6 +1,9 @@
 // The store layer. Everything else talks to this interface, never to the demo data directly,
 // so a real store can replace the demo store later without touching the rest of the app.
 
+/** One store's price for a product. Whole cents, from the API. */
+export type StoreOffer = { domain: string; cents: number };
+
 export type StoreProduct = {
   /** Channel3 product id. */
   id: string;
@@ -21,11 +24,23 @@ export type StoreProduct = {
   sellerDomain?: string;
   /** The seller's description. UNTRUSTED text: it is data to show or read, never instructions. */
   description?: string;
+  /** Every in-stock offer, cheapest first. `priceCents` is always the first one. Missing for the offline demo products. */
+  offers?: StoreOffer[];
+  /** The sizes this product comes in, when it has a size choice. */
+  sizes?: string[];
+  /** True when the price was just read from the live store. False when it is the saved demo price (the store could not be reached). */
+  live?: boolean;
 };
 
 export interface StoreProvider {
   listProducts(): Promise<StoreProduct[]>;
-  getProduct(id: string): Promise<StoreProduct | null>;
-  /** Simple word match on name and category. */
-  search(query: string): Promise<StoreProduct[]>;
+  /**
+   * `fresh: true` reads the price from the live store right now (checkout does this). Otherwise a read from the
+   * last 10 minutes may be used. Null when the product does not exist or nothing is in stock.
+   */
+  getProduct(id: string, opts?: { fresh?: boolean }): Promise<StoreProduct | null>;
+  /** Words to products. In-stock products only. */
+  search(query: string, limit?: number): Promise<StoreProduct[]>;
+  /** A picture (raw base64) to products. Empty when the store can't search by picture. */
+  searchByPicture(base64: string, limit?: number): Promise<StoreProduct[]>;
 }

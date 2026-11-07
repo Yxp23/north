@@ -12,6 +12,7 @@ import { z } from "zod";
 import { findHiddenInstructions, type HiddenKind } from "../../injection/scan";
 import { runAgent, type ModelClient, type StepEvent, type ToolDef } from "../loop";
 import { AGENT_MODEL } from "../models";
+import { plainLine } from "../plain-text";
 
 export type ListingView = { id: string; name: string; description: string };
 export type Proposal = { productId: string; quantity: number; reason: string };
@@ -39,13 +40,7 @@ Rules you must follow:
 - Finish by calling submit_result exactly once. Do not write any other text.`;
 
 /** Allow a short plain summary only: no digits, dollar signs, links or addresses. Anything else is dropped. */
-export function safeSummary(s: unknown): string | null {
-  if (typeof s !== "string") return null;
-  const t = s.replace(/\s+/g, " ").trim();
-  if (!t || t.length > 200) return null;
-  if (/[\d$€£@<>]|https?:|www\.|\b[a-z0-9-]+\.(?:com|net|org|shop|store|example|co|io|app|xyz|top)\b/i.test(t)) return null;
-  return t;
-}
+export const safeSummary = (s: unknown): string | null => plainLine(s, 200);
 
 const ProposeSchema = z.object({
   product_id: z.string().min(1).max(80),

@@ -10,6 +10,7 @@ import { btnPrimary, btnSecondary, card } from "@/components/classes";
 import type { StepEvent } from "@/lib/agents/loop";
 import type { DealPayload } from "@/lib/agents/scam-checker/scam-checker";
 import { formatMoney } from "@/lib/format";
+import { shrinkPicture as shrink } from "@/lib/image-client";
 import { readNdjson } from "@/lib/ndjson-client";
 
 type Flagged = "yes" | "no_seller" | "not_saved" | "no";
@@ -29,21 +30,6 @@ const LOOK: Record<Verdict["verdict"]["kind"], { icon: string; label: string; bo
   careful: { icon: "⚠", label: "Be careful", box: "bg-warn-bg text-warn-ink" },
   scam: { icon: "✋", label: "Looks like a scam", box: "bg-bad-bg text-bad-ink" },
 };
-
-/** Make a picture small before it leaves the phone: at most 1568 pixels wide, as a JPEG. */
-async function shrink(file: File): Promise<string> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, 1568 / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("no canvas");
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL("image/jpeg", 0.85).replace(/^data:image\/jpeg;base64,/, "");
-}
 
 export function CheckDeal({ prefill }: { prefill: string }) {
   const [stage, setStage] = useState<Stage>({ name: "ask" });

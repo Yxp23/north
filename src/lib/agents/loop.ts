@@ -57,6 +57,8 @@ export type RunAgentOptions<T> = {
   tools: ToolDef<T>[];
   /** The tool that ends the run. Defaults to the last tool. */
   finalTool?: string;
+  /** More than one tool may end the run (for example "ask a question" or "give the answer"). Includes finalTool. */
+  finalTools?: string[];
   maxSteps?: number;
   maxTokens?: number;
   effort?: "low" | "medium" | "high";
@@ -92,6 +94,7 @@ export async function runAgent<T>(opts: RunAgentOptions<T>): Promise<AgentRun<T>
   };
 
   const finalTool = opts.finalTool ?? opts.tools[opts.tools.length - 1].name;
+  const endsRun = new Set([finalTool, ...(opts.finalTools ?? [])]);
   const toolDefs: Anthropic.Tool[] = opts.tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }));
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: opts.user }];
   let modelCalls = 0;
@@ -150,7 +153,7 @@ export async function runAgent<T>(opts: RunAgentOptions<T>): Promise<AgentRun<T>
       emit({ label: tool.label, state: "done", detail: detailOf(tool.name, use.input, out.content, out.isError) });
       for (const note of out.notes ?? []) emit({ label: note, state: "done", warn: true });
       results.push({ type: "tool_result", tool_use_id: use.id, content: out.content, ...(out.isError ? { is_error: true } : {}) });
-      if (out.final !== undefined && tool.name === finalTool) final = { value: out.final };
+      if (out.final !== undefined && endsRun.has(tool.name)) final = { value: out.final };
     }
     if (final) return finish("done", { result: final.value });
     messages.push({ role: "user", content: results });

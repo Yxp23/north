@@ -6,12 +6,15 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
+import { StoreComparison } from "@/components/store-comparison";
 import type { StepEvent } from "@/lib/agents/loop";
 import { useDemoHour } from "@/lib/demo-hour";
 import { formatMoney } from "@/lib/format";
 import { readNdjson } from "@/lib/ndjson-client";
 import type { CheckoutOutcome } from "@/lib/checkout/checkout";
 import type { StoreProduct } from "@/lib/store";
+import { streamCheckout, toStep } from "../checkout-client";
+import { CheckoutResult } from "../checkout-result";
 
 type HelperResult = {
   summary: string | null;
@@ -27,8 +30,6 @@ type Screen =
   | { name: "done"; outcome: CheckoutOutcome; events: StepEvent[] }
   | { name: "helper"; events: StepEvent[]; result?: HelperResult; pretend: boolean };
 
-const newAttemptId = () => `a-${crypto.randomUUID()}`;
-
 export function BuyScreen({ product, demoMode }: { product: StoreProduct; demoMode: boolean }) {
   const [screen, setScreen] = useState<Screen>({ name: "ready" });
   const demoHour = useDemoHour();
@@ -42,26 +43,13 @@ export function BuyScreen({ product, demoMode }: { product: StoreProduct; demoMo
   }, [focusKey]);
 
   async function buy(overrideWait: boolean) {
-    const events: StepEvent[] = [];
-    const push = (e: StepEvent) => {
-      events.push(e);
-      setScreen({ name: "working", events: [...events] });
-    };
     setScreen({ name: "working", events: [] });
     try {
-      const res = await fetch("/api/checkout?stream=1", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // A fresh attempt id for each tap. It is also PayPal's request id, so a retry can't charge twice.
-        body: JSON.stringify({ productId: product.id, attemptId: newAttemptId(), overrideWait, pretendHour: pretendHour ?? undefined }),
-      });
-      if (!res.ok) throw new Error(String(res.status));
-      let outcome: CheckoutOutcome | null = null;
-      await readNdjson(res, (line) => {
-        if (line.type === "step") push({ label: String(line.label), state: line.state as StepEvent["state"], detail: line.detail as string | undefined, warn: line.warn as boolean | undefined });
-        else if (line.type === "result") outcome = line.outcome as CheckoutOutcome;
-      });
-      if (!outcome) throw new Error("no result");
+      // The price on screen goes along only so that a changed price STOPS the buy. The store sets the price.
+      const { outcome, events } = await streamCheckout(
+        { productId: product.id, seenCents: product.priceCents, overrideWait, pretendHour: pretendHour ?? undefined },
+        (events) => setScreen({ name: "working", events }),
+      );
       setScreen({ name: "done", outcome, events });
     } catch {
       setScreen({ name: "error" });
@@ -85,7 +73,7 @@ export function BuyScreen({ product, demoMode }: { product: StoreProduct; demoMo
       let result: HelperResult | null = null;
       await readNdjson(res, (line) => {
         if (line.type === "step") {
-          events.push({ label: String(line.label), state: line.state as StepEvent["state"], detail: line.detail as string | undefined, warn: line.warn as boolean | undefined });
+          events.push(toStep(line));
           show();
         } else if (line.type === "result") result = line.payload as HelperResult;
       });
@@ -159,83 +147,16 @@ export function BuyScreen({ product, demoMode }: { product: StoreProduct; demoMo
   }
 
   if (screen.name === "done") {
-    const o = screen.outcome;
-    const panel = <ActivityPanel events={screen.events} title="What happened" />;
-    switch (o.kind) {
-      case "paid":
-        return (
-          <div className="space-y-4">
-            <h1 ref={headingRef} tabIndex={-1} className={h1}>Done! You bought it.</h1>
-            <p className="text-xl">{product.name} for {formatMoney(o.purchase.amountCents)}.</p>
-            {o.result && <p className="text-lg">{o.result.reason}</p>}
-            {panel}
-            <Link href="/" className={btnPrimary}>See my money</Link>
-          </div>
-        );
-      case "wait":
-        return (
-          <div className="space-y-4">
-            <h1 ref={headingRef} tabIndex={-1} className={h1}>Wait a moment</h1>
-            <p className="text-xl">{o.result.reason}</p>
-            {panel}
-            <button type="button" className={btnSecondary} onClick={() => buy(true)}>Buy now</button>
-            <Link href="/" className={btnPrimary}>Wait</Link>
-          </div>
-        );
-      case "waitlisted":
-        return (
-          <div className="space-y-4">
-            <h1 ref={headingRef} tabIndex={-1} className={h1}>Saved for later</h1>
-            <p className="text-xl">{o.result.reason}</p>
-            {panel}
-            <Link href="/" className={btnPrimary}>See my money</Link>
-            <Link href="/shop" className={btnSecondary}>Back to the shop</Link>
-          </div>
-        );
-      case "refused":
-        return (
-          <div className="space-y-4">
-            <h1 ref={headingRef} tabIndex={-1} className={h1}>I can&apos;t buy this</h1>
-            <p className="text-xl">{o.result.reason}</p>
-            {panel}
-            <Link href="/" className={btnPrimary}>See my money</Link>
-            <Link href="/shop" className={btnSecondary}>Back to the shop</Link>
-          </div>
-        );
-      case "needs_paypal":
-        return (
-          <div className="space-y-4">
-            <h1 ref={headingRef} tabIndex={-1} className={h1}>Connect PayPal first</h1>
-            <p className="text-xl">This is okay to buy, but PayPal is not connected yet.</p>
-            {panel}
-            <Link href="/connect" className={btnPrimary}>Connect PayPal</Link>
-          </div>
-        );
-      case "failed":
-        return (
-          <div className="space-y-4">
-            <h1 ref={headingRef} tabIndex={-1} className={h1}>It did not go through</h1>
-            <p className="text-xl">{o.message}</p>
-            {panel}
-            <button type="button" className={btnPrimary} onClick={() => setScreen({ name: "ready" })}>Back</button>
-          </div>
-        );
-      case "in_progress":
-        return (
-          <div className="space-y-4">
-            <h1 ref={headingRef} tabIndex={-1} className={h1}>Almost done</h1>
-            <p className="text-xl">Your buy is still going. Check My money in a moment.</p>
-            <Link href="/" className={btnPrimary}>See my money</Link>
-          </div>
-        );
-      default:
-        return (
-          <div className="space-y-4">
-            <h1 ref={headingRef} tabIndex={-1} className={h1}>I could not find that</h1>
-            <Link href="/shop" className={btnPrimary}>Back to the shop</Link>
-          </div>
-        );
-    }
+    return (
+      <CheckoutResult
+        outcome={screen.outcome}
+        events={screen.events}
+        product={product}
+        headingRef={headingRef}
+        onBuyNow={() => buy(true)}
+        onBack={() => setScreen({ name: "ready" })}
+      />
+    );
   }
 
   return (
@@ -251,6 +172,7 @@ export function BuyScreen({ product, demoMode }: { product: StoreProduct; demoMo
         <img src={product.imageUrl} alt={product.name} className="h-64 w-full rounded-xl bg-white object-contain" />
         <p className="text-4xl font-bold">{formatMoney(product.priceCents)}</p>
       </div>
+      <StoreComparison offers={product.offers} live={product.live} />
       <button type="button" className={btnPrimary} onClick={() => buy(false)}>Buy this</button>
       <button type="button" className={btnSecondary} onClick={() => askHelper(false)}>Ask the helper about this</button>
       <Link href={`/check?product=${encodeURIComponent(product.id)}`} className={btnSecondary}>Is this deal real?</Link>

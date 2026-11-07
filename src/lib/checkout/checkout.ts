@@ -6,7 +6,7 @@
 // can't both spend the same money.
 import { requestApproval, withApproval, type Approval, type GuardianResult, type RuleId } from "../guardian";
 import type { Ledger } from "../ledger/ledger";
-import { activeWaiting, addAudit, buildUserState, isSellerFlagged, markPaid, waitingView } from "../ledger/logic";
+import { activeWaiting, addAudit, buildUserState, isSellerFlagged, markPaid, summarize, waitingView } from "../ledger/logic";
 import type { PurchaseRecord, PurchaseView, WaitingView } from "../ledger/types";
 import type { StoreProvider } from "../store";
 import type { StepEvent } from "../agents/loop"; // a type only: erased when building, so checkout imports no agent code
@@ -49,10 +49,18 @@ export type CheckoutInput = {
   overrideWait?: boolean;
   /** Demo clock. Normally the real time. */
   at?: Date;
+  /**
+   * The price the user saw on screen. Only ever used to STOP a buy: if the live price is different, nothing is
+   * charged and the user looks again. It never sets the price, and can't approve anything.
+   */
+  seenCents?: number;
 };
 
 export type CheckoutOutcome =
-  | { kind: "paid"; purchase: PurchaseView; result?: GuardianResult }
+  /** `leftCents`: what the user still has to spend this week, after this buy. */
+  | { kind: "paid"; purchase: PurchaseView; result?: GuardianResult; leftCents: number }
+  /** The live price is not the one the user saw. Nothing was charged. */
+  | { kind: "price_changed"; name: string; seenCents: number; nowCents: number }
   /** Gentle rule: Wait, or buy now? */
   | { kind: "wait"; result: GuardianResult }
   /** Firm rule: saved on the waiting list. No Buy now. */
@@ -88,12 +96,20 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
   const said = (label: string, warn = false) => deps.onStep?.({ label, state: "done", ...(warn ? { warn: true } : {}) });
 
   working("Looking up the price…");
-  const product = await deps.store.getProduct(input.productId);
+  // A fresh read from the live store: the price is never a cached one, and never from the browser or a model.
+  const product = await deps.store.getProduct(input.productId, { fresh: true });
   if (!product) {
     finished("Looking up the price…", "The store does not have that product.");
     return { kind: "not_found" };
   }
-  finished("Looking up the price…", `${product.name} is ${dollars(product.priceCents)}. The price comes from the store, never from the browser.`);
+  finished(
+    "Looking up the price…",
+    `${product.name} is ${dollars(product.priceCents)}. ${product.live === false ? "This is the saved price: I could not reach the store just now." : "The price comes from the store, never from the browser."}`,
+  );
+  if (typeof input.seenCents === "number" && input.seenCents !== product.priceCents) {
+    said(`The price changed from ${dollars(input.seenCents)} to ${dollars(product.priceCents)}. I did not buy it.`, true);
+    return { kind: "price_changed", name: product.name, seenCents: input.seenCents, nowCents: product.priceCents };
+  }
 
   const vaultId = await deps.getVaultId();
   const now = deps.now();
@@ -104,7 +120,7 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
   const gate = await deps.ledger.update<Gate>((data) => {
     const existing = data.purchases.find((p) => p.attemptId === input.attemptId);
     if (existing) {
-      if (existing.status === "paid") return { early: { kind: "paid", purchase: view(existing) } };
+      if (existing.status === "paid") return { early: { kind: "paid", purchase: view(existing), leftCents: summarize(data, now).leftCents } };
       if (existing.status === "pending") return { early: { kind: "in_progress" } };
       return { early: { kind: "failed", message: existing.failureReason ?? "That did not go through.", purchase: view(existing) } };
     }
@@ -204,7 +220,7 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
     if (charged.ok) {
       markPaid(data, p.id, { captureId: charged.captureId, orderId: charged.orderId, via: "checkout" }, now);
       addAudit(data, "paid", `${p.id} ${dollars(p.amountCents)} (${charged.status})`, now);
-      return { kind: "paid", purchase: view(p) };
+      return { kind: "paid", purchase: view(p), leftCents: summarize(data, now).leftCents };
     }
     // A webhook may already have told us it was paid. Don't undo that.
     if (p.status === "pending") {
@@ -219,7 +235,7 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
     }
     addAudit(data, "charge_failed", `${p.id}: ${charged.error}`, now);
     return p.status === "paid"
-      ? { kind: "paid", purchase: view(p) }
+      ? { kind: "paid", purchase: view(p), leftCents: summarize(data, now).leftCents }
       : {
           kind: "failed",
           message: charged.uncertain

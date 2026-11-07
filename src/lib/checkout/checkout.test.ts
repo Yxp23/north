@@ -334,6 +334,7 @@ describe("firm: the waiting list", () => {
       const cheaper: StoreProvider = {
         async listProducts() { return []; },
         async search() { return []; },
+        async searchByPicture() { return []; },
         async getProduct(id) {
           const p = await new DemoStore().getProduct(id);
           return p ? ({ ...p, priceCents: 30_000 } satisfies StoreProduct) : null;
@@ -528,5 +529,90 @@ describe("checkout tells the activity panel what it is doing, in plain words", (
   it("works with no listener at all", async () => {
     const { buy } = setup();
     expect((await buy(NOTEBOOK)).kind).toBe("paid");
+  });
+});
+
+
+describe("a live store: the price is read fresh when you buy", () => {
+  // A store whose price can change between the product screen and the tap on Buy.
+  function movingStore(first: number, later: number, flags: { live?: boolean } = {}) {
+    let cents = first;
+    const calls: { fresh?: boolean }[] = [];
+    const base = new DemoStore();
+    const store: StoreProvider = {
+      listProducts: () => base.listProducts(),
+      search: () => base.search(""),
+      searchByPicture: () => base.searchByPicture(),
+      async getProduct(id, opts) {
+        calls.push(opts ?? {});
+        const p = await base.getProduct(id);
+        return p ? { ...p, priceCents: cents, live: flags.live ?? true } : null;
+      },
+    };
+    return { store, calls, change: () => void (cents = later) };
+  }
+
+  it("asks the store for a FRESH price, not the cached one", async () => {
+    const m = movingStore(250, 250);
+    const { buy } = setup({ store: m.store });
+    await buy(NOTEBOOK);
+    expect(m.calls).toEqual([{ fresh: true }]);
+  });
+
+  it("charges the live price", async () => {
+    const m = movingStore(250, 275);
+    m.change();
+    const { buy, charge } = setup({ store: m.store });
+    await buy(NOTEBOOK, { seenCents: 275 });
+    expect(charge.mock.calls[0][0].amountCents).toBe(275);
+  });
+
+  it("if the price is not what you saw, nothing is charged and nothing is reserved", async () => {
+    const m = movingStore(250, 400);
+    m.change();
+    const { buy, charge, ledger } = setup({ store: m.store });
+    const out = await buy(NOTEBOOK, { seenCents: 250 });
+    expect(out).toMatchObject({ kind: "price_changed", seenCents: 250, nowCents: 400 });
+    expect(charge).not.toHaveBeenCalled();
+    expect((await ledger.read()).purchases).toHaveLength(0);
+  });
+
+  it("a price that went DOWN also stops, so you always pay what you saw", async () => {
+    const m = movingStore(250, 200);
+    m.change();
+    const { buy, charge } = setup({ store: m.store });
+    expect((await buy(NOTEBOOK, { seenCents: 250 })).kind).toBe("price_changed");
+    expect(charge).not.toHaveBeenCalled();
+  });
+
+  it("it only ever stops a buy: seeing a price can't approve or change one", async () => {
+    // The Guardian still decides on the live price. A seen price that matches changes nothing about the decision.
+    const { buy, charge } = setup();
+    const out = await buy(HEADPHONES, { at: NOON, seenCents: 34_900 });
+    expect(out.kind).toBe("wait");
+    expect(charge).not.toHaveBeenCalled();
+  });
+
+  it("no seen price (an older screen, or a script): the live price is used as before", async () => {
+    const { buy } = setup();
+    expect((await buy(NOTEBOOK)).kind).toBe("paid");
+  });
+
+  it("says in the steps when the price is only the saved one because the store could not be reached", async () => {
+    const m = movingStore(250, 250, { live: false });
+    const steps: string[] = [];
+    const s = setup({ store: m.store });
+    await checkout({ productId: NOTEBOOK, attemptId: "att-live-1" }, { ...s.deps, onStep: (e) => steps.push(`${e.label} ${e.detail ?? ""}`) });
+    expect(steps.join("\n")).toMatch(/saved price/i);
+  });
+});
+
+describe("what you still have this week", () => {
+  it("the receipt says how much is left after the buy", async () => {
+    const { buy, ledger } = setup();
+    const before = (await import("../ledger/logic")).summarize(await ledger.read(), NOON).leftCents;
+    const out = await buy(NOTEBOOK);
+    expect(out.kind).toBe("paid");
+    if (out.kind === "paid") expect(out.leftCents).toBe(before - 250);
   });
 });

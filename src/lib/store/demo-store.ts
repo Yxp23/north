@@ -22,12 +22,19 @@ export class DemoStore implements StoreProvider {
     return this.products.find((p) => p.id === id) ?? null;
   }
 
-  async search(query: string) {
+  async search(query: string, limit = 50) {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
     if (words.length === 0) return [];
-    return this.products.filter((p) => {
-      const text = `${p.name} ${p.category}`.toLowerCase();
-      return words.every((w) => text.includes(w));
-    });
+    return this.products
+      .filter((p) => {
+        const text = `${p.name} ${p.category}`.toLowerCase();
+        return words.every((w) => text.includes(w));
+      })
+      .slice(0, limit);
+  }
+
+  /** The demo products can't be matched by a picture. */
+  async searchByPicture() {
+    return [];
   }
 }
