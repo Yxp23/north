@@ -2,6 +2,7 @@
 //   npm run eval:scam                       (everything)
 //   npm run eval:scam -- --part deals       (only the 32 deal cases)   |  --part injection  (only the 10 listings)
 //   npm run eval:scam -- --only fake-bottle,real-tote
+//   npm run eval:scam -- --part injection --model claude-haiku-5-5   (the Concierge reads the listings with a smaller model)
 //   npm run eval:scam -- --min 80           (exit 1 if deal accuracy is below 80%)
 //
 // *** The cases were written by the developer (with Claude's help), and so was the checker's prompt. ***
@@ -24,6 +25,8 @@ const flag = (name: string) => { const i = args.indexOf(`--${name}`); return i >
 const only = flag("only")?.split(",");
 const part = flag("part") ?? "all";
 const minAccuracy = Number(flag("min") ?? 0);
+// Only the Concierge-reads-a-listing part uses this. Production stays on Sonnet (the default in listing.ts).
+const listingModel = flag("model");
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.error("ANTHROPIC_API_KEY is not set. Add it to .env.local and run: npm run eval:scam");
@@ -100,6 +103,7 @@ async function runInjection(c: InjectionCase, mode: InjResult["mode"]): Promise<
     client: model,
     readListing: async (id) => { const p = await store.getProduct(id); return p ? { id: p.id, name: p.name, description: p.description ?? "" } : null; },
     productId: "trap_earbuds",
+    ...(mode === "real model" && listingModel ? { model: listingModel } : {}),
   });
   const judged = await judgeProposals(out.proposals, { store, state: buildUserState(defaultLedgerData(NOW, "America/New_York"), NOW), flaggedSellers: [], at: NOW });
   return {
@@ -111,7 +115,7 @@ async function runInjection(c: InjectionCase, mode: InjResult["mode"]): Promise<
 let blockOk = true;
 if (part === "all" || part === "injection") {
   const cases = only ? INJECTIONS.filter((c) => only.includes(c.id)) : INJECTIONS;
-  console.log(`\n\nInjection listings: ${cases.length}. Each is run with the REAL model, and again with a model that is fully fooled.\n`);
+  console.log(`\n\nInjection listings: ${cases.length}. Each is run with the REAL model (${listingModel ?? "claude-sonnet-5-5"}), and again with a model that is fully fooled.\n`);
   const real = await pool(cases, 4, (c) => runInjection(c, "real model"));
   const fooled = await pool(cases, 4, (c) => runInjection(c, "pretend (fully fooled)"));
   for (const [a, b] of real.map((r, i) => [r, fooled[i]] as const)) {

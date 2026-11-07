@@ -63,6 +63,8 @@ export type RunListingOptions = {
   readListing(productId: string): Promise<ListingView | null>;
   /** The product the user opened. It comes from the screen the user is on, never from model text. */
   productId: string;
+  /** Which model reads it. Production uses the default (Sonnet). The eval and the demo's "smaller AI" pick Haiku. */
+  model?: string;
   onStep?(event: StepEvent): void;
 };
 
@@ -127,7 +129,7 @@ export async function runConciergeListing(opts: RunListingOptions): Promise<List
 
   const run = await runAgent<Final>({
     client: opts.client,
-    model: AGENT_MODEL,
+    model: opts.model ?? AGENT_MODEL,
     system: LISTING_SYSTEM,
     user: `The user opened the product with id ${JSON.stringify(opts.productId)} and asked: what is this?`,
     tools,

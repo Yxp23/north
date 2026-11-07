@@ -78,6 +78,20 @@ describe("the Concierge reading a listing", () => {
   });
 });
 
+describe("which model reads the listing", () => {
+  const go = async (model?: string) => {
+    const m = scripted([reply([finish()])]);
+    await runConciergeListing({ client: m.client, readListing: reader(towel), productId: "towel", ...(model ? { model } : {}) });
+    return m.requests[0].model;
+  };
+  it("is Sonnet unless a caller picks another one", async () => {
+    expect(await go()).toBe("claude-sonnet-5-5");
+  });
+  it("can be another model (the eval and the demo's smaller-AI option use this)", async () => {
+    expect(await go("claude-haiku-5-5")).toBe("claude-haiku-5-5");
+  });
+});
+
 describe("what the model may hand back", () => {
   it.each([
     [0], [11], [2.5], ["3"], [-1],
