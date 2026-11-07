@@ -27,7 +27,7 @@ export async function readNdjson(res: Response, onLine: (line: { type: string; [
  * POSTs to an agent route that streams its steps, and gives back the final result. `onSteps` gets every step so far,
  * for the activity panel. `error` is plain words for the user.
  */
-export async function postAgent<T>(url: string, body: unknown, onSteps: (events: StepEvent[]) => void): Promise<{ payload: T | null; error?: string; events: StepEvent[] }> {
+export async function postAgent<T>(url: string, body: unknown, onSteps: (events: StepEvent[]) => void): Promise<{ payload: T | null; error?: string; events: StepEvent[]; /** The whole result line (some routes add fields next to `payload`, like `route`). */ line?: { type: string; [k: string]: unknown } }> {
   const events: StepEvent[] = [];
   const generic = "Something went wrong. Please try again.";
   try {
@@ -37,13 +37,17 @@ export async function postAgent<T>(url: string, body: unknown, onSteps: (events:
       return { payload: null, error: typeof j?.error === "string" ? j.error : generic, events };
     }
     let payload: T | null = null;
+    let resultLine: { type: string; [k: string]: unknown } | undefined;
     await readNdjson(res, (line) => {
       if (line.type === "step") {
         events.push({ label: String(line.label), state: line.state as StepEvent["state"], detail: line.detail as string | undefined, warn: line.warn as boolean | undefined });
         onSteps([...events]);
-      } else if (line.type === "result") payload = line.payload as T;
+      } else if (line.type === "result") {
+        payload = line.payload as T;
+        resultLine = line;
+      }
     });
-    return payload ? { payload, events } : { payload: null, error: generic, events };
+    return payload ? { payload, events, line: resultLine } : { payload: null, error: generic, events };
   } catch {
     return { payload: null, error: generic, events };
   }

@@ -2,8 +2,9 @@
 // The database keeps each rule as dated VERSIONS (see the migration); the Guardian wants
 // { value, changedAt, previous }. These functions translate between the two.
 import { RULE_DELAY_MS } from "../guardian/rules";
+import { defaultAgentCheckpoint } from "./logic";
 import type { BigBuyRule, LateNightRule, RuleId } from "../guardian";
-import type { AuditEntry, FlaggedSeller, LedgerData, PriceWatchData, PurchaseRecord, StoredChangeable, StoredRules, WaitingItem } from "./types";
+import type { AgentCheckpointData, AuditEntry, FlaggedSeller, LedgerData, PriceWatchData, PurchaseRecord, StoredChangeable, StoredRules, WaitingItem } from "./types";
 
 // ---- row shapes (what ledger_load returns / ledger_apply takes) ------------------------------
 
@@ -13,6 +14,8 @@ export type UserRow = {
   paypal_vault_id: string | null; paypal_customer_id: string | null; paypal_saved_at: Ts | null; version: number;
   /** The Price Watcher's watches and news, as JSON. Missing on a database that has not had the price-watcher migration. */
   price_watch?: unknown;
+  /** The Agent Checkpoint's assistants, requests and permission, as JSON. Missing before the agent-checkpoint migration. */
+  agent_checkpoint?: unknown;
 };
 export type RuleRow = { kind: RuleKind; enabled: boolean; params: unknown; source_text?: string | null; created_at: Ts; effective_at: Ts };
 export type PurchaseRow = {
@@ -145,6 +148,10 @@ export function fromSnapshot(s: Snapshot): { data: LedgerData; version: number }
   if (s.user.price_watch === undefined || s.user.price_watch === null) {
     throw new Error("The database is out of date. Run supabase/migrations/20261107000000_north_price_watcher.sql in the Supabase SQL Editor.");
   }
+  // And the Agent Checkpoint: connected assistants and their keys must never be silently dropped.
+  if (s.user.agent_checkpoint === undefined || s.user.agent_checkpoint === null) {
+    throw new Error("The database is out of date. Run supabase/migrations/20261108000000_north_agent_checkpoint.sql in the Supabase SQL Editor.");
+  }
   const u = s.user;
   const data: LedgerData = {
     version: 1,
@@ -161,6 +168,7 @@ export function fromSnapshot(s: Snapshot): { data: LedgerData; version: number }
     waitingList: s.waiting_list.map(waitingFromRow),
     flaggedSellers: s.flagged_sellers.map((f): FlaggedSeller => ({ domain: f.domain, flaggedAt: iso(f.flagged_at), reason: f.reason })),
     priceWatch: priceWatchFromJson(u.price_watch),
+    agentCheckpoint: agentCheckpointFromJson(u.agent_checkpoint),
     webhookEventIds: [...s.webhook_event_ids].reverse(), // the database sends newest first
     audit: s.audit.map((a): AuditEntry => ({ at: iso(a.at), type: a.type, detail: a.detail })),
   };
@@ -217,6 +225,12 @@ function priceWatchFromJson(v: unknown): PriceWatchData {
   return { watches: Array.isArray(o.watches) ? o.watches : [], notices: Array.isArray(o.notices) ? o.notices : [] };
 }
 
+/** The jsonb column, read defensively. */
+function agentCheckpointFromJson(v: unknown): AgentCheckpointData {
+  const o = (v && typeof v === "object" ? v : {}) as Partial<AgentCheckpointData>;
+  return { ...defaultAgentCheckpoint(), ...o, agents: Array.isArray(o.agents) ? o.agents : [], requests: Array.isArray(o.requests) ? o.requests : [] };
+}
+
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const auditKey = (a: AuditEntry) => `${a.at}|${a.type}|${a.detail}`;
 
@@ -235,6 +249,10 @@ export function diffChanges(before: LedgerData, after: LedgerData): Changes | nu
     user.paypal_saved_at = after.paypalVault?.savedAt ?? null;
   }
   if (!same(before.priceWatch, after.priceWatch)) user.price_watch = after.priceWatch;
+  for (const a of before.agentCheckpoint.agents) {
+    if (!after.agentCheckpoint.agents.some((x) => x.id === a.id)) throw new Error(`A connected assistant (${a.id}) can't be deleted, only disconnected`);
+  }
+  if (!same(before.agentCheckpoint, after.agentCheckpoint)) user.agent_checkpoint = after.agentCheckpoint;
   if (Object.keys(user).length) c.user = user;
 
   const old = new Map(before.purchases.map((p) => [p.id, p]));

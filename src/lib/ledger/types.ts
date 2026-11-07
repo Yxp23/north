@@ -108,6 +108,70 @@ export type PriceNotice = {
 
 export type PriceWatchData = { watches: Watch[]; notices: PriceNotice[] };
 
+/** An outside AI assistant the user connected to the North Agent Checkpoint (MCP). It has its own key; only the key's hash is kept. */
+export type ConnectedAgent = {
+  id: string;
+  name: string;
+  /** SHA-256 of the key. The key itself is shown once when it is made and never stored. */
+  keyHash: string;
+  createdAt: string;
+  /** Set when the user taps Disconnect. The key stops working at once. */
+  revokedAt?: string;
+  lastUsedAt?: string;
+};
+
+export type AgentRequestStatus =
+  | "pending" // waiting for the person's Yes / No
+  | "bought"
+  | "declined"
+  | "refused" // the Guardian said no
+  | "saved_for_later" // a firm wait: on the waiting list
+  | "failed"
+  | "expired";
+
+/** A step line for the activity panel. */
+export type RequestStep = { label: string; detail?: string; warn?: boolean };
+
+/** One thing an assistant asked to buy. */
+export type AgentRequest = {
+  id: string;
+  agentId: string;
+  agentName: string;
+  productId: string;
+  name: string;
+  imageUrl: string;
+  /** Store price of one. From the store, never from the assistant. */
+  unitCents: number;
+  quantity: number;
+  amountCents: number;
+  /** What the assistant said. UNTRUSTED text: shown as plain text only, clipped. */
+  reason: string;
+  /** What the Guardian said when asked. */
+  decision: "approve" | "wait" | "refuse";
+  guardianCode: string;
+  guardianReason: string;
+  /** The person must say Yes before anything is bought. */
+  needsPerson: boolean;
+  /** The Yes is a "Buy now" on a gentle wait. Only the person can do that. */
+  needsOverride: boolean;
+  status: AgentRequestStatus;
+  createdAt: string;
+  answeredAt?: string;
+  purchaseId?: string;
+  steps: RequestStep[];
+};
+
+/** Connected assistants, what they asked, and what the person allows them to do on their own. */
+export type AgentCheckpointData = {
+  agents: ConnectedAgent[];
+  requests: AgentRequest[];
+  /**
+   * "My assistant can buy must-have things under $X without asking". null = "Ask me every time" (the default).
+   * Same timing as the other rules: letting the assistant do MORE takes a day, doing LESS starts at once.
+   */
+  permission: StoredChangeable<{ underCents: number }>;
+};
+
 export type AuditEntry = { at: string; type: string; detail: string };
 
 export type LedgerData = {
@@ -127,6 +191,8 @@ export type LedgerData = {
   flaggedSellers: FlaggedSeller[];
   /** What the Price Watcher is watching, and the price news it wrote. */
   priceWatch: PriceWatchData;
+  /** The North Agent Checkpoint: connected assistants and their requests. */
+  agentCheckpoint: AgentCheckpointData;
   webhookEventIds: string[];
   audit: AuditEntry[];
 };
@@ -168,4 +234,22 @@ export type HomeSummary = {
   priceNotices: PriceNotice[];
   /** What is being watched right now. */
   watching: { productId: string; name: string; imageUrl: string }[];
+  /** What the person's assistants are asking to buy, waiting for a Yes or No. */
+  assistantAsks: AssistantAskView[];
+};
+
+/** A one-tap card: "Your assistant wants to buy Warm Socks, $11." */
+export type AssistantAskView = {
+  id: string;
+  agentName: string;
+  name: string;
+  imageUrl: string;
+  quantity: number;
+  amountCents: number;
+  /** The assistant's own words, clipped. Untrusted: show as plain text. */
+  reason: string;
+  /** Yes means "Buy now" on a wait rule. */
+  needsOverride: boolean;
+  /** The Guardian's note for the person. */
+  note: string;
 };

@@ -1,10 +1,16 @@
 // Ledger rules: pure functions over LedgerData (no files, no network).
 import type { ParsedWebhook } from "../paypal-webhook";
 import type { Rules, UserState } from "../guardian";
-import type { AuditEntry, HomeSummary, LedgerData, PurchaseRecord, StoredChangeable, StoredRules, WaitingItem, WaitingView } from "./types";
+import type { AgentCheckpointData, AuditEntry, HomeSummary, LedgerData, PurchaseRecord, StoredChangeable, StoredRules, WaitingItem, WaitingView } from "./types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- upgradeLedgerData reads old, loosely shaped data */
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** No assistants, no requests, and "Ask me every time". */
+export const defaultAgentCheckpoint = (): AgentCheckpointData => ({ agents: [], requests: [], permission: { value: null, changedAt: "1970-01-01T00:00:00.000Z", previous: null } });
+
+/** A request nobody answered for a day is no longer asked about. */
+export const REQUEST_LIFETIME_MS = DAY_MS;
 
 /** The starting demo state. Rules look 30 days old, so they are fully in effect. */
 export function defaultLedgerData(now: Date, timeZone: string): LedgerData {
@@ -26,6 +32,7 @@ export function defaultLedgerData(now: Date, timeZone: string): LedgerData {
     waitingList: [],
     flaggedSellers: [],
     priceWatch: { watches: [], notices: [] },
+    agentCheckpoint: defaultAgentCheckpoint(),
     webhookEventIds: [],
     audit: [],
   };
@@ -36,6 +43,7 @@ export function upgradeLedgerData(d: LedgerData): LedgerData {
   d.waitingList ??= [];
   d.flaggedSellers ??= [];
   d.priceWatch ??= { watches: [], notices: [] };
+  d.agentCheckpoint ??= defaultAgentCheckpoint();
   const up = (r: StoredChangeable<any>) => {
     const fix = (v: any) => (typeof v === "number" ? { cents: v, strength: "gentle" } : v && v.strength === undefined && !Array.isArray(v) ? { ...v, strength: "gentle" } : v);
     r.value = fix(r.value);
@@ -135,6 +143,10 @@ export function summarize(data: LedgerData, now: Date): HomeSummary {
     buyNowThisWeek: buyNowThisWeek(data, now),
     priceNotices: data.priceWatch.notices.filter((n) => !n.dismissed).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5),
     watching: data.priceWatch.watches.filter((w) => w.active).map((w) => ({ productId: w.productId, name: w.name, imageUrl: w.imageUrl })),
+    assistantAsks: data.agentCheckpoint.requests
+      .filter((r) => r.status === "pending" && now.getTime() - new Date(r.createdAt).getTime() < REQUEST_LIFETIME_MS)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((r) => ({ id: r.id, agentName: r.agentName, name: r.name, imageUrl: r.imageUrl, quantity: r.quantity, amountCents: r.amountCents, reason: r.reason, needsOverride: r.needsOverride, note: r.guardianReason })),
   };
 }
 

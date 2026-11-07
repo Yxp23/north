@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
 import type { Strength } from "@/lib/guardian";
 import type { RuleLine } from "@/lib/rules/summary";
+import { Assistants } from "./assistants";
 
 const STRENGTH: Record<Strength, { label: string; cls: string; icon: string }> = {
   gentle: { label: "Gentle", cls: "bg-good-bg text-good-ink", icon: "🔔" },
@@ -74,6 +75,8 @@ export function RulesList() {
           ))}
         </ul>
       </section>
+
+      <Assistants />
     </div>
   );
 }

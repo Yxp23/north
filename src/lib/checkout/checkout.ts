@@ -49,6 +49,8 @@ export type CheckoutInput = {
   overrideWait?: boolean;
   /** Demo clock. Normally the real time. */
   at?: Date;
+  /** How many to buy, 1 to 5. The Guardian and PayPal see the total (store price times this). Default 1. */
+  quantity?: number;
   /**
    * The price the user saw on screen. Only ever used to STOP a buy: if the live price is different, nothing is
    * charged and the user looks again. It never sets the price, and can't approve anything.
@@ -76,6 +78,8 @@ const view = (p: PurchaseRecord): PurchaseView => ({
   id: p.id, name: p.name, imageUrl: p.imageUrl, amountCents: p.amountCents, status: p.status, at: p.createdAt,
 });
 
+export const MAX_QUANTITY = 5;
+
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 const RULE_LABEL: Record<RuleId, string> = { big_buy: "wait on big buys", late_night: "wait on late-night buys" };
@@ -95,6 +99,9 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
   const finished = (label: string, detail?: string) => deps.onStep?.({ label, state: "done", ...(detail ? { detail } : {}) });
   const said = (label: string, warn = false) => deps.onStep?.({ label, state: "done", ...(warn ? { warn: true } : {}) });
 
+  const quantity = input.quantity ?? 1;
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) return { kind: "failed", message: "That quantity is not allowed." };
+
   working("Looking up the price…");
   // A fresh read from the live store: the price is never a cached one, and never from the browser or a model.
   const product = await deps.store.getProduct(input.productId, { fresh: true });
@@ -111,6 +118,9 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
     return { kind: "price_changed", name: product.name, seenCents: input.seenCents, nowCents: product.priceCents };
   }
 
+  // The Guardian and PayPal see the TOTAL. The price on screen (seenCents) is the price of one.
+  const amountCents = product.priceCents * quantity;
+  const label = quantity > 1 ? `${product.name} × ${quantity}` : product.name;
   const vaultId = await deps.getVaultId();
   const now = deps.now();
   const at = input.at ?? now;
@@ -130,14 +140,14 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
 
     const { result, approval } = requestApproval(
       {
-        amountCents: product.priceCents, item: product.name, category: product.category, at, overrideWait: input.overrideWait,
+        amountCents, item: label, category: product.category, at, overrideWait: input.overrideWait,
         waitlist: waiting ? { since: new Date(waiting.createdAt), waitHours: waiting.waitHours } : undefined,
         // A seller the scam checker flagged can't be paid: the Guardian's hard wall refuses. The list is OUR record.
         sellerFlaggedScam: isSellerFlagged(data, product.sellerDomain),
       },
       buildUserState(data, now),
     );
-    addAudit(data, "decision", `${product.name} ${dollars(product.priceCents)}: ${result.decision} (${result.code})`, now);
+    addAudit(data, "decision", `${label} ${dollars(amountCents)}: ${result.decision} (${result.code})`, now);
 
     if (!approval) {
       if (result.decision === "waitlist") {
@@ -145,13 +155,13 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
         let item = waiting;
         if (!item) {
           item = {
-            id: `wait_${deps.newId().replace(/^pur_/, "")}`, productId: product.id, name: product.name, category: product.category,
-            imageUrl: product.imageUrl, amountCents: product.priceCents, currency: product.currency,
+            id: `wait_${deps.newId().replace(/^pur_/, "")}`, productId: product.id, name: label, category: product.category,
+            imageUrl: product.imageUrl, amountCents, currency: product.currency,
             createdAt: at.toISOString(), // the same clock the Guardian used, so the wait is measured on it (the real time, outside demo mode)
             remindAt: (result.remindAt ?? now).toISOString(), waitHours: result.waitHours ?? 24, rules: result.triggered, status: "waiting",
           };
           data.waitingList.push(item);
-          addAudit(data, "waitlisted", `${product.name} ${dollars(product.priceCents)}: saved, remind ${item.remindAt}`, now);
+          addAudit(data, "waitlisted", `${label} ${dollars(amountCents)}: saved, remind ${item.remindAt}`, now);
         }
         return { early: { kind: "waitlisted", result, item: waitingView(item, now) } };
       }
@@ -164,13 +174,13 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
 
     // Every "Buy now" is logged: what, how much, which rule. (The home screen counts these.)
     if (result.overridden) {
-      addAudit(data, "override", `Buy now: ${product.name}, ${dollars(product.priceCents)}, ${ruleList(result.overriddenRules)}`, now);
+      addAudit(data, "override", `Buy now: ${label}, ${dollars(amountCents)}, ${ruleList(result.overriddenRules)}`, now);
     }
 
     const purchaseId = deps.newId();
     data.purchases.push({
-      id: purchaseId, attemptId: input.attemptId, productId: product.id, name: product.name, category: product.category,
-      imageUrl: product.imageUrl, amountCents: product.priceCents, currency: product.currency, status: "pending",
+      id: purchaseId, attemptId: input.attemptId, productId: product.id, name: label, category: product.category,
+      imageUrl: product.imageUrl, amountCents, currency: product.currency, status: "pending",
       createdAt: now.toISOString(), overrodeWait: result.overridden, decisionCode: result.code,
     });
     // Claim the waiting-list item right away, so a second tap can't buy it twice.

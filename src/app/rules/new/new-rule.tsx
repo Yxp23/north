@@ -60,9 +60,9 @@ async function askConcierge(body: object, onStep: (s: StepEvent) => void): Promi
   return result ?? { kind: "error", message: "Something went wrong. Please try again." };
 }
 
-export function NewRule() {
+export function NewRule({ initialWords = "" }: { initialWords?: string }) {
   const [stage, setStage] = useState<Stage>({ name: "write" });
-  const [words, setWords] = useState("");
+  const [words, setWords] = useState(initialWords);
   const [answer, setAnswer] = useState("");
   const [events, setEvents] = useState<StepEvent[]>([]);
   const headingRef = useRef<HTMLHeadingElement>(null);

@@ -4,11 +4,12 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
+import { AskNorth } from "./ask-north";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
 import type { StepEvent } from "@/lib/agents/loop";
 import { setDemoHour, useDemoHour } from "@/lib/demo-hour";
 import { formatMoney } from "@/lib/format";
-import type { HomeSummary, PriceNotice, PurchaseStatus, PurchaseView, WaitingView } from "@/lib/ledger/types";
+import type { AssistantAskView, HomeSummary, PriceNotice, PurchaseStatus, PurchaseView, WaitingView } from "@/lib/ledger/types";
 import { postAgent } from "@/lib/ndjson-client";
 import type { WatchRunResult } from "@/lib/watcher/run";
 
@@ -24,6 +25,8 @@ const STATUS: Record<PurchaseStatus, { label: string; cls: string; icon: string 
 export function Home() {
   const [data, setData] = useState<Summary | null>(null);
   const [error, setError] = useState(false);
+  // What the person just answered on an assistant's card. It stays on screen after the card goes away.
+  const [answered, setAnswered] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -96,8 +99,24 @@ export function Home() {
         </div>
       </section>
 
+      <AskNorth />
+
       <Link href="/shop" className={btnPrimary}>Shop for something</Link>
       <Link href="/payments" className={btnSecondary}>Ask about my payments</Link>
+
+      {answered && (
+        <p role="status" className="rounded-2xl border-2 border-good-ink bg-good-bg p-4 text-xl font-semibold text-good-ink">{answered}</p>
+      )}
+      {data.assistantAsks.length > 0 && (
+        <section aria-labelledby="asks-h" className="space-y-3">
+          <h2 id="asks-h" className="text-2xl font-bold">Your assistant is asking</h2>
+          <ul className="space-y-3" aria-live="polite">
+            {data.assistantAsks.map((a) => (
+              <AskRow key={a.id} a={a} onChange={load} onAnswered={setAnswered} />
+            ))}
+          </ul>
+        </section>
+      )}
 
       {data.priceNotices.length > 0 && (
         <section aria-labelledby="news-h" className="space-y-3">
@@ -139,6 +158,40 @@ export function Home() {
 
       {data.demoMode && <DemoTools onChange={load} />}
     </div>
+  );
+}
+
+// A one-tap card: "Your assistant wants to buy Warm Socks, $11. Yes / No". Yes still goes through the Money Guardian.
+function AskRow({ a, onChange, onAnswered }: { a: AssistantAskView; onChange: () => void; onAnswered: (message: string) => void }) {
+  const [working, setWorking] = useState(false);
+
+  async function answer(yes: boolean) {
+    setWorking(true);
+    try {
+      const res = await fetch("/api/agents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "answer", id: a.id, answer: yes ? "yes" : "no" }) });
+      const out = await res.json();
+      onAnswered(out.message ?? "Something went wrong. Please try again.");
+    } catch {
+      onAnswered("Something went wrong. Nothing was bought.");
+    }
+    setWorking(false);
+    onChange();
+  }
+
+  return (
+    <li className={`${card} space-y-3 border-2 border-accent`}>
+      <div className="flex items-center gap-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={a.imageUrl} alt="" className="h-20 w-20 shrink-0 rounded-xl bg-white object-contain" />
+        <div className="min-w-0 flex-1">
+          <p className="text-lg font-semibold">{a.agentName} wants to buy {a.name}, {formatMoney(a.amountCents)}</p>
+          {a.reason && <p className="mt-1 text-base">It says: &ldquo;{a.reason}&rdquo;</p>}
+        </div>
+      </div>
+      {a.needsOverride && <p className="rounded-xl bg-warn-bg p-3 text-base text-warn-ink">{a.note} Only you can say Buy now.</p>}
+      <button type="button" className={btnPrimary} onClick={() => answer(true)} disabled={working}>{a.needsOverride ? "Yes, buy now" : "Yes, buy it"}</button>
+      <button type="button" className={btnSecondary} onClick={() => answer(false)} disabled={working}>No</button>
+    </li>
   );
 }
 

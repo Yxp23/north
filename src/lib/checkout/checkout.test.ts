@@ -616,3 +616,50 @@ describe("what you still have this week", () => {
     if (out.kind === "paid") expect(out.leftCents).toBe(before - 193);
   });
 });
+
+describe("buying more than one", () => {
+  it("the Guardian and PayPal both see the TOTAL (price from the store times the quantity)", async () => {
+    const { buy, charge, ledger } = setup();
+    const out = await buy(NOTEBOOK, { quantity: 3, at: NOON });
+    expect(out.kind).toBe("paid");
+    expect(charge.mock.calls[0][0].amountCents).toBe(193 * 3);
+    const p = (await ledger.read()).purchases[0];
+    expect(p).toMatchObject({ amountCents: 193 * 3, name: "Box of Paper Clips × 3" });
+  });
+
+  it("the total is what the budget and the big-buy rule are checked against", async () => {
+    const { buy, charge } = setup();
+    // 5 x $72.54 = $362.70: over the $50 gentle rule (wait), though one alone would also be over. Use a cheap item to prove the total counts:
+    const out = await buy(SNEAKERS, { quantity: 5, at: NOON });
+    expect(out.kind).toBe("wait");
+    expect(charge).not.toHaveBeenCalled();
+    const cheap = await buy(NOTEBOOK, { quantity: 5, at: NOON }); // 5 x $1.93 = $9.65: fine
+    expect(cheap.kind).toBe("paid");
+  });
+
+  it("quantity 1 is exactly as before", async () => {
+    const { buy, ledger } = setup();
+    await buy(NOTEBOOK, { quantity: 1 });
+    expect((await ledger.read()).purchases[0]).toMatchObject({ amountCents: 193, name: "Box of Paper Clips" });
+  });
+
+  it.each([0, -1, 1.5, 6, 100, Number.NaN])("a quantity of %s is not allowed, and nothing is charged or recorded", async (quantity) => {
+    const { buy, charge, ledger } = setup();
+    const out = await buy(NOTEBOOK, { quantity });
+    expect(out).toEqual({ kind: "failed", message: "That quantity is not allowed." });
+    expect(charge).not.toHaveBeenCalled();
+    expect((await ledger.read()).purchases).toHaveLength(0);
+  });
+
+  it("a saved (firm wait) item remembers the total", async () => {
+    const { buy, ledger } = setup();
+    const out = await buy(SNEAKERS, { quantity: 2, at: ELEVEN_PM });
+    expect(out.kind).toBe("waitlisted");
+    expect((await ledger.read()).waitingList[0]).toMatchObject({ amountCents: 7254 * 2 });
+  });
+
+  it("the price you saw is the price of ONE (the screen shows the unit price)", async () => {
+    const { buy } = setup();
+    expect((await buy(NOTEBOOK, { quantity: 2, seenCents: 193 })).kind).toBe("paid");
+  });
+});

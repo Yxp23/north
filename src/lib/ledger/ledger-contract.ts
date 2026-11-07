@@ -355,6 +355,46 @@ export function ledgerContract(name: string, make: () => Promise<LedgerHarness>)
         await expect(l.update((d) => void d.priceWatch.notices.push(n, { ...n }))).rejects.toThrow();
       }));
 
+    // ---- the Agent Checkpoint: connected assistants and their requests ---------------------------------
+    const agent = { id: "agt_1", name: "Any AI assistant", keyHash: "a".repeat(64), createdAt: "2026-11-08T10:00:00.000Z" };
+    const request = {
+      id: "req_1", agentId: "agt_1", agentName: "Any AI assistant", productId: "P", name: "Warm Socks", imageUrl: "https://x/y.png", unitCents: 1100, quantity: 1, amountCents: 1100,
+      reason: "You asked for warm socks.", decision: "approve" as const, guardianCode: "ok", guardianReason: "This is okay to buy.", needsPerson: true, needsOverride: false,
+      status: "pending" as const, createdAt: "2026-11-08T10:05:00.000Z", steps: [{ label: "An assistant asked to buy Warm Socks.", detail: "x" }],
+    };
+
+    it("keeps connected assistants, their requests and the permission exactly", () =>
+      withLedger(async (l) => {
+        await l.update((d) => {
+          d.agentCheckpoint.agents.push(agent);
+          d.agentCheckpoint.requests.push(request);
+          d.agentCheckpoint.permission = { value: { underCents: 2000 }, changedAt: "2026-11-08T10:00:00.000Z", previous: null };
+        });
+        expect((await l.read()).agentCheckpoint).toEqual({ agents: [agent], requests: [request], permission: { value: { underCents: 2000 }, changedAt: "2026-11-08T10:00:00.000Z", previous: null } });
+      }));
+
+    it("a request can change status, and an assistant can be disconnected (revoked), but never deleted", () =>
+      withLedger(async (l) => {
+        await l.update((d) => {
+          d.agentCheckpoint.agents.push(agent);
+          d.agentCheckpoint.requests.push(request);
+        });
+        await l.update((d) => {
+          d.agentCheckpoint.requests[0].status = "bought";
+          d.agentCheckpoint.agents[0].revokedAt = "2026-11-08T11:00:00.000Z";
+        });
+        const c = (await l.read()).agentCheckpoint;
+        expect(c.requests[0].status).toBe("bought");
+        expect(c.agents[0].revokedAt).toBe("2026-11-08T11:00:00.000Z");
+        await expect(l.update((d) => void d.agentCheckpoint.agents.splice(0, 1))).rejects.toThrow();
+      }));
+
+    it("two assistants or two requests can't share an id", () =>
+      withLedger(async (l) => {
+        await expect(l.update((d) => void d.agentCheckpoint.agents.push(agent, { ...agent }))).rejects.toThrow();
+        await expect(l.update((d) => void d.agentCheckpoint.requests.push(request, { ...request }))).rejects.toThrow();
+      }));
+
     it("counts the Buy now taps this week from the audit log", () =>
       withLedger(async (l) => {
         const { buyNowThisWeek } = await import("./logic");
@@ -379,6 +419,7 @@ export function ledgerContract(name: string, make: () => Promise<LedgerHarness>)
           d.waitingList.push(waitingItem());
           d.flaggedSellers.push({ domain: "x.example", flaggedAt: "2026-11-04T10:00:00.000Z", reason: "y" });
           d.priceWatch.watches.push({ productId: "P", name: "n", imageUrl: "https://x/y.png", source: "chosen", startedAt: "2026-11-04T10:00:00.000Z", baselineCents: 100, lastAvailable: true, active: true });
+          d.agentCheckpoint.agents.push({ id: "agt_r", name: "n", keyHash: "b".repeat(64), createdAt: "2026-11-04T10:00:00.000Z" });
           d.rules.waitOverCents = { value: big(1), changedAt: "2026-11-04T10:00:00.000Z", previous: big(5000) };
         });
         await l.reset();
@@ -389,6 +430,8 @@ export function ledgerContract(name: string, make: () => Promise<LedgerHarness>)
         expect(d.webhookEventIds).toEqual([]);
         expect(d.flaggedSellers).toEqual([]);
         expect(d.priceWatch).toEqual({ watches: [], notices: [] });
+        expect(d.agentCheckpoint.agents).toEqual([]); // Start over disconnects every assistant
+        expect(d.agentCheckpoint.permission.value).toBeNull();
         expect(d.rules.waitOverCents.value).toEqual(big(5000));
         expect(d.paypalVault?.vaultId).toBe("V1");
       }));

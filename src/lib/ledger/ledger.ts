@@ -45,6 +45,16 @@ export function assertValid(data: LedgerData) {
     if (noticeIds.has(n.id)) throw new Error(`Two price notices share the id ${n.id}`);
     noticeIds.add(n.id);
   }
+  const agentIds = new Set<string>();
+  for (const a of data.agentCheckpoint.agents) {
+    if (agentIds.has(a.id)) throw new Error(`Two assistants share the id ${a.id}`);
+    agentIds.add(a.id);
+  }
+  const requestIds = new Set<string>();
+  for (const r of data.agentCheckpoint.requests) {
+    if (requestIds.has(r.id)) throw new Error(`Two assistant requests share the id ${r.id}`);
+    requestIds.add(r.id);
+  }
   const waitingIds = new Set<string>();
   const waitingProducts = new Set<string>();
   for (const w of data.waitingList) {
@@ -60,6 +70,7 @@ export function assertValid(data: LedgerData) {
 export function assertNoDeletes(before: LedgerData, after: LedgerData) {
   for (const p of before.purchases) if (!after.purchases.some((x) => x.id === p.id)) throw new Error(`A purchase (${p.id}) can't be deleted`);
   for (const f of before.flaggedSellers) if (!after.flaggedSellers.some((x) => x.domain === f.domain)) throw new Error(`A flagged seller (${f.domain}) can't be removed`);
+  for (const a of before.agentCheckpoint.agents) if (!after.agentCheckpoint.agents.some((x) => x.id === a.id)) throw new Error(`A connected assistant (${a.id}) can't be deleted, only disconnected`);
   for (const w of before.waitingList) if (!after.waitingList.some((x) => x.id === w.id)) throw new Error(`A waiting-list item (${w.id}) can't be deleted`);
 }
 
