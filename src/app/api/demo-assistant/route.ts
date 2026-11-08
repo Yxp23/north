@@ -1,30 +1,34 @@
 import { randomUUID } from "node:crypto";
 import { getAnthropic, NOT_SET_UP } from "@/lib/agents/client";
+import { authenticate } from "@/lib/auth/guard";
 import { connectAgent } from "@/lib/checkpoint/keys";
 import { runAssistant, type ChatTurn } from "@/lib/demo-assistant/assistant";
 import { connectNorth } from "@/lib/demo-assistant/north-link";
 import { pretendTrickedAssistant } from "@/lib/demo-assistant/pretend";
 import { addAudit } from "@/lib/ledger/logic";
-import { getLedger, isDemoMode } from "@/lib/ledger/server";
+import { demoOnly } from "@/lib/demo/mode";
+import { readJson } from "@/lib/http/body";
+import { getLedger } from "@/lib/ledger/server";
 import { ndjsonResponse } from "@/lib/ndjson";
-import { createLimiter } from "@/lib/rate-limit";
+import { limited } from "@/lib/ratelimit/route";
 import { getStore } from "@/lib/store";
 
 // DEMO: "Any AI assistant", a generic chat assistant that reaches North ONLY through the MCP server (over HTTP, with
 // its own key), like any outside assistant would. Demo tools only. The key comes from the browser, as it would be
 // pasted into any assistant app; this route holds no PayPal, ledger or Guardian access on the assistant's behalf.
-const allow = createLimiter(40, 3_600_000);
-
 export async function POST(req: Request) {
-  if (!isDemoMode()) return Response.json({ error: "Not available" }, { status: 404 });
-  const body = await req.json().catch(() => null);
+  const auth = await authenticate(req);
+  if (!auth.ok) return auth.response;
+  const off = demoOnly(auth.userId);
+  if (off) return off;
+  const body = (await readJson(req)) as Record<string, unknown> | null;
   const origin = new URL(req.url).origin;
 
   // Demo shortcut for "Connect an assistant" on My rules: the same call, so the video can skip copy-and-paste.
   if (body?.connect === true) {
     const now = new Date();
-    const r = await getLedger().update((d) => {
-      const c = connectAgent(d, "Any AI assistant", now, () => `agt_${randomUUID()}`);
+    const r = await getLedger(auth.userId).update((d) => {
+      const c = connectAgent(d, "Any AI assistant", now, () => `agt_${randomUUID()}`, auth.userId);
       if (c.ok) addAudit(d, "agent_connect", `Connected the assistant "${c.agent.name}".`, now);
       return c;
     });
@@ -35,9 +39,10 @@ export async function POST(req: Request) {
   const key = typeof body?.key === "string" ? body.key : "";
   if (!message || !key) return Response.json({ error: "Please connect the assistant and type a message." }, { status: 400 });
   const history: ChatTurn[] = Array.isArray(body?.history)
-    ? body.history.slice(-8).filter((t: ChatTurn) => (t?.role === "person" || t?.role === "assistant") && typeof t.text === "string").map((t: ChatTurn) => ({ role: t.role, text: t.text.slice(0, 500) }))
+    ? (body.history as ChatTurn[]).slice(-8).filter((t: ChatTurn) => (t?.role === "person" || t?.role === "assistant") && typeof t.text === "string").map((t: ChatTurn) => ({ role: t.role, text: t.text.slice(0, 500) }))
     : [];
-  if (!allow()) return Response.json({ error: "That is a lot of tries. Please wait a little while." }, { status: 429 });
+  const tooMany = await limited(auth.userId, "demo-assistant", 40, 3600);
+  if (tooMany) return tooMany;
   const pretend = body?.pretendTricked === true;
 
   return ndjsonResponse(

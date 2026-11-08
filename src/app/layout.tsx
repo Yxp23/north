@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import { Suspense } from "react";
+import { CsrfFetch } from "@/components/csrf-fetch";
+import { SiteNav } from "@/components/site-nav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,26 +33,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to the page
         </a>
+        <CsrfFetch />
         <header className="border-b border-line bg-card">
-          <nav aria-label="Main" className="mx-auto flex max-w-xl flex-wrap items-center justify-between gap-x-1 px-3 py-1">
-            <Link href="/" className="rounded-lg px-2 py-2 text-2xl font-bold">
-              North
-            </Link>
-            <div className="flex flex-wrap text-base font-semibold">
-              <Link href="/" className="whitespace-nowrap rounded-lg px-2.5 py-3">
-                My money
-              </Link>
-              <Link href="/shop" className="whitespace-nowrap rounded-lg px-2.5 py-3">
-                Shop
-              </Link>
-              <Link href="/check" className="whitespace-nowrap rounded-lg px-2.5 py-3">
-                Check a deal
-              </Link>
-              <Link href="/rules" className="whitespace-nowrap rounded-lg px-2.5 py-3">
-                My rules
-              </Link>
-            </div>
-          </nav>
+          <Suspense fallback={<div className="mx-auto max-w-xl px-3 py-3 text-2xl font-bold">North</div>}>
+            <SiteNav />
+          </Suspense>
         </header>
         <main id="main" className="mx-auto w-full max-w-xl flex-1 px-4 py-6">
           {children}

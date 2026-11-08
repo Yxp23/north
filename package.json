@@ -10,7 +10,10 @@
     "test": "vitest run",
     "test:supabase": "RUN_LIVE_SUPABASE_TESTS=1 node --env-file=.env.local ./node_modules/vitest/vitest.mjs run src/lib/ledger/supabase-live.test.ts",
     "eval:concierge": "node --env-file=.env.local --import tsx evals/concierge/run.mts",
-    "eval:scam": "node --env-file=.env.local --import tsx evals/scam/run.mts"
+    "eval:scam": "node --env-file=.env.local --import tsx evals/scam/run.mts",
+    "audit:verify": "node --env-file=.env.local --import tsx scripts/audit-verify.mts",
+    "attack": "node --env-file=.env.local --import tsx attacker/run.mts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",
@@ -32,9 +35,28 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
+    "fast-check": "^4.10.2",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.1.0"
+  },
+  "overrides": {
+    "mathjs": "^15.2.0",
+    "jsondiffpatch": "^0.7.6",
+    "langsmith": "^0.6.0",
+    "@langchain/core": {
+      ".": "^0.3.80",
+      "zod": "$zod"
+    },
+    "uuid": "^11.1.1",
+    "ai": "^5.0.52",
+    "@ai-sdk/provider-utils": "^3.0.28",
+    "@paypal/agent-toolkit": {
+      "zod": "$zod",
+      "openai": "^6.0.0"
+    },
+    "minimatch": "^11.0.1",
+    "undici": "^7.30.2"
   }
 }

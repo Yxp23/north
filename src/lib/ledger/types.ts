@@ -108,6 +108,13 @@ export type PriceNotice = {
 
 export type PriceWatchData = { watches: Watch[]; notices: PriceNotice[] };
 
+/**
+ * What a connected assistant may do (least privilege). Each one is one MCP tool. A key made before scopes existed has none
+ * stored and gets all four, which is exactly what it could do before.
+ */
+export const AGENT_SCOPES = ["request_purchase", "read_rules", "read_week_money", "read_status"] as const;
+export type AgentScope = (typeof AGENT_SCOPES)[number];
+
 /** An outside AI assistant the user connected to the North Agent Checkpoint (MCP). It has its own key; only the key's hash is kept. */
 export type ConnectedAgent = {
   id: string;
@@ -115,6 +122,8 @@ export type ConnectedAgent = {
   /** SHA-256 of the key. The key itself is shown once when it is made and never stored. */
   keyHash: string;
   createdAt: string;
+  /** What this assistant may do. Missing = all four (an older assistant). */
+  scopes?: AgentScope[];
   /** Set when the user taps Disconnect. The key stops working at once. */
   revokedAt?: string;
   lastUsedAt?: string;
@@ -136,6 +145,10 @@ export type RequestStep = { label: string; detail?: string; warn?: boolean };
 export type AgentRequest = {
   id: string;
   agentId: string;
+  /** The assistant's own idempotency key: asking again with the same key gets the same answer and never makes a second request. */
+  requestKey?: string;
+  /** What the assistant typed for "product" (an id or words), kept to check a repeated request key is for the same thing. */
+  askedFor?: string;
   agentName: string;
   productId: string;
   name: string;
@@ -172,7 +185,14 @@ export type AgentCheckpointData = {
   permission: StoredChangeable<{ underCents: number }>;
 };
 
-export type AuditEntry = { at: string; type: string; detail: string };
+export type AuditEntry = {
+  at: string;
+  type: string;
+  detail: string;
+  /** Tamper-evidence (see audit-chain.ts): the HMAC of the entry before this one, and of this one. Added when saved. */
+  prevHash?: string;
+  hash?: string;
+};
 
 export type LedgerData = {
   version: 1;

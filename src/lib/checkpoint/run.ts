@@ -3,19 +3,22 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { runCheckout } from "../checkout/run";
-import { getLedger } from "../ledger/server";
+import { getLedger, getRateLimiter, userExists } from "../ledger/server";
 import { getStore } from "../store";
 import { createCheckpointHandler } from "./mcp";
 import type { CheckpointDeps } from "./service";
 
-export const checkpointDeps = (): CheckpointDeps => ({
-  ledger: getLedger(),
+/** Everything the checkpoint needs for ONE person. */
+export const checkpointDeps = (userId: string): CheckpointDeps => ({
+  ledger: getLedger(userId),
   store: getStore(),
-  checkout: (input, onStep) => runCheckout(input, onStep),
+  checkout: (input, onStep) => runCheckout(userId, input, onStep),
   now: () => new Date(),
   newId: () => randomUUID(),
 });
 
-// One handler for the life of the server, so each assistant's rate limit is remembered between requests.
+const addressOf = (req: Request) => (req.headers.get("x-forwarded-for")?.split(",")[0] ?? req.headers.get("x-real-ip") ?? "unknown").trim().slice(0, 64);
+
 let handler: ReturnType<typeof createCheckpointHandler> | undefined;
-export const mcpHandler = (req: Request) => (handler ??= createCheckpointHandler(checkpointDeps()))(req);
+export const mcpHandler = (req: Request) =>
+  (handler ??= createCheckpointHandler(async (userId) => ((await userExists(userId)) ? checkpointDeps(userId) : null), getRateLimiter(), addressOf))(req);

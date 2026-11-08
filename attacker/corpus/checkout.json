@@ -1,0 +1,271 @@
+[
+ {
+  "id": "web-locked-big-buy",
+  "kind": "checkout",
+  "why": "The person's session cannot buy a non-essential over a locked limit, even with Buy now",
+  "bodies": [
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000001",
+    "overrideWait": true
+   }
+  ],
+  "expect": "no_purchase"
+ },
+ {
+  "id": "web-price-in-body",
+  "kind": "checkout",
+  "why": "A price, quantity and currency in the body are ignored",
+  "bodies": [
+   {
+    "productId": "ENVDwLq",
+    "attemptId": "attempt-000002",
+    "overrideWait": true,
+    "priceCents": 1,
+    "amountCents": 1,
+    "quantity": 5,
+    "currency": "EUR"
+   }
+  ],
+  "expect": "no_purchase"
+ },
+ {
+  "id": "web-reused-attempt-other-product",
+  "kind": "checkout",
+  "why": "One tap id reused for another product",
+  "bodies": [
+   {
+    "productId": "cY1jWjp",
+    "attemptId": "attempt-000003"
+   },
+   {
+    "productId": "ENVDwLq",
+    "attemptId": "attempt-000003",
+    "overrideWait": true
+   }
+  ],
+  "expect": "at_most_one_purchase",
+  "maxCents": 970
+ },
+ {
+  "id": "web-race-same-tap",
+  "kind": "checkout",
+  "why": "Ten identical taps at once buy at most once",
+  "bodies": [
+   {
+    "productId": "cY1jWjp",
+    "attemptId": "attempt-000004"
+   },
+   {
+    "productId": "cY1jWjp",
+    "attemptId": "attempt-000004"
+   },
+   {
+    "productId": "cY1jWjp",
+    "attemptId": "attempt-000004"
+   },
+   {
+    "productId": "cY1jWjp",
+    "attemptId": "attempt-000004"
+   },
+   {
+    "productId": "cY1jWjp",
+    "attemptId": "attempt-000004"
+   },
+   {
+    "productId": "cY1jWjp",
+    "attemptId": "attempt-000004"
+   },
+   {
+    "productId": "cY1jWjp",
+    "attemptId": "attempt-000004"
+   },
+   {
+    "productId": "cY1jWjp",
+    "attemptId": "attempt-000004"
+   },
+   {
+    "productId": "cY1jWjp",
+    "attemptId": "attempt-000004"
+   },
+   {
+    "productId": "cY1jWjp",
+    "attemptId": "attempt-000004"
+   }
+  ],
+  "expect": "at_most_one_purchase",
+  "maxCents": 970
+ },
+ {
+  "id": "web-race-budget",
+  "kind": "checkout",
+  "why": "Many different taps at once cannot pass the week plan",
+  "bodies": [
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000100",
+    "overrideWait": true
+   },
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000101",
+    "overrideWait": true
+   },
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000102",
+    "overrideWait": true
+   },
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000103",
+    "overrideWait": true
+   },
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000104",
+    "overrideWait": true
+   },
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000105",
+    "overrideWait": true
+   },
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000106",
+    "overrideWait": true
+   },
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000107",
+    "overrideWait": true
+   },
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000108",
+    "overrideWait": true
+   },
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000109",
+    "overrideWait": true
+   },
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000110",
+    "overrideWait": true
+   },
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000111",
+    "overrideWait": true
+   }
+  ],
+  "expect": "within_max",
+  "fixture": "gentle",
+  "maxCents": 40000
+ },
+ {
+  "id": "web-pretend-hour-lift-lock",
+  "kind": "checkout",
+  "why": "A pretend hour cannot lift a locked rule",
+  "bodies": [
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000005",
+    "pretendHour": 0,
+    "overrideWait": true
+   },
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000005",
+    "pretendHour": 6,
+    "overrideWait": true
+   },
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000005",
+    "pretendHour": 12,
+    "overrideWait": true
+   },
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000005",
+    "pretendHour": 18,
+    "overrideWait": true
+   },
+   {
+    "productId": "OpovWAw",
+    "attemptId": "attempt-000005",
+    "pretendHour": 23,
+    "overrideWait": true
+   }
+  ],
+  "expect": "no_purchase"
+ },
+ {
+  "id": "web-bad-attempt-ids",
+  "kind": "checkout",
+  "why": "Odd tap ids are refused",
+  "bodies": [
+   {
+    "productId": "cY1jWjp",
+    "attemptId": "short"
+   },
+   {
+    "productId": "cY1jWjp",
+    "attemptId": "../../x"
+   },
+   {
+    "productId": "cY1jWjp",
+    "attemptId": "a b c d e f g h"
+   },
+   {
+    "productId": "cY1jWjp",
+    "attemptId": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   },
+   {
+    "productId": "cY1jWjp",
+    "attemptId": null
+   },
+   {
+    "productId": "cY1jWjp",
+    "attemptId": 5
+   }
+  ],
+  "expect": "no_purchase"
+ },
+ {
+  "id": "web-odd-product-ids",
+  "kind": "checkout",
+  "why": "Odd product ids buy nothing",
+  "bodies": [
+   {
+    "productId": "../x",
+    "attemptId": "attempt-000006"
+   },
+   {
+    "productId": "trap_earbuds",
+    "attemptId": "attempt-000007"
+   },
+   {
+    "productId": "",
+    "attemptId": "attempt-000008"
+   },
+   {
+    "productId": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "attemptId": "attempt-000009"
+   },
+   {
+    "productId": "912yTCL; drop table",
+    "attemptId": "attempt-000010"
+   },
+   {
+    "productId": "%2e%2e",
+    "attemptId": "attempt-000011"
+   }
+  ],
+  "expect": "no_purchase"
+ }
+]

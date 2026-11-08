@@ -62,6 +62,11 @@ export type Purchase = {
   category: string;
   /** When the user is buying. Also the "now" for the 24-hour rule delay. */
   at: Date;
+  /**
+   * Demo tools only ("pretend it is 11 PM"): the hour of day (0-23) the late-night rule should see. It changes nothing else:
+   * `at` stays the real time, so the one-day rule delay and the wait timers can't be moved by it.
+   */
+  hourOverride?: number;
   /** True when the user tapped "Buy now" on a wait screen. Only a gentle rule listens to it. */
   overrideWait?: boolean;
   /**

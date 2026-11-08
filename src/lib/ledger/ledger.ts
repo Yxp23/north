@@ -1,5 +1,7 @@
 // Storage for the ledger. Today it is a JSON file (and memory for tests).
 // A Supabase version can replace it later by implementing the same `Ledger` interface.
+import { subkey } from "../guardian/secret";
+import { sealAudit } from "./audit-chain";
 import { defaultLedgerData, upgradeLedgerData } from "./logic";
 import type { LedgerData } from "./types";
 
@@ -79,7 +81,7 @@ export abstract class LockedLedger implements Ledger {
   protected abstract load(): Promise<LedgerData | null>;
   protected abstract save(data: LedgerData): Promise<void>;
 
-  constructor(protected readonly timeZone: string, protected readonly clock: () => Date = () => new Date()) {}
+  constructor(protected readonly timeZone: string, protected readonly clock: () => Date = () => new Date(), private readonly auditKey: Buffer = subkey("audit")) {}
 
   private async loadOrCreate(): Promise<LedgerData> {
     const saved = await this.load();
@@ -97,6 +99,7 @@ export abstract class LockedLedger implements Ledger {
       const out = await change(data); // if this throws, nothing is saved
       assertValid(data);
       assertNoDeletes(before, data);
+      sealAudit(data.audit, this.auditKey); // each new audit entry gets its tamper-evident link
       await this.save(data);
       return out;
     });

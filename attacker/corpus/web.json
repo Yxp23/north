@@ -1,0 +1,86 @@
+[
+ {
+  "id": "web-csrf_missing-POST",
+  "kind": "web",
+  "why": "POST with csrf_missing: must never be accepted",
+  "session": "csrf_missing",
+  "method": "POST"
+ },
+ {
+  "id": "web-csrf_missing-PUT",
+  "kind": "web",
+  "why": "PUT with csrf_missing: must never be accepted",
+  "session": "csrf_missing",
+  "method": "PUT"
+ },
+ {
+  "id": "web-csrf_missing-DELETE",
+  "kind": "web",
+  "why": "DELETE with csrf_missing: must never be accepted",
+  "session": "csrf_missing",
+  "method": "DELETE"
+ },
+ {
+  "id": "web-cross_site-POST",
+  "kind": "web",
+  "why": "POST with cross_site: must never be accepted",
+  "session": "cross_site",
+  "method": "POST"
+ },
+ {
+  "id": "web-cross_site-PUT",
+  "kind": "web",
+  "why": "PUT with cross_site: must never be accepted",
+  "session": "cross_site",
+  "method": "PUT"
+ },
+ {
+  "id": "web-cross_site-DELETE",
+  "kind": "web",
+  "why": "DELETE with cross_site: must never be accepted",
+  "session": "cross_site",
+  "method": "DELETE"
+ },
+ {
+  "id": "web-anonymous-POST",
+  "kind": "web",
+  "why": "POST with anonymous: must never be accepted",
+  "session": "anonymous",
+  "method": "POST"
+ },
+ {
+  "id": "web-anonymous-PUT",
+  "kind": "web",
+  "why": "PUT with anonymous: must never be accepted",
+  "session": "anonymous",
+  "method": "PUT"
+ },
+ {
+  "id": "web-anonymous-DELETE",
+  "kind": "web",
+  "why": "DELETE with anonymous: must never be accepted",
+  "session": "anonymous",
+  "method": "DELETE"
+ },
+ {
+  "id": "web-forged-POST",
+  "kind": "web",
+  "why": "POST with forged: must never be accepted",
+  "session": "forged",
+  "method": "POST"
+ },
+ {
+  "id": "web-forged-PUT",
+  "kind": "web",
+  "why": "PUT with forged: must never be accepted",
+  "session": "forged",
+  "method": "PUT"
+ },
+ {
+  "id": "web-forged-DELETE",
+  "kind": "web",
+  "why": "DELETE with forged: must never be accepted",
+  "session": "forged",
+  "method": "DELETE"
+ }
+]

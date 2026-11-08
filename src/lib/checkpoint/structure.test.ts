@@ -22,7 +22,7 @@ describe("an assistant's key is accepted only on the MCP route", () => {
   });
   it("only the MCP route reaches the MCP handler", () => {
     const users = nonTest.filter((f) => /mcpHandler/.test(code(f)) && rel(f) !== "lib/checkpoint/run.ts").map(rel);
-    expect(users).toEqual(["app/api/mcp/route.ts"]);
+    expect(users).toEqual(["app/api/mcp/route.ts", "lib/auth/public-paths.ts"]); // (the second only names it, as the marker for the public list)
   });
   it("no other route reads an Authorization header except the scheduled price check (its own secret)", () => {
     const routes = nonTest.filter((f) => rel(f).startsWith("app/api/") && /authorization/i.test(code(f))).map(rel);
@@ -43,7 +43,7 @@ describe("an assistant can't reach PayPal or the ledger's write side", () => {
   });
   it("the checkpoint reaches checkout only as the `checkout` dependency", () => {
     expect(read("lib/checkpoint/service.ts")).toMatch(/checkout\(input: CheckoutInput/);
-    expect(read("lib/checkpoint/run.ts")).toMatch(/checkout: \(input, onStep\) => runCheckout\(input, onStep\)/);
+    expect(read("lib/checkpoint/run.ts")).toMatch(/checkout: \(input, onStep\) => runCheckout\(userId, input, onStep\)/);
   });
   it("the MCP file builds answers from plain words: no ledger write, no vault, no keys", () => {
     const text = read("lib/checkpoint/mcp.ts");

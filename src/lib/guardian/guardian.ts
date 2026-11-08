@@ -31,17 +31,57 @@ const LOCKED_REASON = "You said never buy this kind of thing. To change that, ed
 type Hit = { id: RuleId; strength: Strength; waitHours: number; hour?: number };
 const hoursOrDefault = (h: number | undefined) => (typeof h === "number" && Number.isFinite(h) && h > 0 ? h : DEFAULT_WAIT_HOURS);
 
+const wholeCents = (n: unknown): n is number => typeof n === "number" && Number.isSafeInteger(n) && n >= 0;
+const isHour = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= 23;
+const STRENGTHS = new Set(["gentle", "firm", "locked", undefined]);
+
+/** Do the money numbers and the rules make sense? (Rules are checked as they would count at the moment of the buy.) */
+function validState(state: UserState): boolean {
+  try {
+    if (!state || typeof state !== "object") return false;
+    if (!Number.isSafeInteger(state.balanceCents) || !wholeCents(state.protectedCents) || !wholeCents(state.weeklyBudgetCents) || !wholeCents(state.spentThisWeekCents)) return false;
+    if (typeof state.timeZone !== "string" || !state.rules) return false;
+    for (const rule of [state.rules.waitOverCents, state.rules.waitAfterHour, state.rules.essentials]) {
+      if (!rule || !(rule.changedAt instanceof Date) || Number.isNaN(rule.changedAt.getTime())) return false;
+    }
+    for (const b of [state.rules.waitOverCents.value, state.rules.waitOverCents.previous]) {
+      if (b !== null && (!b || !wholeCents(b.cents) || !STRENGTHS.has(b.strength))) return false;
+    }
+    for (const l of [state.rules.waitAfterHour.value, state.rules.waitAfterHour.previous]) {
+      if (l !== null && (!l || !isHour(l.afterHour) || !isHour(l.untilHour) || !STRENGTHS.has(l.strength))) return false;
+    }
+    for (const e of [state.rules.essentials.value, state.rules.essentials.previous]) {
+      if (e !== null && (!Array.isArray(e) || e.some((x) => typeof x !== "string"))) return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function decide(purchase: Purchase, state: UserState): GuardianResult {
   // ---- 1. Hard walls ---------------------------------------------------------------------------
   if (!Number.isSafeInteger(purchase.amountCents) || purchase.amountCents <= 0) {
     return refuse("bad_amount", "I can't read that price, so I can't buy it.");
   }
 
+  // FAIL CLOSED on the person's own settings too. A number that is not a whole count of cents, or a rule that does not make
+  // sense, is never read as "no limit": it is refused.
+  if (!validState(state)) return refuse("bad_input", "Something is wrong on my end, so I can't buy this.");
+
   // The user's clock decides "late at night". If we can't read it, don't guess.
   let hour: number;
   try {
     if (Number.isNaN(purchase.at.getTime())) throw new Error("bad date");
-    hour = localHour(purchase.at, state.timeZone);
+    // The real hour is always worked out first, so an unreadable time zone is refused even when a pretend hour is given.
+    const realHour = localHour(purchase.at, state.timeZone);
+    if (purchase.hourOverride !== undefined) {
+      // The demo clock: only the hour of day. Anything that is not a whole hour 0-23 is refused, never guessed.
+      if (!Number.isInteger(purchase.hourOverride) || purchase.hourOverride < 0 || purchase.hourOverride > 23) throw new Error("bad hour");
+      hour = purchase.hourOverride;
+    } else {
+      hour = realHour;
+    }
   } catch {
     return refuse("bad_input", "Something is wrong on my end, so I can't buy this.");
   }

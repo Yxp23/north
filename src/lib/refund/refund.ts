@@ -1,5 +1,9 @@
 // One-tap refund of a paid purchase. The capture id comes from our own record, never from the browser.
-// A refund gives money back, so it doesn't need the Guardian. It can only refund a buy we paid.
+// A refund gives money back, so it doesn't need the Guardian's yes/no. It can only refund a buy we paid, once, for exactly
+// what was paid. Like a charge, the PayPal call needs a signed, single-use statement (here: for this user, this purchase
+// and its amount), so nothing else can send money out through the refund call.
+import type { Signer } from "../guardian/approval";
+import { APPROVAL_TTL_MS, signClaims } from "../guardian/signed";
 import type { Ledger } from "../ledger/ledger";
 import { addAudit, markRefunded } from "../ledger/logic";
 
@@ -9,10 +13,19 @@ export type RefundResult =
   | { ok: false; error: string; alreadyRefunded?: boolean };
 
 export interface RefundGateway {
-  refund(args: { captureId: string; requestId: string }): Promise<RefundResult>;
+  refund(args: {
+    captureId: string;
+    requestId: string;
+    userId: string;
+    purchaseId: string;
+    amountCents: number;
+    currency: string;
+    /** Signed for exactly this refund (see guardian/signed.ts). The gateway refuses without a valid one. */
+    approvalToken: string;
+  }): Promise<RefundResult>;
 }
 
-export type RefundDeps = { ledger: Ledger; gateway: RefundGateway; now(): Date };
+export type RefundDeps = { userId: string; signer: Signer; ledger: Ledger; gateway: RefundGateway; now(): Date; newId(): string };
 
 export type RefundOutcome =
   | { kind: "refunded" }
@@ -33,8 +46,19 @@ export async function refundPurchase(purchaseId: string, deps: RefundDeps): Prom
 
   let result: RefundResult;
   try {
+    const iat = deps.signer.now();
+    const approvalToken = signClaims(
+      {
+        v: 1, kind: "refund", nonce: `refund-${p.id}-${deps.newId()}`, userId: deps.userId, ref: p.id,
+        amountCents: p.amountCents, currency: p.currency, quantity: 1, iat, exp: iat + APPROVAL_TTL_MS,
+      },
+      deps.signer.key,
+    );
     // The request id is the same on every tap, so PayPal can never refund twice.
-    result = await deps.gateway.refund({ captureId: p.captureId, requestId: `refund-${p.id}` });
+    result = await deps.gateway.refund({
+      captureId: p.captureId, requestId: `refund-${p.id}`, userId: deps.userId, purchaseId: p.id,
+      amountCents: p.amountCents, currency: p.currency, approvalToken,
+    });
   } catch {
     result = { ok: false, error: "Could not reach PayPal." };
   }

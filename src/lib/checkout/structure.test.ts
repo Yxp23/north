@@ -60,7 +60,7 @@ describe("the charge step is only reachable through guarded checkout", () => {
     const text = sources.find((s) => s.file === "lib/paypal.ts")!.text;
     const creates = [...text.matchAll(/call\(\s*"POST",\s*["`]\/v2\/checkout\/orders["`]/g)];
     expect(creates).toHaveLength(1);
-    const fn = text.slice(text.indexOf("export function createOrderWithVault"));
+    const fn = text.slice(text.indexOf("export async function createOrderWithVault"));
     const end = fn.indexOf("\nexport ", 10);
     expect(fn.slice(0, end === -1 ? undefined : end)).toMatch(/call\(\s*"POST",\s*"\/v2\/checkout\/orders"/);
   });
@@ -74,5 +74,76 @@ describe("the charge step is only reachable through guarded checkout", () => {
   it("the spike pages and their routes are gone", () => {
     expect(sources.some((s) => /(^|\/)spike\//.test(s.file))).toBe(false);
     expect(sources.some((s) => s.file.includes("create-order") || s.file.includes("capture-order"))).toBe(false);
+  });
+});
+
+// ---- Hardening (Nov 8): the single choke point -------------------------------------------------------------
+describe("the PayPal money calls sit behind a signed Guardian approval", () => {
+  const text = (f: string) => sources.find((s) => s.file === f)!.text;
+
+  it("the three money functions are called only from the gateway files", () => {
+    expect(using("captureOrder(")).toEqual(["lib/checkout/gateway.ts", "lib/paypal.ts"]);
+    expect(using("refundCapture(")).toEqual(["lib/paypal.ts", "lib/refund/run.ts"]);
+    expect(using("createOrderWithVault(")).toEqual(["lib/checkout/gateway.ts", "lib/paypal.ts"]);
+  });
+
+  it("each money function begins by requiring a verified proof", () => {
+    const paypal = text("lib/paypal.ts");
+    for (const name of ["captureOrder", "createOrderWithVault", "refundCapture"]) {
+      const start = paypal.indexOf(`export async function ${name}(`);
+      expect(start, name).toBeGreaterThan(-1);
+      const body = paypal.slice(start, start + 400);
+      expect(body, name).toMatch(/requireVerified\(proof, "(charge|refund)"\)/);
+    }
+  });
+
+  it("the amount and currency PayPal receives come from the verified proof, not from other arguments", () => {
+    const paypal = text("lib/paypal.ts");
+    const create = paypal.slice(paypal.indexOf("export async function createOrderWithVault"), paypal.indexOf("export async function refundCapture"));
+    expect(create).toContain("money(claims.amountCents, claims.currency)");
+    expect(create).not.toMatch(/amount: string|amountCents: number/);
+  });
+
+  it("only paypal.ts can send a request that moves money: the generic PayPal caller is private", () => {
+    const paypal = text("lib/paypal.ts");
+    expect(paypal).not.toMatch(/export (async )?function call\b|export const call\b/);
+    // Every POST that moves money lives inside one of the three guarded functions.
+    for (const path of ["/v2/checkout/orders", "/v2/payments/captures", "/capture`"]) {
+      const lines = paypal.split("\n").filter((l) => l.includes(path) && l.includes("call("));
+      for (const l of lines) expect(l, path).toMatch(/call\("POST"/);
+    }
+    const money = (paypal.match(/call\(\s*"POST",\s*[`"]\/v2\/(checkout|payments)/g) ?? []).length;
+    expect(money).toBe(3);
+  });
+
+  it("a VerifiedMoney can only be made by authorizeMoney (guardian/authorize.ts)", () => {
+    expect(using("issued.add(")).toEqual(["lib/guardian/authorize.ts"]);
+    expect(using("requireVerified(")).toEqual(["lib/guardian/authorize.ts", "lib/paypal.ts"]);
+  });
+
+  it("only the gateway files call authorizeMoney", () => {
+    expect(using("authorizeMoney(")).toEqual(["lib/checkout/gateway.ts", "lib/guardian/authorize.ts", "lib/refund/run.ts"]);
+  });
+
+  it("approvals are signed only where the Guardian or a refund is decided", () => {
+    expect(using("signClaims(")).toEqual(["lib/guardian/approval.ts", "lib/guardian/signed.ts", "lib/refund/refund.ts"]);
+  });
+
+  it("nothing else talks to PayPal's money endpoints with fetch", () => {
+    const hits = sources.filter((s) => /api-m\.(sandbox\.)?paypal\.com/.test(s.text)).map((s) => s.file);
+    expect(hits).toEqual(["lib/paypal.ts"]);
+  });
+
+  it("the PayPal Agent Toolkit stays read-only (it can't be used to create orders or refunds)", () => {
+    const reader = text("lib/paypal-toolkit/reader.ts");
+    expect(reader).toContain('ALLOWED_METHODS = ["get_order", "list_transactions"]');
+    expect(reader).toContain("({ orders: { get: true }, transactions: { list: true } })");
+    // No money-moving permission is ever switched on.
+    expect(reader).not.toMatch(/(create|capture|pay|refund|update|send|cancel)\s*:\s*true/);
+  });
+
+  it("scripts do not call the PayPal money endpoints directly", () => {
+    const scripts = files(path.join(ROOT, "scripts")).map((f) => readFileSync(f, "utf8")).join("\n");
+    expect(scripts).not.toMatch(/\/v2\/checkout\/orders|\/v2\/payments\/captures/);
   });
 });

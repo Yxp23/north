@@ -2,8 +2,8 @@
 // Signature checking happens before this, in the webhook route (see verifyWebhookSignature).
 
 export type ParsedWebhook =
-  | { kind: "completed"; eventId: string; captureId: string; orderId?: string; customId?: string; amountCents?: number }
-  | { kind: "refunded"; eventId: string; refundId: string; captureId?: string; amountCents?: number }
+  | { kind: "completed"; eventId: string; captureId: string; orderId?: string; customId?: string; amountCents?: number; currency?: string }
+  | { kind: "refunded"; eventId: string; refundId: string; captureId?: string; amountCents?: number; currency?: string }
   | { kind: "ignored"; eventId: string; eventType: string };
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- the event is untrusted JSON, read defensively */
@@ -28,6 +28,7 @@ export function parseWebhookEvent(event: any): ParsedWebhook {
       orderId: str(r.supplementary_data?.related_ids?.order_id),
       customId: str(r.custom_id),
       amountCents: toCents(r.amount?.value),
+      currency: str(r.amount?.currency_code),
     };
   }
 
@@ -35,8 +36,22 @@ export function parseWebhookEvent(event: any): ParsedWebhook {
     // The refund points back at its capture with a link like .../v2/payments/captures/{id}.
     const up = Array.isArray(r.links) ? r.links.find((l: any) => l?.rel === "up") : undefined;
     const captureId = str(up?.href)?.split("/").filter(Boolean).pop();
-    return { kind: "refunded", eventId, refundId: r.id, captureId, amountCents: toCents(r.amount?.value) };
+    return { kind: "refunded", eventId, refundId: r.id, captureId, amountCents: toCents(r.amount?.value), currency: str(r.amount?.currency_code) };
   }
 
   return { kind: "ignored", eventId, eventType };
+}
+
+/**
+ * Replay protection, part 1: how old a webhook may be. PayPal retries a failed delivery for about three days, so anything much
+ * older than that is a replay (or a clock that is wrong). A time we can't read is refused too. (Part 2 is the database: an
+ * event id that was handled once is never handled again.)
+ */
+export const WEBHOOK_MAX_AGE_MS = 4 * 24 * 3_600_000;
+export const WEBHOOK_MAX_FUTURE_MS = 10 * 60_000;
+
+export function webhookIsFresh(transmissionTime: string | null | undefined, nowMs: number): boolean {
+  const t = transmissionTime ? Date.parse(transmissionTime) : Number.NaN;
+  if (!Number.isFinite(t) || !Number.isFinite(nowMs)) return false;
+  return nowMs - t <= WEBHOOK_MAX_AGE_MS && t - nowMs <= WEBHOOK_MAX_FUTURE_MS;
 }

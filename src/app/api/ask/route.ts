@@ -1,3 +1,6 @@
+import { authenticate } from "@/lib/auth/guard";
+import { IMAGE_MAX_BODY, readJson } from "@/lib/http/body";
+import { limited } from "@/lib/ratelimit/route";
 import { POST as dealCheck } from "@/app/api/deal-check/route";
 import { POST as findRoute } from "@/app/api/find/route";
 import { POST as chooseRoute } from "@/app/api/choose/route";
@@ -7,16 +10,22 @@ import { MAX_ASK_CHARS, type Destination } from "@/lib/agents/concierge/router";
 import { runAsk, type Delegate, type Delegates } from "@/lib/ask/ask";
 import { parseFinderRequest } from "@/lib/finder/request";
 import { ndjsonResponse } from "@/lib/ndjson";
-import { createLimiter } from "@/lib/rate-limit";
 
 // "Ask North". The Concierge reads what the person typed or uploaded and routes it to one of North's helpers, and the
 // handoff shows in the activity panel. Each helper is the same route its own page uses (so every check and limit still
 // applies). Routing can't move money: none of these helpers can buy, and this route does not import checkout.
-const allow = createLimiter(40, 3_600_000);
-
-/** Runs one of the existing helper routes, passes its steps on, and returns what it answered with. */
-const viaRoute = (handler: (req: Request) => Promise<Response>, body: (r: Parameters<Delegate>[0]) => unknown): Delegate => async (req, onStep) => {
-  const res = await handler(new Request("http://north.internal/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body(req)) }));
+/**
+ * Runs one of the existing helper routes, passes its steps on, and returns what it answered with.
+ * The helper gets the person's OWN login cookie and CSRF token (copied from this request), so it checks the login itself,
+ * exactly as if the person had gone to its page. Nothing is trusted just because it came from inside.
+ */
+const viaRoute = (original: Request, handler: (req: Request) => Promise<Response>, body: (r: Parameters<Delegate>[0]) => unknown): Delegate => async (req, onStep) => {
+  const headers = new Headers({ "Content-Type": "application/json" });
+  for (const h of ["cookie", "origin", "sec-fetch-site", "x-north-csrf", "x-forwarded-for"]) {
+    const v = original.headers.get(h);
+    if (v !== null) headers.set(h, v);
+  }
+  const res = await handler(new Request(original.url, { method: "POST", headers, body: JSON.stringify(body(req)) }));
   if (!res.ok || !res.body) {
     const j = await res.json().catch(() => null);
     return { payload: { kind: "error", message: typeof j?.error === "string" ? j.error : "Something went wrong. Please try again." } };
@@ -47,18 +56,21 @@ const viaRoute = (handler: (req: Request) => Promise<Response>, body: (r: Parame
   return result ?? { payload: { kind: "error", message: "Something went wrong. Please try again." } };
 };
 
-const delegates: Delegates = {
-  scam_checker: viaRoute(dealCheck, (r) => ({ text: r.text, imageBase64: r.imageBase64, priceDollars: r.extra.priceDollars })),
-  finder: viaRoute(findRoute, (r) => ({ text: r.text, imageBase64: r.imageBase64 })),
-  help_me_choose: viaRoute(chooseRoute, (r) => ({ text: r.text, imageBase64: r.imageBase64, answer: r.extra.answer })),
-  payments: viaRoute(paymentsRoute, (r) => ({ question: r.text })),
-};
+const delegatesFor = (original: Request): Delegates => ({
+  scam_checker: viaRoute(original, dealCheck, (r) => ({ text: r.text, imageBase64: r.imageBase64, priceDollars: r.extra.priceDollars })),
+  finder: viaRoute(original, findRoute, (r) => ({ text: r.text, imageBase64: r.imageBase64 })),
+  help_me_choose: viaRoute(original, chooseRoute, (r) => ({ text: r.text, imageBase64: r.imageBase64, answer: r.extra.answer })),
+  payments: viaRoute(original, paymentsRoute, (r) => ({ question: r.text })),
+});
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => null);
+  const auth = await authenticate(req);
+  if (!auth.ok) return auth.response;
+  const body = (await readJson(req, IMAGE_MAX_BODY)) as Record<string, unknown> | null;
   const parsed = parseFinderRequest(body, { maxChars: MAX_ASK_CHARS });
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 });
-  if (!allow()) return Response.json({ error: "That is a lot of tries. Please wait a little while." }, { status: 429 });
+  const tooMany = await limited(auth.userId, "ask", 40, 3600);
+  if (tooMany) return tooMany;
   const route = typeof body?.route === "string" ? (body.route as Destination) : undefined;
 
   return ndjsonResponse(
@@ -71,8 +83,8 @@ export async function POST(req: Request) {
         return;
       }
       const out = await runAsk({
-        client, delegates, onStep: (s) => send({ type: "step", ...s }),
-        input: { text: parsed.text, image: parsed.image && { base64: parsed.image.base64, type: parsed.image.type }, route, extra: body?.extra },
+        client, delegates: delegatesFor(req), onStep: (s) => send({ type: "step", ...s }),
+        input: { text: parsed.text, image: parsed.image && { base64: parsed.image.base64, type: parsed.image.type }, route, extra: body?.extra as never },
       });
       send({ type: "result", route: out.route, payload: out.payload });
     },

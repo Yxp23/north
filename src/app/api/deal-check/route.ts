@@ -1,19 +1,21 @@
 import { getAnthropic, NOT_SET_UP } from "@/lib/agents/client";
+import { authenticate } from "@/lib/auth/guard";
+import { IMAGE_MAX_BODY, readJson } from "@/lib/http/body";
 import { MAX_AD_CHARS, runScamChecker, type DealPayload } from "@/lib/agents/scam-checker/scam-checker";
 import { channel3Backend } from "@/lib/dealcheck/channel3-backend";
 import { checkImage } from "@/lib/dealcheck/image";
 import { getLedger } from "@/lib/ledger/server";
 import { addAudit, flagSeller } from "@/lib/ledger/logic";
 import { ndjsonResponse } from "@/lib/ndjson";
-import { createLimiter } from "@/lib/rate-limit";
+import { limited } from "@/lib/ratelimit/route";
 
 // "Is this deal real?" Streams the checker's steps (one JSON line each), then one result line.
 // The checker only reads and matches. A scam verdict flags the seller HERE (not inside the agent), and the
 // Money Guardian refuses to pay a flagged seller. A flag can only make things stricter.
-const allow = createLimiter(20, 3_600_000);
-
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => null);
+  const auth = await authenticate(req);
+  if (!auth.ok) return auth.response;
+  const body = (await readJson(req, IMAGE_MAX_BODY)) as Record<string, unknown> | null;
   const text = typeof body?.text === "string" ? body.text : "";
   const price = typeof body?.priceDollars === "number" ? body.priceDollars : undefined;
   if (text.length > MAX_AD_CHARS) return Response.json({ error: "That is too long. Please paste just the link or the main words." }, { status: 400 });
@@ -26,7 +28,8 @@ export async function POST(req: Request) {
   }
   if (!text.trim() && !image) return Response.json({ error: "Please paste a link, type what the ad says, or add a picture of the ad." }, { status: 400 });
   if (price !== undefined && !(Number.isFinite(price) && price > 0 && price <= 100_000)) return Response.json({ error: "Please type a price like 27 or 27.50." }, { status: 400 });
-  if (!allow()) return Response.json({ error: "That is a lot of tries. Please wait a little while." }, { status: 429 });
+  const tooMany = await limited(auth.userId, "deal-check", 20, 3600);
+  if (tooMany) return tooMany;
 
   return ndjsonResponse(
     async (send) => {
@@ -48,7 +51,7 @@ export async function POST(req: Request) {
       let flagged: "yes" | "no_seller" | "not_saved" | "no" = "no";
       const now = new Date();
       try {
-        await getLedger().update((d) => {
+        await getLedger(auth.userId).update((d) => {
           if (payload.kind === "verdict") {
             addAudit(d, "deal_check", `Deal check: ${payload.verdict.kind} (${payload.verdict.code}). ${steps.length} steps.`, now);
             if (payload.verdict.flagSeller && payload.sellerDomain) {

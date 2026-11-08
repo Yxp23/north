@@ -1,4 +1,7 @@
+import { authenticate } from "@/lib/auth/guard";
 import { startTracking } from "@/lib/channel3";
+import { readJson } from "@/lib/http/body";
+import { limited } from "@/lib/ratelimit/route";
 import { getLedger } from "@/lib/ledger/server";
 import { addAudit } from "@/lib/ledger/logic";
 import { getStore } from "@/lib/store";
@@ -8,13 +11,17 @@ import { dismissNotice, startWatch, stopWatch } from "@/lib/watcher/state";
 // None of this can buy anything. The browser sends only a product id or a notice id, never a price: the price
 // the watch starts from is read from the store here.
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => null);
+  const auth = await authenticate(req);
+  if (!auth.ok) return auth.response;
+  const tooMany = await limited(auth.userId, "watch", 120, 3600);
+  if (tooMany) return tooMany;
+  const body = (await readJson(req)) as Record<string, unknown> | null;
   const action = body?.action;
-  const ledger = getLedger();
+  const ledger = getLedger(auth.userId);
   const now = new Date();
 
   if (action === "start") {
-    const productId = typeof body.productId === "string" ? body.productId : "";
+    const productId = typeof body?.productId === "string" ? body.productId : "";
     const product = productId.length > 0 && productId.length <= 80 ? await getStore().getProduct(productId) : null;
     if (!product) return Response.json({ error: "I could not find that product." }, { status: 404 });
     let status = "started" as "started" | "already" | "full";
@@ -26,14 +33,16 @@ export async function POST(req: Request) {
     return Response.json({ status, name: product.name });
   }
 
-  if (action === "stop" && typeof body.productId === "string") {
-    await ledger.update((d) => stopWatch(d, body.productId));
+  if (action === "stop" && typeof body?.productId === "string") {
+    const id = body.productId;
+    await ledger.update((d) => stopWatch(d, id));
     return Response.json({ status: "stopped" });
   }
 
-  if (action === "dismiss" && typeof body.id === "string") {
+  if (action === "dismiss" && typeof body?.id === "string") {
+    const id = body.id;
     let found = false;
-    await ledger.update((d) => void (found = dismissNotice(d, body.id)));
+    await ledger.update((d) => void (found = dismissNotice(d, id)));
     return Response.json({ status: found ? "dismissed" : "not_found" }, { status: found ? 200 : 404 });
   }
 

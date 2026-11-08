@@ -18,7 +18,8 @@ async function setup(purchase: PurchaseRecord | null, gw: Partial<RefundGateway>
   const refund = vi.fn<RefundGateway["refund"]>(async () => ({ ok: true, status: "COMPLETED" }));
   const ledger = new MemoryLedger("America/New_York", () => NOW);
   if (purchase) await ledger.update((d) => void d.purchases.push(purchase));
-  const deps: RefundDeps = { ledger, gateway: { refund, ...gw }, now: () => NOW };
+  let n = 0;
+  const deps: RefundDeps = { userId: "user-1", signer: { key: Buffer.from("k".repeat(32)), now: () => NOW.getTime() }, newId: () => `n${++n}`, ledger, gateway: { refund, ...gw }, now: () => NOW };
   return { refund, ledger, deps };
 }
 
@@ -37,7 +38,8 @@ describe("refundPurchase", () => {
   it("uses our purchase's own capture id, and a request id that makes retries safe", async () => {
     const { refund, deps } = await setup(paid({ captureId: "CAP-REAL" }));
     await refundPurchase("pur_1", deps);
-    expect(refund.mock.calls[0][0]).toEqual({ captureId: "CAP-REAL", requestId: "refund-pur_1" });
+    expect(refund.mock.calls[0][0]).toMatchObject({ captureId: "CAP-REAL", requestId: "refund-pur_1", userId: "user-1", purchaseId: "pur_1", amountCents: 250, currency: "USD" });
+    expect(refund.mock.calls[0][0].approvalToken).toMatch(/^n1\./);
   });
 
   it("says 'already refunded' without calling PayPal if we already know", async () => {

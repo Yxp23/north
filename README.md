@@ -23,3 +23,17 @@ npm run dev
 
 ## Production work not done here
 - PayPal requires risk data (FraudNet) for saved-account token payments in production. It isn't needed in the sandbox.
+
+## Logging in, and security
+
+North needs a login. **Judges: use the practice account** (practice money only):
+
+- Email: `judge@north-demo.app`
+- Password: `North-Judges-2026!`
+
+(On the judges' deployment these are filled in for you on the login page.) A **Try to break North** page (Demo tools on the home screen) lets
+you type any trick as an AI assistant and see the Money Guardian's decision live, next to the latest score of our own AI attacker.
+Everything about how North is protected, what was tested and what the limits are: [docs/security.md](docs/security.md) and
+[docs/threat-model.md](docs/threat-model.md). Useful commands: `npm run attack -- --rounds 2` (the AI attacker), `npm run audit:verify`
+(checks the tamper-evident audit log), `npm audit`. Local setup without Supabase: log in as `demo@north.local` / `north-practice`.
+Production needs `NORTH_SECRET`, `SUPABASE_PUBLISHABLE_KEY` and `NORTH_SITE_URL` (see `.env.example`) and the newest migration.

@@ -1,9 +1,12 @@
+import { TEST_USER_ID } from "../../../test/user";
+import { TEST_IDENTITY } from "../../../test/checkout-identity";
 import { describe, expect, it, vi } from "vitest";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { checkout, type PayGateway } from "../checkout/checkout";
 import { MemoryLedger } from "../ledger/ledger";
 import { DemoStore } from "../store/demo-store";
 import { connectAgent, revokeAgent } from "./keys";
+import { MemoryRateLimiter } from "../ratelimit/limiter";
 import { createCheckpointHandler } from "./mcp";
 import type { CheckpointDeps } from "./service";
 
@@ -19,18 +22,21 @@ async function setup(opts: { underCents?: number } = {}) {
   const store = new DemoStore();
   const deps: CheckpointDeps = {
     ledger, store, now: () => clock, newId: () => `id${++n}`,
-    checkout: (input, onStep) => checkout(input, { ledger, store, gateway: { charge }, getVaultId: async () => "VAULT-SECRET-1", now: () => clock, newId: () => `pur_${++n}`, onStep }),
+    checkout: (input, onStep) => checkout(input, { ...TEST_IDENTITY, ledger, store, gateway: { charge }, getVaultId: async () => "VAULT-SECRET-1", now: () => clock, newId: () => `pur_${++n}`, onStep }),
   };
   const keys: Record<string, { key: string; id: string }> = {};
   await ledger.update((d) => {
     d.paypalVault = { vaultId: "VAULT-SECRET-1", customerId: "CUST-SECRET-1", savedAt: NOON.toISOString() };
     for (const name of ["A", "B"]) {
-      const r = connectAgent(d, `Assistant ${name}`, clock, () => `agt_${name}`);
+      const r = connectAgent(d, `Assistant ${name}`, clock, () => `agt_${name}`, TEST_USER_ID);
       if (r.ok) keys[name] = { key: r.key, id: r.agent.id };
     }
+    // A read-only assistant: it may see the person's rules and what is left, and nothing else.
+    const ro = connectAgent(d, "Reader", clock, () => "agt_R", TEST_USER_ID, ["read_rules", "read_week_money"]);
+    if (ro.ok) keys.R = { key: ro.key, id: ro.agent.id };
     if (opts.underCents) d.agentCheckpoint.permission = { value: { underCents: opts.underCents }, changedAt: new Date(clock.getTime() - 48 * HOUR).toISOString(), previous: null };
   });
-  const handler = createCheckpointHandler(deps);
+  const handler = createCheckpointHandler(async (uid) => (uid === TEST_USER_ID ? deps : null), new MemoryRateLimiter());
   const rawFetch = (key: string | null) => (url: string | URL, init?: RequestInit) => {
     const headers = new Headers(init?.headers);
     if (key) headers.set("Authorization", `Bearer ${key}`);
@@ -58,7 +64,7 @@ describe("what an assistant can see and do through MCP", () => {
     const s = await setup();
     const c = await s.connect(s.keys.A.key);
     const t = (await c.listTools()).tools.find((x) => x.name === "request_purchase")!;
-    expect(Object.keys((t.inputSchema as { properties: object }).properties).sort()).toEqual(["product", "quantity", "reason", "triggered_by"]);
+    expect(Object.keys((t.inputSchema as { properties: object }).properties).sort()).toEqual(["product", "quantity", "reason", "request_key", "triggered_by"]);
   });
 
   it("an assistant that tries to sneak in an override is turned away, and nothing is bought", async () => {
@@ -193,5 +199,66 @@ describe("limits", () => {
     const b = await s.connect(s.keys.B.key);
     const r = s.text(await b.callTool({ name: "request_purchase", arguments: { product: "912yTCL", quantity: 1, reason: "x" } }));
     expect(r).not.toMatch(/too many/i);
+  });
+});
+
+describe("least privilege: an assistant only has the tools it was allowed", () => {
+  it("a read-only assistant sees two tools, and no way to ask to buy", async () => {
+    const s = await setup();
+    const c = await s.connect(s.keys.R.key);
+    expect((await c.listTools()).tools.map((t) => t.name).sort()).toEqual(["get_spending_rules", "get_week_money"]);
+  });
+
+  it("calling the tool it was not given by name does nothing and buys nothing", async () => {
+    const s = await setup({ underCents: 5000 });
+    const c = await s.connect(s.keys.R.key);
+    let outcome: unknown;
+    try {
+      outcome = await c.callTool({ name: "request_purchase", arguments: { product: "cY1jWjp", quantity: 1, reason: "x" } });
+    } catch (e) {
+      outcome = e;
+    }
+    expect(JSON.stringify(outcome)).toMatch(/not found|unknown|error|isError/i);
+    expect(s.charge).not.toHaveBeenCalled();
+    expect((await s.ledger.read()).agentCheckpoint.requests).toHaveLength(0);
+    expect((await s.ledger.read()).purchases).toHaveLength(0);
+  });
+
+  it("its read tools work", async () => {
+    const s = await setup();
+    const c = await s.connect(s.keys.R.key);
+    expect(s.text(await c.callTool({ name: "get_week_money", arguments: {} }))).toMatch(/\$400/);
+  });
+
+  it("an assistant made before scopes existed still gets all four tools", async () => {
+    const s = await setup();
+    await s.ledger.update((d) => void delete d.agentCheckpoint.agents.find((a) => a.id === "agt_A")!.scopes);
+    const c = await s.connect(s.keys.A.key);
+    expect((await c.listTools()).tools.map((t) => t.name).sort()).toEqual(["get_request_status", "get_spending_rules", "get_week_money", "request_purchase"]);
+  });
+});
+
+describe("keys that name someone else", () => {
+  it("a key shaped right but for a person who does not exist is turned away, and creates nobody", async () => {
+    const s = await setup();
+    const stranger = "north_" + "ab".repeat(16) + "." + "A".repeat(43);
+    const res = await s.handler(new Request(URL_, { method: "POST", headers: { Authorization: `Bearer ${stranger}`, "Content-Type": "application/json", Accept: "application/json, text/event-stream" }, body: "{}" }));
+    expect(res.status).toBe(401);
+  });
+
+  it("a key for the right person with the wrong secret is turned away", async () => {
+    const s = await setup();
+    const wrong = s.keys.A.key.slice(0, s.keys.A.key.indexOf(".") + 1) + "B".repeat(43);
+    const res = await s.handler(new Request(URL_, { method: "POST", headers: { Authorization: `Bearer ${wrong}`, "Content-Type": "application/json" }, body: "{}" }));
+    expect(res.status).toBe(401);
+  });
+
+  it("guessing keys over and over gets slower: after a while the answer is 429", async () => {
+    const s = await setup();
+    const wrong = "north_" + "ab".repeat(16) + "." + "A".repeat(43);
+    const codes: number[] = [];
+    for (let i = 0; i < 40; i++) codes.push((await s.handler(new Request(URL_, { method: "POST", headers: { Authorization: `Bearer ${wrong}` }, body: "{}" }))).status);
+    expect(codes.slice(0, 30).every((c) => c === 401)).toBe(true);
+    expect(codes.at(-1)).toBe(429);
   });
 });

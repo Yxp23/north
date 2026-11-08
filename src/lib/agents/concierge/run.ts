@@ -8,6 +8,7 @@ import type { StepEvent } from "../loop";
 import { runConcierge, type ConciergePayload } from "./concierge";
 
 export async function runConciergeForUser(opts: {
+  userId: string;
   text: string;
   followUp?: { missing: "amount" | "hour"; answer: string };
   onStep?(event: StepEvent): void;
@@ -18,7 +19,7 @@ export async function runConciergeForUser(opts: {
   } catch {
     return { payload: { kind: "error", message: NOT_SET_UP }, steps: [] };
   }
-  const data = await getLedger().read();
+  const data = await getLedger(opts.userId).read();
   const out = await runConcierge({
     client: model,
     text: opts.text,

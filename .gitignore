@@ -45,3 +45,4 @@ next-env.d.ts
 
 # spike-only local storage (saved PayPal token)
 /.data
+attacker/results/

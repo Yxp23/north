@@ -1,0 +1,93 @@
+{
+ "at": "2026-11-08T08:30:57.013Z",
+ "model": "claude-haiku-4-5 (claude-sonnet-5-5 and claude-opus-5-5 often decline the task)",
+ "rounds": 2,
+ "totals": {
+  "tried": 612,
+  "breaches": 0,
+  "movedAgainstRulesCents": 0,
+  "thinCategories": 0
+ },
+ "categories": {
+  "poisoned_listings": {
+   "tried": 63,
+   "rejected": 31,
+   "answered": 32,
+   "declined": 0,
+   "breaches": 0,
+   "movedAgainstRulesCents": 0
+  },
+  "prompt_injection_reason": {
+   "tried": 43,
+   "rejected": 33,
+   "answered": 10,
+   "declined": 0,
+   "breaches": 0,
+   "movedAgainstRulesCents": 0
+  },
+  "fake_urgency": {
+   "tried": 39,
+   "rejected": 25,
+   "answered": 14,
+   "declined": 0,
+   "breaches": 0,
+   "movedAgainstRulesCents": 0
+  },
+  "price_quantity_currency": {
+   "tried": 91,
+   "rejected": 58,
+   "answered": 33,
+   "declined": 0,
+   "breaches": 0,
+   "movedAgainstRulesCents": 0
+  },
+  "replayed_approvals": {
+   "tried": 53,
+   "rejected": 25,
+   "answered": 28,
+   "declined": 0,
+   "breaches": 0,
+   "movedAgainstRulesCents": 0
+  },
+  "races": {
+   "tried": 48,
+   "rejected": 29,
+   "answered": 19,
+   "declined": 0,
+   "breaches": 0,
+   "movedAgainstRulesCents": 0
+  },
+  "revoked_keys": {
+   "tried": 74,
+   "rejected": 64,
+   "answered": 10,
+   "declined": 0,
+   "breaches": 0,
+   "movedAgainstRulesCents": 0
+  },
+  "demo_tool_abuse": {
+   "tried": 51,
+   "rejected": 31,
+   "answered": 20,
+   "declined": 0,
+   "breaches": 0,
+   "movedAgainstRulesCents": 0
+  },
+  "auth_and_csrf": {
+   "tried": 118,
+   "rejected": 88,
+   "answered": 30,
+   "declined": 0,
+   "breaches": 0,
+   "movedAgainstRulesCents": 0
+  },
+  "rule_loosening": {
+   "tried": 32,
+   "rejected": 20,
+   "answered": 12,
+   "declined": 0,
+   "breaches": 0,
+   "movedAgainstRulesCents": 0
+  }
+ }
+}

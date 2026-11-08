@@ -1,3 +1,4 @@
+import { TEST_USER_ID } from "../../../test/user";
 import { describe, expect, it } from "vitest";
 import { defaultLedgerData } from "../ledger/logic";
 import { connectAgent, revokeAgent } from "./keys";
@@ -7,8 +8,8 @@ const NOW = new Date("2026-11-08T15:00:00Z");
 
 function withData() {
   const d = defaultLedgerData(NOW, "America/New_York");
-  const a = connectAgent(d, "Any AI assistant", NOW, () => "agt_1");
-  const b = connectAgent(d, "Old one", NOW, () => "agt_2");
+  const a = connectAgent(d, "Any AI assistant", NOW, () => "agt_1", TEST_USER_ID);
+  const b = connectAgent(d, "Old one", NOW, () => "agt_2", TEST_USER_ID);
   if (!a.ok || !b.ok) throw new Error("setup");
   revokeAgent(d, "agt_2", NOW);
   d.agentCheckpoint.requests.push({

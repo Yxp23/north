@@ -101,7 +101,7 @@ describe("markPaid", () => {
 });
 
 describe("applyWebhook", () => {
-  const completed = { kind: "completed" as const, eventId: "E1", captureId: "C1", orderId: "O1", customId: "pur_1", amountCents: 250 };
+  const completed = { kind: "completed" as const, eventId: "E1", captureId: "C1", orderId: "O1", customId: "pur_1", amountCents: 250, currency: "USD" };
 
   it("finishes a pending buy using our id (custom_id)", () => {
     const d = data([purchase({ status: "pending" })]);
@@ -125,7 +125,7 @@ describe("applyWebhook", () => {
 
   it("marks a buy refunded", () => {
     const d = data([purchase({ status: "paid", captureId: "C1" })]);
-    const r = applyWebhook(d, { kind: "refunded", eventId: "E2", refundId: "R1", captureId: "C1", amountCents: 250 }, NOW);
+    const r = applyWebhook(d, { kind: "refunded", eventId: "E2", refundId: "R1", captureId: "C1", amountCents: 250, currency: "USD" }, NOW);
     expect(r.changed).toBe(true);
     expect(d.purchases[0].status).toBe("refunded");
     expect(d.purchases[0].refundedAt).toBeTruthy();
@@ -150,6 +150,29 @@ describe("applyWebhook", () => {
   it("ignores events we don't care about", () => {
     const d = data();
     expect(applyWebhook(d, { kind: "ignored", eventId: "E9", eventType: "X" }, NOW).changed).toBe(false);
+  });
+
+  it.each([
+    ["a different amount", { amountCents: 1 }],
+    ["a bigger amount", { amountCents: 99_999 }],
+    ["no amount", { amountCents: undefined }],
+    ["a different currency", { currency: "EUR" }],
+    ["no currency", { currency: undefined }],
+  ])("does not count a payment PayPal reports with %s", (_n, over) => {
+    const d = data([purchase({ status: "pending" })]);
+    const r = applyWebhook(d, { ...completed, ...over }, NOW);
+    expect(r.note).toBe("amount mismatch");
+    expect(d.purchases[0].status).toBe("pending");
+    expect(d.purchases[0].webhookConfirmedAt).toBeUndefined();
+    expect(d.audit.at(-1)?.type).toBe("webhook_amount_mismatch");
+  });
+
+  it("a partial refund is written down but does not free the money", () => {
+    const d = data([purchase({ status: "paid", captureId: "C1" })]);
+    const r = applyWebhook(d, { kind: "refunded", eventId: "E3", refundId: "R2", captureId: "C1", amountCents: 100, currency: "USD" }, NOW);
+    expect(r.note).toBe("partial refund");
+    expect(d.purchases[0].status).toBe("paid");
+    expect(d.audit.at(-1)?.type).toBe("webhook_partial_refund");
   });
 });
 

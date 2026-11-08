@@ -12,6 +12,7 @@
 //  - Otherwise the person gets a one-tap card. A gentle-wait result needs their Yes too, and their Yes is the Buy now.
 //  - The assistant is told approve / wait / refuse and the plain reason. It never sees a PayPal token or account detail.
 // This file reaches checkout only through the `checkout` dependency, wired in checkpoint/run.ts.
+import { createHash } from "node:crypto";
 import type { StepEvent } from "../agents/loop";
 import type { CheckoutInput, CheckoutOutcome } from "../checkout/checkout";
 import { MAX_QUANTITY } from "../checkout/checkout";
@@ -42,6 +43,11 @@ export type PurchaseInput = {
   /** The assistant's own words. UNTRUSTED. */
   reason?: string;
   triggeredBy?: "user_request" | "web_content" | "other";
+  /**
+   * Optional. An assistant that retries (a timeout, a repeated tool call) should send the same key each time: it then gets the
+   * SAME answer back and North makes only one request. A key can't be reused for a different product or amount.
+   */
+  requestKey?: string;
 };
 
 export type AgentAnswer = {
@@ -54,6 +60,7 @@ export type AgentAnswer = {
 };
 
 export const MAX_PENDING_PER_AGENT = 5;
+export const REQUEST_KEY_RE = /^[A-Za-z0-9_.:-]{1,64}$/;
 const MAX_REASON = 300;
 const MAX_REQUESTS_KEPT = 50;
 const ID_LIKE = /^[A-Za-z0-9_-]{4,40}$/;
@@ -61,6 +68,14 @@ const dollars = (c: number) => `$${(c / 100).toFixed(2)}`;
 const cleanReason = (s: string | undefined) => (s ?? "").replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, MAX_REASON);
 
 const refuse = (reason: string): AgentAnswer => ({ decision: "refuse", status: "refused", reason });
+
+/** The answer an earlier request got, rebuilt from what we stored (for a retry with the same request key). */
+function answerFor(r: AgentRequest): AgentAnswer {
+  const item = { name: r.name, quantity: r.quantity, totalCents: r.amountCents };
+  const status: AgentAnswer["status"] = r.status === "bought" ? "bought" : r.status === "saved_for_later" ? "saved_for_later" : r.status === "pending" ? "asked_person" : r.status === "refused" || r.status === "declined" || r.status === "expired" || r.status === "failed" ? "refused" : "refused";
+  const decision: AgentAnswer["decision"] = status === "bought" ? "approve" : status === "refused" ? "refuse" : "wait";
+  return { decision, status, reason: `${r.guardianReason} (This is the answer to your earlier request with the same key. Nothing new was done.)`, requestId: r.id, item };
+}
 
 async function findProduct(store: StoreProvider, what: string): Promise<{ product: StoreProduct; byId: boolean } | null> {
   if (ID_LIKE.test(what)) {
@@ -95,6 +110,16 @@ export async function requestPurchase(deps: CheckpointDeps, agent: ConnectedAgen
 
   const quantity = input.quantity ?? 1;
   const what = (input.product ?? "").trim();
+
+  // A retry with the same key gets the same answer back, and never a second request. (Checked before anything else is done.)
+  if (input.requestKey !== undefined) {
+    if (!REQUEST_KEY_RE.test(input.requestKey)) return refuse("The request key can only have letters, numbers and - _ . : and be up to 64 long. Nothing was bought.");
+    const same = data.agentCheckpoint.requests.find((r) => r.agentId === agent.id && r.requestKey === input.requestKey);
+    if (same) {
+      if (same.askedFor !== what || same.quantity !== quantity) return refuse("That request key was already used for something else. Use a new key for a new request. Nothing was bought.");
+      return answerFor(same);
+    }
+  }
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) return refuse(`A request can be for 1 to ${MAX_QUANTITY} of one thing. Nothing was bought.`);
   if (!what || what.length > 120) return refuse("I need the product, as an id or a few words. Nothing was bought.");
   const reason = cleanReason(input.reason);
@@ -113,6 +138,10 @@ export async function requestPurchase(deps: CheckpointDeps, agent: ConnectedAgen
   const amountCents = unitCents * quantity;
   const label = quantity > 1 ? `${product.name} × ${quantity}` : product.name;
   const requestId = `req_${deps.newId()}`;
+  // The id of the buy itself. With a request key it is the SAME for every retry of that request, so the ledger's own
+  // "one attempt, one purchase" rule makes a double buy impossible even when two retries arrive at the same instant.
+  // (Hashed, because PayPal limits a request id to 108 characters.)
+  const attemptId = input.requestKey ? `agent-${createHash("sha256").update(`${agent.id}:${input.requestKey}`).digest("hex").slice(0, 40)}` : `agent-${requestId}`;
   const steps: RequestStep[] = [];
   const step = (label: string, detail?: string, warn = false) => steps.push({ label, ...(detail ? { detail } : {}), ...(warn ? { warn: true } : {}) });
 
@@ -142,30 +171,47 @@ export async function requestPurchase(deps: CheckpointDeps, agent: ConnectedAgen
   );
   step(`The Money Guardian said ${result.decision === "approve" ? "yes" : result.decision === "refuse" ? "no" : "wait"}.`, `${result.decision} (${result.code}). ${result.reason}`, result.decision === "refuse");
 
-  const base = { id: requestId, agentId: agent.id, agentName: live.name, productId: product.id, name: label, imageUrl: product.imageUrl, unitCents, quantity, amountCents, reason, decision: (result.decision === "waitlist" ? "wait" : result.decision) as AgentRequest["decision"], guardianCode: result.code, guardianReason: result.reason, createdAt: now.toISOString() };
+  const base = { id: requestId, agentId: agent.id, ...(input.requestKey ? { requestKey: input.requestKey } : {}), askedFor: what, agentName: live.name, productId: product.id, name: label, imageUrl: product.imageUrl, unitCents, quantity, amountCents, reason, decision: (result.decision === "waitlist" ? "wait" : result.decision) as AgentRequest["decision"], guardianCode: result.code, guardianReason: result.reason, createdAt: now.toISOString() };
   const item = { name: product.name, quantity, totalCents: amountCents };
-  const save = (r: Partial<AgentRequest> & Pick<AgentRequest, "status" | "needsPerson" | "needsOverride">, audit: string) =>
+  // Saved inside the ledger's lock. Several asks at the very same moment can't slip past the limit on waiting cards, and a
+  // disconnect that happened meanwhile is respected (nothing is saved for a disconnected assistant).
+  const save = (r: Partial<AgentRequest> & Pick<AgentRequest, "status" | "needsPerson" | "needsOverride">, audit: string): Promise<"saved" | "full" | "disconnected" | { duplicate: AgentRequest }> =>
     deps.ledger.update((d) => {
+      const a = d.agentCheckpoint.agents.find((x) => x.id === agent.id);
+      if (!a || a.revokedAt) return "disconnected";
+      // A retry that arrived at the same moment as the first: keep the first request, answer with it.
+      const dup = input.requestKey ? d.agentCheckpoint.requests.find((x) => x.agentId === agent.id && x.requestKey === input.requestKey) : undefined;
+      if (dup) return { duplicate: dup };
+      if (r.status === "pending") {
+        const waiting = d.agentCheckpoint.requests.filter((x) => x.agentId === agent.id && x.status === "pending" && now.getTime() - new Date(x.createdAt).getTime() < REQUEST_LIFETIME_MS).length;
+        if (waiting >= MAX_PENDING_PER_AGENT) return "full";
+      }
       addRequest(d, { ...base, steps, ...r });
       addAudit(d, "agent_request", audit, now);
-      const a = d.agentCheckpoint.agents.find((x) => x.id === agent.id);
-      if (a) a.lastUsedAt = now.toISOString();
+      a.lastUsedAt = now.toISOString();
+      return "saved";
     });
   const auditText = `An assistant (${live.name}) asked to buy ${label}, ${dollars(amountCents)}: ${result.decision} (${result.code}).`;
+  /** Saves the request, then gives the answer. If a retry with the same key got there first, its answer is given instead. */
+  const saveThen = async (r: Parameters<typeof save>[0], audit: string, answer: () => AgentAnswer): Promise<AgentAnswer> => {
+    const out = await save(r, audit);
+    if (typeof out === "object") return answerFor(out.duplicate);
+    if (out === "disconnected") return refuse("This assistant is not connected to North. Nothing was bought.");
+    if (out === "full") return refuse("You already have requests waiting for your person to answer. Wait for them before asking again. Nothing was bought.");
+    return answer();
+  };
 
   // ---- the Guardian said no -------------------------------------------------------------------
   if (result.decision === "refuse") {
     step("Nothing was bought.");
-    await save({ status: "refused", needsPerson: false, needsOverride: false }, auditText);
-    return { decision: "refuse", status: "refused", reason: result.reason, requestId, item };
+    return saveThen({ status: "refused", needsPerson: false, needsOverride: false }, auditText, () => ({ decision: "refuse", status: "refused", reason: result.reason, requestId, item }));
   }
 
   // ---- a firm wait: it goes on the waiting list, as for anyone ----------------------------------
   if (result.decision === "waitlist") {
-    const out = await deps.checkout({ productId: product.id, attemptId: `agent-${requestId}`, quantity });
+    const out = await deps.checkout({ productId: product.id, attemptId, quantity });
     step("Saved it on the waiting list.", result.reason);
-    await save({ status: "saved_for_later", needsPerson: false, needsOverride: false }, auditText);
-    return { decision: "wait", status: "saved_for_later", reason: `${result.reason} ${out.kind === "waitlisted" ? "I saved it for later." : ""}`.trim(), requestId, item };
+    return saveThen({ status: "saved_for_later", needsPerson: false, needsOverride: false }, auditText, () => ({ decision: "wait", status: "saved_for_later", reason: `${result.reason} ${out.kind === "waitlisted" ? "I saved it for later." : ""}`.trim(), requestId, item }));
   }
 
   // ---- may the assistant buy this on its own? -------------------------------------------------
@@ -176,26 +222,27 @@ export async function requestPurchase(deps: CheckpointDeps, agent: ConnectedAgen
   if (auto) {
     step("You allowed your assistant to buy must-have things under " + dollarsLabel(allowance!.underCents) + " without asking. This one fits.");
     const collected: RequestStep[] = [];
-    const out = await deps.checkout({ productId: product.id, attemptId: `agent-${requestId}`, quantity, overrideWait: false, seenCents: unitCents }, (e) => collected.push(asStep(e)));
+    const out = await deps.checkout({ productId: product.id, attemptId, quantity, overrideWait: false, seenCents: unitCents }, (e) => collected.push(asStep(e)));
     steps.push(...collected.filter((c) => c.label !== "Looking up the price…" && c.label !== "Done."));
     if (out.kind === "paid") {
-      await save({ status: "bought", needsPerson: false, needsOverride: false, purchaseId: out.purchase.id, answeredAt: now.toISOString() }, `${auditText} Bought on its own (allowed under ${dollarsLabel(allowance!.underCents)}).`);
-      return { decision: "approve", status: "bought", reason: `${result.reason} It was bought with your person's saved PayPal.`, requestId, item };
+      return saveThen({ status: "bought", needsPerson: false, needsOverride: false, purchaseId: out.purchase.id, answeredAt: now.toISOString() }, `${auditText} Bought on its own (allowed under ${dollarsLabel(allowance!.underCents)}).`, () => ({ decision: "approve", status: "bought", reason: `${result.reason} It was bought with your person's saved PayPal.`, requestId, item }));
+    }
+    // The very same request (same key) is being handled right now by another call. Record nothing; the other call will.
+    if (out.kind === "in_progress") {
+      return { decision: "wait", status: "asked_person", reason: "This exact request is already being handled. Ask again in a moment, with the same request key, to see the result. Nothing new was done.", requestId, item };
     }
     // It did not go through (a wall, no PayPal, a price change…). Say so; never retry on its own.
     const why = out.kind === "refused" ? out.result.reason : out.kind === "needs_paypal" ? "PayPal is not connected yet." : out.kind === "price_changed" ? "The price changed while I was checking." : "It did not go through.";
-    await save({ status: out.kind === "refused" ? "refused" : "failed", needsPerson: false, needsOverride: false }, `${auditText} Not bought: ${why}`);
-    return { decision: out.kind === "refused" ? "refuse" : "wait", status: out.kind === "refused" ? "refused" : "asked_person", reason: `${why} Nothing was bought.`, requestId, item };
+    return saveThen({ status: out.kind === "refused" ? "refused" : "failed", needsPerson: false, needsOverride: false }, `${auditText} Not bought: ${why}`, () => ({ decision: out.kind === "refused" ? "refuse" : "wait", status: out.kind === "refused" ? "refused" : "asked_person", reason: `${why} Nothing was bought.`, requestId, item }));
   }
 
   // ---- the person decides ---------------------------------------------------------------------
   const needsOverride = result.decision === "wait"; // a gentle wait: their Yes is the Buy now
   step("Asked you first.", needsOverride ? "A wait rule applies, so only you can say Buy now." : allowance ? "This one is not covered by what you allowed on your own." : "Your assistant must ask you every time.");
-  await save({ status: "pending", needsPerson: true, needsOverride }, `${auditText} Waiting for the person's Yes.`);
-  return {
+  return saveThen({ status: "pending", needsPerson: true, needsOverride }, `${auditText} Waiting for the person's Yes.`, () => ({
     decision: "wait", status: "asked_person", requestId, item,
     reason: `${needsOverride ? result.reason : "The rules say this is okay to buy."} Your person has to say yes first, so I asked them. Nothing was bought yet.`,
-  };
+  }));
 }
 
 export type AnswerResult =
@@ -235,6 +282,8 @@ export async function answerRequest(deps: CheckpointDeps, requestId: string, ans
   const out = await deps.checkout({ productId: r.productId, attemptId: `agent-${r.id}`, quantity: r.quantity, overrideWait: r.needsOverride, seenCents: r.unitCents }, (e) => {
     if (e.label !== "Done.") collected.push(asStep(e));
   });
+  // A second tap on Yes while the first is still working: leave the request alone, the first tap will record the result.
+  if (out.kind === "in_progress") return { kind: "failed", message: "I am already working on that one. Please wait a moment." };
   if (out.kind === "paid") {
     await finish("bought", collected, `You said yes to the assistant's request: ${r.name}, ${dollars(r.amountCents)}. Bought.`, out.purchase.id);
     return { kind: "bought", message: `Done. You bought ${r.name} for ${dollars(r.amountCents)}.` };
@@ -282,4 +331,56 @@ export async function rulesForAgent(deps: CheckpointDeps): Promise<string> {
 export async function weekMoneyForAgent(deps: CheckpointDeps): Promise<string> {
   const s = summarize(await deps.ledger.read(), deps.now());
   return `Your person has ${dollarsLabel(s.leftCents)} left to spend this week. Their plan for the week is ${dollarsLabel(s.weeklyBudgetCents)} and ${dollarsLabel(s.spentThisWeekCents)} is spent.`;
+}
+
+export type Preview = {
+  decision: "approve" | "wait" | "refuse";
+  code: string;
+  reason: string;
+  /** What would happen next, in plain words. Nothing has happened: this is a practice run. */
+  next: string;
+  steps: RequestStep[];
+};
+
+/**
+ * "Try to break North": the same questions requestPurchase asks, answered live, with NOTHING written and nothing bought. A test
+ * checks it always gives the same decision as the real thing, so it can't drift. It still uses the person's real rules and money.
+ */
+export async function previewPurchase(deps: CheckpointDeps, input: PurchaseInput): Promise<Preview> {
+  const now = deps.now();
+  const data = await deps.ledger.read();
+  const quantity = input.quantity ?? 1;
+  const what = (input.product ?? "").trim();
+  const steps: RequestStep[] = [];
+  const done = (decision: Preview["decision"], code: string, reason: string, next: string): Preview => ({ decision, code, reason, next, steps });
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) return done("refuse", "bad_quantity", `A request can be for 1 to ${MAX_QUANTITY} of one thing.`, "Nothing would be bought.");
+  if (!what || what.length > 120) return done("refuse", "bad_product", "I need the product, as an id or a few words.", "Nothing would be bought.");
+  const reason = cleanReason(input.reason);
+  const found = await findProduct(deps.store, what);
+  if (!found) return done("refuse", "not_found", "I couldn't find that in the shop.", "Nothing would be bought.");
+  const { product, byId } = found;
+  const amountCents = product.priceCents * quantity;
+  const label = quantity > 1 ? `${product.name} × ${quantity}` : product.name;
+  steps.push({ label: `Looking up the price… ${label} is ${dollars(amountCents)}.`, detail: "The price comes from the store, never from the assistant." });
+  const inReason = findHiddenInstructions(reason);
+  const inListing = findHiddenInstructions(`${product.name}\n${product.description ?? ""}`);
+  const claimedWeb = input.triggeredBy === "web_content";
+  const untrusted = inReason.found || inListing.found || claimedWeb;
+  if (inReason.found) steps.push({ label: "Found hidden instructions in what the assistant said.", warn: true });
+  if (inListing.found) steps.push({ label: `Found hidden instructions in the listing for ${product.name}.`, warn: true });
+  if (claimedWeb) steps.push({ label: "The assistant says it acted on text from a web page.", warn: true });
+  if (!untrusted) steps.push({ label: "Checking for hidden instructions…", detail: "None found." });
+  const result = decide(
+    { amountCents, item: label, category: product.category, at: now, overrideWait: false, sellerFlaggedScam: isSellerFlagged(data, product.sellerDomain), agentStartedFromUntrustedText: untrusted },
+    buildUserState(data, now),
+  );
+  steps.push({ label: `The Money Guardian said ${result.decision === "approve" ? "yes" : result.decision === "refuse" ? "no" : "wait"}.`, detail: `${result.decision} (${result.code}). ${result.reason}`, warn: result.decision === "refuse" });
+  const decision = result.decision === "waitlist" ? "wait" : result.decision;
+  if (result.decision === "refuse") return done("refuse", result.code, result.reason, "Nothing would be bought, and nobody can override this.");
+  if (result.decision === "waitlist") return done("wait", result.code, result.reason, "It would go on the waiting list. Nothing would be bought.");
+  const allowance = assistantAllowance(data, now);
+  const essential = isEssential({ amountCents, item: label, category: product.category, at: now }, effective(toRules(data.rules).essentials, now));
+  if (result.decision === "approve" && allowance && byId && essential && amountCents <= allowance.underCents) return done(decision, result.code, result.reason, "Your person allowed this kind of buy, so it would be bought with their saved PayPal.");
+  // (The assistant is told "wait" while the person decides, exactly as in the real answer.)
+  return done("wait", result.code, result.reason, result.decision === "wait" ? "Your person would get a card. Only THEIR yes can be a Buy now." : "Your person would get a card to say yes first.");
 }

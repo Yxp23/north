@@ -1,5 +1,8 @@
+import { TEST_USER_ID } from "../../../test/user";
+import { TEST_IDENTITY } from "../../../test/checkout-identity";
 import { describe, expect, it, vi } from "vitest";
 import { checkout, type PayGateway } from "../checkout/checkout";
+import { MemoryRateLimiter } from "../ratelimit/limiter";
 import { createCheckpointHandler } from "../checkpoint/mcp";
 import { connectAgent } from "../checkpoint/keys";
 import type { CheckpointDeps } from "../checkpoint/service";
@@ -19,15 +22,15 @@ async function world(underCents?: number) {
   const store = new DemoStore();
   const deps: CheckpointDeps = {
     ledger, store, now: () => NOON, newId: () => `id${++n}`,
-    checkout: (input, onStep) => checkout(input, { ledger, store, gateway: { charge }, getVaultId: async () => "VAULT-SECRET-1", now: () => NOON, newId: () => `pur_${++n}`, onStep }),
+    checkout: (input, onStep) => checkout(input, { ...TEST_IDENTITY, ledger, store, gateway: { charge }, getVaultId: async () => "VAULT-SECRET-1", now: () => NOON, newId: () => `pur_${++n}`, onStep }),
   };
   let key = "";
   await ledger.update((d) => {
-    const r = connectAgent(d, "Any AI assistant", NOON, () => "agt_1");
+    const r = connectAgent(d, "Any AI assistant", NOON, () => "agt_1", TEST_USER_ID);
     if (r.ok) key = r.key;
     if (underCents) d.agentCheckpoint.permission = { value: { underCents }, changedAt: new Date(NOON.getTime() - 48 * 3_600_000).toISOString(), previous: null };
   });
-  const handler = createCheckpointHandler(deps);
+  const handler = createCheckpointHandler(async (uid) => (uid === TEST_USER_ID ? deps : null), new MemoryRateLimiter());
   const link = await connectNorth("http://north.test/api/mcp", key, (url, init) => handler(new Request(url as string, init)));
   const listings = {
     read: async (id: string) => { const p = await store.getProduct(id); return p ? { id: p.id, name: p.name, description: p.description ?? "" } : null; },
@@ -75,7 +78,7 @@ describe("an outside assistant, fooled by a listing, is stopped by North", () =>
 
   it("with a wrong key the assistant can't even connect", async () => {
     const w = await world();
-    const handler = createCheckpointHandler(w.deps);
+    const handler = createCheckpointHandler(async (uid) => (uid === TEST_USER_ID ? w.deps : null), new MemoryRateLimiter());
     await expect(connectNorth("http://north.test/api/mcp", "north_wrong", (url, init) => handler(new Request(url as string, init)))).rejects.toThrow();
   });
 });

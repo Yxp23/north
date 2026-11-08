@@ -13,7 +13,7 @@ import type { AssistantAskView, HomeSummary, PriceNotice, PurchaseStatus, Purcha
 import { postAgent } from "@/lib/ndjson-client";
 import type { WatchRunResult } from "@/lib/watcher/run";
 
-type Summary = HomeSummary & { paypalSaved: boolean; demoMode: boolean };
+type Summary = HomeSummary & { paypalSaved: boolean; demoMode: boolean; demoDeployment?: boolean };
 
 const STATUS: Record<PurchaseStatus, { label: string; cls: string; icon: string }> = {
   paid: { label: "Paid", cls: "bg-good-bg text-good-ink", icon: "✓" },
@@ -156,7 +156,7 @@ export function Home() {
         )}
       </section>
 
-      {data.demoMode && <DemoTools onChange={load} />}
+      {data.demoMode && <DemoTools onChange={load} deployed={!!data.demoDeployment} />}
     </div>
   );
 }
@@ -299,7 +299,7 @@ function PurchaseRow({ p, onChange }: { p: PurchaseView; onChange: () => void })
 }
 
 // Demo only: lets us show a late-night buy at any time of day, and start over.
-function DemoTools({ onChange }: { onChange: () => void }) {
+function DemoTools({ onChange, deployed }: { onChange: () => void; deployed: boolean }) {
   const hour = useDemoHour();
   const [busy, setBusy] = useState(false);
   const [check, setCheck] = useState<{ events: StepEvent[]; result?: WatchRunResult; error?: string; working: boolean } | null>(null);
@@ -321,8 +321,12 @@ function DemoTools({ onChange }: { onChange: () => void }) {
 
   return (
     <details className={card}>
-      <summary className="cursor-pointer rounded-lg py-2 text-lg font-semibold">Demo tools</summary>
+      <summary className="cursor-pointer rounded-lg py-2 text-lg font-semibold">Demo tools{deployed ? " (practice version)" : ""}</summary>
       <div className="mt-3 space-y-4">
+        <p role="note" className="rounded-xl bg-warn-bg p-3 text-base text-warn-ink">
+          {deployed ? "This is a practice version of North with practice money. " : "These tools are for practice. "}
+          They never change how long a rule takes to change: the pretend time only changes what time of day the late-night rule sees.
+        </p>
         <label className="block">
           <span className="block text-lg font-semibold">Pretend it is</span>
           <select
@@ -335,6 +339,7 @@ function DemoTools({ onChange }: { onChange: () => void }) {
             <option value="12">12:00 PM (noon)</option>
           </select>
         </label>
+        <Link href="/try-to-break" className={btnSecondary}>Try to break North</Link>
         <div className="space-y-2">
           <button type="button" onClick={() => checkPrices()} disabled={check?.working} className={btnSecondary}>Check prices now</button>
           <button type="button" onClick={() => checkPrices(20)} disabled={check?.working} className={btnSecondary}>Check prices now (pretend they dropped 20%)</button>

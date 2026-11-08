@@ -1,6 +1,6 @@
 // End-to-end checkpoint against a RUNNING app and the PayPal sandbox. Real sandbox charges and refunds.
 //   BASE_URL=http://localhost:3100 node scripts/e2e-checkpoint.mjs
-// Needs: PayPal already connected (saved), DEMO_MODE on, and a webhook registered (scripts/webhook.mjs)
+// Needs: PayPal already connected (saved) for the person who logs in, demo tools on, and a webhook registered (scripts/webhook.mjs)
 // pointing at this app, so we can watch PayPal's webhooks arrive. Easiest: scripts/e2e-with-tunnel.sh.
 // Reads purchases from the app's own /api/demo/ledger, so it works with any ledger backend.
 //
@@ -10,13 +10,16 @@
 //    (seen in testing: its own event log had no entry), so a missing event is a WARN, not a failure.
 //    But at least one real, signature-verified webhook must arrive, or the run fails.
 import { randomUUID } from "node:crypto";
+import { login } from "./lib/session.mjs";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3100";
+// Log in the way a browser does (DEMO_LOGIN_EMAIL / DEMO_LOGIN_PASSWORD; the local practice login by default).
+const { fetchAs } = await login(BASE);
 const NOTEBOOK = "912yTCL", HEADPHONES = "ENVDwLq", SNEAKERS = "OpovWAw"; // NOTEBOOK is now the box of paper clips (the old notebook went out of stock)
 
 // Prices come from the live store, so they can move a little. Read them instead of hard-coding them.
 const money = (cents) => `$${(cents / 100).toFixed(2)}`;
-const prices = Object.fromEntries(((await (await fetch(BASE + "/api/products")).json()).products ?? []).map((p) => [p.id, p.priceCents]));
+const prices = Object.fromEntries(((await (await fetchAs("/api/products")).json()).products ?? []).map((p) => [p.id, p.priceCents]));
 const SNEAKERS_PRICE = money(prices[SNEAKERS]);
 
 let failures = 0;
@@ -26,11 +29,11 @@ const check = (ok, label, extra = "") => {
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const post = async (path, body) => {
-  const r = await fetch(BASE + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) });
+  const r = await fetchAs(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) });
   return { status: r.status, json: await r.json().catch(() => null) };
 };
 let cache = null;
-const refresh = async () => (cache = await (await fetch(BASE + "/api/demo/ledger", { cache: "no-store" })).json());
+const refresh = async () => (cache = await (await fetchAs("/api/demo/ledger", { cache: "no-store" })).json());
 const ledger = () => cache;
 const buy = (productId, extra = {}) => post("/api/checkout", { productId, attemptId: `e2e-${randomUUID()}`, ...extra });
 async function waitFor(fn, seconds) {
@@ -47,7 +50,7 @@ async function waitFor(fn, seconds) {
 console.log(`Checkpoint against ${BASE}\n`);
 await post("/api/demo/reset");
 await refresh();
-check((await (await fetch(BASE + "/api/summary")).json()).paypalSaved === true, "PayPal is connected (saved, no popup needed)");
+check((await (await fetchAs("/api/summary")).json()).paypalSaved === true, "PayPal is connected (saved, no popup needed)");
 
 // 1. Cheap item approves and charges the saved PayPal with no popup. (Pretend it is noon, so the
 //    real time of day can't matter: the demo rules wait on buys after 9 PM.)
@@ -83,7 +86,7 @@ await refresh();
 const sn = ledger().purchases.find((p) => p.productId === SNEAKERS && p.status !== "failed");
 const ov = ledger().audit.filter((e) => e.type === "override");
 check(ov.length === 1 && ov[0].detail.includes(SNEAKERS_PRICE) && ov[0].detail.includes("big_buy"), "That Buy now was logged: what, how much, which rule", ov[0]?.detail);
-check((await (await fetch(BASE + "/api/summary")).json()).buyNowThisWeek === 1, "The home screen data says: Buy now chosen 1 time this week");
+check((await (await fetchAs("/api/summary")).json()).buyNowThisWeek === 1, "The home screen data says: Buy now chosen 1 time this week");
 check(ledger().waitingList.filter((w) => w.status === "waiting").length === 1, "The saved headphones are still on the waiting list");
 
 // 5. Over the protected money: refused, and Buy now can't change it. ($400 spendable - the clips - the sneakers is
@@ -112,7 +115,7 @@ check(r.json?.kind === "already_refunded", "Refunding the paper clips again says
 await refresh();
 check(!JSON.stringify(ledger()).includes("vault"), "The demo ledger view never shows the saved PayPal token");
 
-const s = await (await fetch(BASE + "/api/summary")).json();
+const s = await (await fetchAs("/api/summary")).json();
 check(s.leftCents === 40000 && s.spentThisWeekCents === 0, "Home screen is back to $400.00 left", `left=${s.leftCents} spent=${s.spentThisWeekCents}`);
 
 // 8. PayPal's webhooks (reported separately, see the note at the top).

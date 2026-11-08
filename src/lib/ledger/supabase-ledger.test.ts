@@ -27,7 +27,7 @@ describe("Supabase specifics", () => {
     const t = await db.query<{ relname: string; relrowsecurity: boolean }>(
       `select relname, relrowsecurity from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' order by relname`,
     );
-    expect(t.rows.map((r) => r.relname)).toEqual(["audit_log", "flagged_sellers", "purchases", "rules", "users", "waiting_list", "webhook_events"]);
+    expect(t.rows.map((r) => r.relname)).toEqual(["approval_nonces", "audit_log", "flagged_sellers", "purchases", "rate_limit_buckets", "rules", "users", "waiting_list", "webhook_events"]);
     expect(t.rows.every((r) => r.relrowsecurity)).toBe(true);
     const policies = await db.query(`select 1 from pg_policies where schemaname = 'public'`);
     expect(policies.rows).toHaveLength(0);
@@ -67,7 +67,7 @@ describe("Supabase specifics", () => {
       await db.query("insert into public.audit_log (user_id, type, detail) values ($1, 't', 'd')", [uid]);
       await db.query("insert into public.webhook_events (event_id, user_id) values ($1, $2)", [`WH-${uid}`, uid]);
       await db.query("update public.users set display_name = 'x' where id = $1", [uid]);
-      await db.query("delete from public.audit_log where user_id = $1", [uid]);
+      await expect(db.query("delete from public.audit_log where user_id = $1", [uid])).rejects.toThrow(/append-only/); // see security-sql.test.ts
     } finally {
       await db.exec("reset role");
     }

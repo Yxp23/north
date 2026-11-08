@@ -1,6 +1,7 @@
 // Server-only PayPal helpers (REST). The client secret never leaves the server.
 import "server-only";
 import { randomUUID } from "node:crypto";
+import { requireVerified, type VerifiedMoney } from "./guardian/authorize";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- PayPal responses are logged raw and read loosely */
 
@@ -65,7 +66,9 @@ async function call(
   return { ok: res.ok, status: res.status, body: parsed };
 }
 
-const money = (amount: string) => ({ currency_code: "USD", value: amount });
+/** Whole cents to PayPal's "12.34" text. Only ever called with a number that came out of a verified approval. */
+const amountText = (cents: number) => (cents / 100).toFixed(2);
+const money = (cents: number, currency: string) => ({ currency_code: currency, value: amountText(cents) });
 
 /**
  * Save PayPal WITHOUT a purchase (vault-only), in three steps. No order and no money is involved:
@@ -120,15 +123,23 @@ export const createPaymentToken = (setupToken: string) =>
     true,
   );
 
-export const captureOrder = (orderId: string, requestId?: string) =>
-  call("POST", `/v2/checkout/orders/${orderId}/capture`, {}, requestId);
+/**
+ * MONEY MOVEMENT. Captures an order we just created. Needs the same verified Guardian approval as the charge.
+ * (Only src/lib/checkout/gateway.ts may call it; paypal-structure tests enforce that.)
+ */
+export async function captureOrder(orderId: string, proof: VerifiedMoney, requestId?: string) {
+  requireVerified(proof, "charge");
+  return call("POST", `/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, {}, requestId);
+}
 
 /**
- * Later purchase with the saved account: no popup. Confirmed in sandbox: comes back COMPLETED.
- * This moves money, so only src/lib/checkout/gateway.ts may call it (a test enforces that),
- * and that file is only reached after a Guardian approval.
+ * MONEY MOVEMENT. Later purchase with the saved account: no popup. Confirmed in sandbox: comes back COMPLETED.
+ * It will not run without a VerifiedMoney proof (guardian/authorize.ts): a signed, single-use Guardian approval.
+ * The AMOUNT AND CURRENCY ARE TAKEN FROM THE PROOF, not from arguments, so they can't differ from what was approved.
+ * Only src/lib/checkout/gateway.ts may call this (a test enforces that), and it is only reached after a Guardian approval.
  */
-export function createOrderWithVault(vaultId: string, amount: string, opts: { customId: string; requestId: string }) {
+export async function createOrderWithVault(vaultId: string, proof: VerifiedMoney, opts: { customId: string; requestId: string }) {
+  const claims = requireVerified(proof, "charge");
   return call(
     "POST",
     "/v2/checkout/orders",
@@ -136,7 +147,7 @@ export function createOrderWithVault(vaultId: string, amount: string, opts: { cu
       intent: "CAPTURE",
       purchase_units: [
         {
-          amount: money(amount),
+          amount: money(claims.amountCents, claims.currency),
           description: "North purchase",
           custom_id: opts.customId, // comes back on the webhook, so we can match the payment
         },
@@ -147,8 +158,14 @@ export function createOrderWithVault(vaultId: string, amount: string, opts: { cu
   );
 }
 
-export const refundCapture = (captureId: string, requestId?: string) =>
-  call("POST", `/v2/payments/captures/${captureId}/refund`, {}, requestId);
+/**
+ * MONEY MOVEMENT (money back to the person). Needs a verified refund approval, signed for this purchase and amount.
+ * The refund is for exactly that amount, so it can never be more than was approved.
+ */
+export async function refundCapture(captureId: string, proof: VerifiedMoney, requestId?: string) {
+  const claims = requireVerified(proof, "refund");
+  return call("POST", `/v2/payments/captures/${encodeURIComponent(captureId)}/refund`, { amount: money(claims.amountCents, claims.currency) }, requestId);
+}
 
 /**
  * Ask PayPal whether a webhook really came from PayPal.

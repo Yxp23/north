@@ -1,21 +1,24 @@
 import { getAnthropic, NOT_SET_UP } from "@/lib/agents/client";
+import { authenticate } from "@/lib/auth/guard";
+import { IMAGE_MAX_BODY, readJson } from "@/lib/http/body";
 import { MAX_FIND_CHARS, runFinder, type FinderOutcome } from "@/lib/agents/finder/finder";
 import { storeFindBackend } from "@/lib/finder/adapter";
 import { parseFinderRequest } from "@/lib/finder/request";
 import { ndjsonResponse } from "@/lib/ndjson";
-import { createLimiter } from "@/lib/rate-limit";
+import { limited } from "@/lib/ratelimit/route";
 import { getStore } from "@/lib/store";
 
 // The Finder: words or a photo -> products. Also "Buy this again" (mode "reorder": a photo is needed, 3 matches).
 // It only finds. Buying is a separate tap that goes through the Money Guardian (/api/checkout).
-const allow = createLimiter(40, 3_600_000);
-
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => null);
+  const auth = await authenticate(req);
+  if (!auth.ok) return auth.response;
+  const body = (await readJson(req, IMAGE_MAX_BODY)) as Record<string, unknown> | null;
   const reorder = body?.mode === "reorder";
   const parsed = parseFinderRequest(body, { maxChars: MAX_FIND_CHARS, requireImage: reorder });
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 });
-  if (!allow()) return Response.json({ error: "That is a lot of tries. Please wait a little while." }, { status: 429 });
+  const tooMany = await limited(auth.userId, "find", 40, 3600);
+  if (tooMany) return tooMany;
 
   return ndjsonResponse(
     async (send) => {

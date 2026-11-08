@@ -8,8 +8,8 @@ import type { LedgerData } from "./types";
 export class FileLedger extends LockedLedger {
   protected lockKey: string;
 
-  constructor(private readonly file: string, timeZone: string, clock?: () => Date) {
-    super(timeZone, clock);
+  constructor(private readonly file: string, timeZone: string, clock?: () => Date, auditKey?: Buffer) {
+    super(timeZone, clock, auditKey);
     this.lockKey = `file-${file}`;
   }
 

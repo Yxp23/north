@@ -1,20 +1,20 @@
+import { authenticate } from "@/lib/auth/guard";
 import { runConciergeForUser } from "@/lib/agents/concierge/run";
 import { MAX_WORDS } from "@/lib/agents/concierge/concierge";
+import { readJson } from "@/lib/http/body";
+import { limited } from "@/lib/ratelimit/route";
 import { getLedger } from "@/lib/ledger/server";
 import { addAudit } from "@/lib/ledger/logic";
 
 // "My rules in my own words". Streams the agent's steps (one JSON line each) so the activity panel can
 // update live, then one final line with the result. The Concierge only PROPOSES. Nothing is saved here.
 
-// A simple limit so a loop in the browser can't run up the AI bill: 30 requests an hour.
-const WINDOW_MS = 3_600_000;
-const LIMIT = 30;
-const recent: number[] = [];
-
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => null);
+  const auth = await authenticate(req);
+  if (!auth.ok) return auth.response;
+  const body = (await readJson(req)) as Record<string, unknown> | null;
   const text = typeof body?.text === "string" ? body.text : "";
-  const fu = body?.followUp;
+  const fu = body?.followUp as { missing?: unknown; answer?: unknown } | undefined;
   const followUp =
     fu && (fu.missing === "amount" || fu.missing === "hour") && typeof fu.answer === "string"
       ? { missing: fu.missing as "amount" | "hour", answer: fu.answer }
@@ -23,23 +23,19 @@ export async function POST(req: Request) {
     return Response.json({ error: "Please write your rule in a sentence or two." }, { status: 400 });
   }
 
-  const now = Date.now();
-  while (recent.length && now - recent[0] > WINDOW_MS) recent.shift();
-  if (recent.length >= LIMIT) {
-    return Response.json({ error: "That is a lot of tries. Please wait a little while." }, { status: 429 });
-  }
-  recent.push(now);
+  const tooMany = await limited(auth.userId, "concierge-rules", 30, 3600);
+  if (tooMany) return tooMany;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
       const send = (line: unknown) => controller.enqueue(encoder.encode(JSON.stringify(line) + "\n"));
       try {
-        const { payload, steps } = await runConciergeForUser({ text, followUp, onStep: (s) => send({ type: "step", ...s }) });
+        const { payload, steps } = await runConciergeForUser({ userId: auth.userId, text, followUp, onStep: (s) => send({ type: "step", ...s }) });
         send({ type: "result", payload });
         // Every step is kept in the audit log, in the same plain words the panel showed.
         const when = new Date();
-        await getLedger().update((d) =>
+        await getLedger(auth.userId).update((d) =>
           addAudit(d, "concierge", `Rule helper (${payload.kind}): ${steps.filter((s) => s.state === "working").map((s) => s.label).join(" ")} | You wrote: ${text.slice(0, 200)}`, when),
         );
       } catch (e) {

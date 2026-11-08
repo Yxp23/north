@@ -21,6 +21,9 @@ export function Assistants() {
   const [message, setMessage] = useState("");
   const [dollars, setDollars] = useState("15");
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [mayBuy, setMayBuy] = useState(true);
+  const [maySeeRules, setMaySeeRules] = useState(true);
+  const [maySeeMoney, setMaySeeMoney] = useState(true);
 
   const load = useCallback(async () => {
     try {
@@ -45,7 +48,8 @@ export function Assistants() {
   async function connect(e: React.FormEvent) {
     e.preventDefault();
     setMessage("");
-    const r = await post({ action: "connect", name });
+    const scopes = [...(mayBuy ? ["request_purchase"] : []), ...(maySeeRules ? ["read_rules"] : []), ...(maySeeMoney ? ["read_week_money"] : [])];
+    const r = await post({ action: "connect", name, scopes });
     if (!r.ok) return setMessage(r.json?.error ?? "I could not connect it. Please try again.");
     setCreated({ name: r.json.name, key: r.json.key, mcpUrl: r.json.mcpUrl });
     setName("");
@@ -109,6 +113,7 @@ export function Assistants() {
             <li key={a.id} className={`${card} space-y-2`}>
               <p className="text-xl font-semibold">{a.name}</p>
               <p className="text-base">Connected {day(a.createdAt)}.{a.lastUsedAt ? ` Last asked ${day(a.lastUsedAt)}.` : " It has not asked yet."}</p>
+              <p className="text-base">It may: {[a.scopes.includes("request_purchase") && "ask to buy things", a.scopes.includes("read_rules") && "see your rules", a.scopes.includes("read_week_money") && "see what is left this week"].filter(Boolean).join(", ") || "nothing"}.</p>
               {confirming === a.id ? (
                 <div role="group" aria-label={`Disconnect ${a.name}?`} className="space-y-2">
                   <p className="text-lg font-semibold">Disconnect {a.name}? Its key stops working right now.</p>
@@ -129,7 +134,13 @@ export function Assistants() {
           <span className="block text-lg font-semibold">What do you call it?</span>
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} className={field} placeholder="My assistant" />
         </label>
-        <button type="submit" className={btnPrimary} disabled={!name.trim()}>Connect it</button>
+        <fieldset className="space-y-2">
+          <legend className="text-lg font-semibold">What may it do?</legend>
+          <label className="flex min-h-12 items-center gap-3 text-lg"><input type="checkbox" className="h-6 w-6" checked={mayBuy} onChange={(e) => setMayBuy(e.target.checked)} /> Ask to buy things (you still decide)</label>
+          <label className="flex min-h-12 items-center gap-3 text-lg"><input type="checkbox" className="h-6 w-6" checked={maySeeRules} onChange={(e) => setMaySeeRules(e.target.checked)} /> See my rules</label>
+          <label className="flex min-h-12 items-center gap-3 text-lg"><input type="checkbox" className="h-6 w-6" checked={maySeeMoney} onChange={(e) => setMaySeeMoney(e.target.checked)} /> See what is left this week</label>
+        </fieldset>
+        <button type="submit" className={btnPrimary} disabled={!name.trim() || !(mayBuy || maySeeRules || maySeeMoney)}>Connect it</button>
       </form>
 
       {view.requests.length > 0 && (

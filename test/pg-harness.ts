@@ -49,6 +49,18 @@ export function pgRpc(db: PGlite, hooks: { beforeApply?: () => Promise<void> } =
           await asServiceRole((tx) => tx.query("select public.ledger_reset($1::uuid, $2::jsonb)", [args.p_user_id, JSON.stringify(args.p_seed)]));
           return { data: null, error: null };
         }
+        if (fn === "consume_approval_nonce") {
+          const r = await asServiceRole((tx) => tx.query<{ r: boolean }>("select public.consume_approval_nonce($1::text, $2::uuid, $3::timestamptz) as r", [args.p_nonce, args.p_user_id, args.p_expires_at]));
+          return { data: r.rows[0].r, error: null };
+        }
+        if (fn === "approval_nonce_spent") {
+          const r = await asServiceRole((tx) => tx.query<{ r: boolean }>("select public.approval_nonce_spent($1::text) as r", [args.p_nonce]));
+          return { data: r.rows[0].r, error: null };
+        }
+        if (fn === "rate_limit_hit") {
+          const r = await asServiceRole((tx) => tx.query<{ r: boolean }>("select public.rate_limit_hit($1::text, $2::int, $3::int) as r", [args.p_key, args.p_limit, args.p_window_seconds]));
+          return { data: r.rows[0].r, error: null };
+        }
         return { data: null, error: { message: `unknown function ${fn}` } };
       } catch (e) {
         return { data: null, error: { message: e instanceof Error ? e.message : String(e) } };

@@ -214,6 +214,12 @@ export function applyWebhook(data: LedgerData, ev: ParsedWebhook, now: Date): { 
       addAudit(data, "webhook_unknown_payment", `capture ${ev.captureId} is not one of ours`, now);
       return { changed: false, note: "unknown payment" };
     }
+    // A payment is only believed if it is for exactly what we asked PayPal to take. Anything else (a different amount or
+    // currency, or none at all) is written down and NOT counted: fail closed.
+    if (ev.amountCents !== p.amountCents || ev.currency !== p.currency) {
+      addAudit(data, "webhook_amount_mismatch", `${p.id}: PayPal reported ${ev.amountCents ?? "no amount"} ${ev.currency ?? ""} for capture ${ev.captureId}, we asked for ${p.amountCents} ${p.currency}. Not counted.`, now);
+      return { changed: true, note: "amount mismatch" };
+    }
     const wasPaid = p.status === "paid";
     markPaid(data, p.id, { captureId: ev.captureId, orderId: ev.orderId, via: "webhook" }, now);
     p.webhookConfirmedAt = now.toISOString();
@@ -225,6 +231,11 @@ export function applyWebhook(data: LedgerData, ev: ParsedWebhook, now: Date): { 
   if (!p) {
     addAudit(data, "webhook_unknown_refund", `refund ${ev.refundId} for ${ev.captureId ?? "unknown capture"}`, now);
     return { changed: false, note: "unknown refund" };
+  }
+  // Only a FULL refund gives the money back to the budget. A partial or odd refund is written down and changes nothing.
+  if (ev.amountCents !== p.amountCents || ev.currency !== p.currency) {
+    addAudit(data, "webhook_partial_refund", `${p.id}: refund ${ev.refundId} was for ${ev.amountCents ?? "no amount"} ${ev.currency ?? ""}, not all of ${p.amountCents} ${p.currency}. Left as it is.`, now);
+    return { changed: true, note: "partial refund" };
   }
   markRefunded(data, p.id, now);
   addAudit(data, "webhook_refunded", `${p.id} refund ${ev.refundId}`, now);

@@ -1,15 +1,18 @@
 // An outside AI assistant, as a plain script: connects to a RUNNING North over MCP with its own key and asks to buy things.
-//   BASE_URL=http://localhost:3000 node scripts/mcp-smoke.mjs        (needs DEMO_MODE=1 so it can connect itself)
+//   BASE_URL=http://localhost:3000 node scripts/mcp-smoke.mjs        (log in with DEMO_LOGIN_EMAIL / DEMO_LOGIN_PASSWORD; the local practice login by default)
 // Shows what any assistant sees: four tools, the Guardian's answers, and nothing about PayPal. No real money is spent unless
 // you tap Yes on the card in North. Disconnects itself at the end.
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
+import { login } from "./lib/session.mjs";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
-const post = async (body) => (await fetch(`${BASE}/api/agents`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })).json();
+// The PERSON logs in to connect an assistant (as on My rules). The assistant itself then uses only its own key.
+const { fetchAs } = await login(BASE);
+const post = async (body) => (await fetchAs("/api/agents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })).json();
 let failures = 0;
 const check = (ok, what, extra = "") => { if (!ok) failures++; console.log(`${ok ? "PASS" : "FAIL"}  ${what}${extra ? "  — " + extra : ""}`); };
 
-await fetch(`${BASE}/api/demo/reset`, { method: "POST" });
+await fetchAs("/api/demo/reset", { method: "POST" });
 const made = await post({ action: "connect", name: "Smoke test assistant" });
 check(typeof made.key === "string" && made.key.startsWith("north_"), "Connected an assistant: it got its own key", made.mcpUrl);
 
@@ -43,7 +46,7 @@ try {
   check(bad.isError === true, "Sneaking in an 'overrideWait' is turned away");
 } catch { check(true, "Sneaking in an 'overrideWait' is turned away"); }
 
-const summary = await (await fetch(`${BASE}/api/summary`)).json();
+const summary = await (await fetchAs("/api/summary")).json();
 // The shampoo is always a card. The headphones are a card by day (gentle wait) or saved for later by night (firm wait).
 check(summary.assistantAsks.length >= 1 && summary.assistantAsks.length <= 2, "One-tap card(s) are waiting in North for the person", String(summary.assistantAsks.length));
 check(summary.purchases.length === 0, "Nothing was bought");
@@ -56,6 +59,6 @@ let blocked = false;
 try { await connect(made.key); } catch { blocked = true; }
 check(blocked, "After Disconnect, the same key is turned away");
 
-await fetch(`${BASE}/api/demo/reset`, { method: "POST" });
+await fetchAs("/api/demo/reset", { method: "POST" });
 console.log(failures ? `\n${failures} check(s) FAILED` : "\nAll checks passed.");
 process.exit(failures ? 1 : 0);

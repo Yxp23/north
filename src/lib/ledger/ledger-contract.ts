@@ -112,7 +112,7 @@ export function ledgerContract(name: string, make: () => Promise<LedgerHarness>)
       withLedger(async (l) => {
         const p = fullPurchase({ status: "pending", paidAt: undefined, captureId: undefined, webhookConfirmedAt: undefined });
         await l.update((d) => void d.purchases.push(p));
-        const ev = { kind: "completed" as const, eventId: `WH-${randomUUID()}`, captureId: "C9", customId: p.id };
+        const ev = { kind: "completed" as const, eventId: `WH-${randomUUID()}`, captureId: "C9", customId: p.id, amountCents: p.amountCents, currency: p.currency };
         expect((await l.update((d) => applyWebhook(d, ev, NOW))).changed).toBe(true);
         expect((await l.update((d) => applyWebhook(d, ev, NOW))).changed).toBe(false);
         expect((await l.read()).purchases[0].status).toBe("paid");
@@ -410,10 +410,11 @@ export function ledgerContract(name: string, make: () => Promise<LedgerHarness>)
     // ---- reset ------------------------------------------------------------------------------
     it("reset goes back to the defaults and keeps the connected PayPal", () =>
       withLedger(async (l) => {
+        // (The database refuses a NEW purchase that breaks the money rules, so the odd balance is set in a second step.)
+        await l.update((d) => void d.purchases.push(fullPurchase()));
         await l.update((d) => {
           d.paypalVault = { vaultId: "V1", savedAt: "2026-11-04T12:00:00.000Z" };
           d.baseBalanceCents = 5;
-          d.purchases.push(fullPurchase());
           d.audit.push({ at: "2026-11-04T10:00:00.000Z", type: "x", detail: "y" });
           d.webhookEventIds.push("WH-reset-1");
           d.waitingList.push(waitingItem());

@@ -30,15 +30,17 @@ export type WaitingRow = {
 };
 export type FlaggedRow = { domain: string; flagged_at: Ts; reason: string };
 export type Snapshot = {
+  /** Which migration the database has had. Missing or old = the security migration has not been run. */
+  schema_version?: number;
   user: UserRow; rules: RuleRow[]; purchases: PurchaseRow[]; waiting_list: WaitingRow[]; flagged_sellers: FlaggedRow[];
-  audit: { at: Ts; type: string; detail: string }[]; webhook_event_ids: string[];
+  audit: { at: Ts; type: string; detail: string; prev_hash?: string | null; hash?: string | null }[]; webhook_event_ids: string[];
 };
 export type Changes = {
   user?: Record<string, unknown>;
   purchases?: PurchaseRow[];
   waiting_list?: WaitingRow[];
   flagged_sellers?: FlaggedRow[];
-  audit?: { at: string; type: string; detail: string }[];
+  audit?: { at: string; type: string; detail: string; prev_hash: string; hash: string }[];
   webhook_event_ids?: string[];
   rules?: Required<Pick<RuleRow, "kind" | "enabled" | "params" | "created_at" | "effective_at">>[];
 };
@@ -134,7 +136,15 @@ function waitingFromRow(r: WaitingRow): WaitingItem {
   return w;
 }
 
+/** The newest migration this code needs (20261109000000_north_security_hardening.sql). */
+export const REQUIRED_SCHEMA_VERSION = 9;
+
 export function fromSnapshot(s: Snapshot): { data: LedgerData; version: number } {
+  // FAIL CLOSED: without the security migration there is no audit chain, no database-side budget guard, no one-time
+  // approvals and no shared rate limits. Do not run quietly without them.
+  if (typeof s.schema_version !== "number" || s.schema_version < REQUIRED_SCHEMA_VERSION) {
+    throw new Error("The database is out of date. Run supabase/migrations/20261109000000_north_security_hardening.sql in the Supabase SQL Editor.");
+  }
   // An older ledger_load has no waiting_list. Its ledger_apply would also silently DROP waiting-list items,
   // so refuse to run at all until the database is up to date.
   if (!Array.isArray(s.waiting_list)) {
@@ -170,7 +180,7 @@ export function fromSnapshot(s: Snapshot): { data: LedgerData; version: number }
     priceWatch: priceWatchFromJson(u.price_watch),
     agentCheckpoint: agentCheckpointFromJson(u.agent_checkpoint),
     webhookEventIds: [...s.webhook_event_ids].reverse(), // the database sends newest first
-    audit: s.audit.map((a): AuditEntry => ({ at: iso(a.at), type: a.type, detail: a.detail })),
+    audit: s.audit.map((a): AuditEntry => ({ at: iso(a.at), type: a.type, detail: a.detail, ...(a.hash ? { prevHash: a.prev_hash ?? undefined, hash: a.hash } : {}) })),
   };
   if (u.paypal_vault_id) {
     data.paypalVault = {
@@ -232,7 +242,8 @@ function agentCheckpointFromJson(v: unknown): AgentCheckpointData {
 }
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-const auditKey = (a: AuditEntry) => `${a.at}|${a.type}|${a.detail}`;
+/** A sealed entry is identified by its hash (two entries can have the same words in the same millisecond). */
+const auditKey = (a: AuditEntry) => a.hash ?? `${a.at}|${a.type}|${a.detail}`;
 
 /** What changed between two copies of the ledger. null = nothing to save. */
 export function diffChanges(before: LedgerData, after: LedgerData): Changes | null {
@@ -277,7 +288,13 @@ export function diffChanges(before: LedgerData, after: LedgerData): Changes | nu
   if (flags.length) c.flagged_sellers = flags;
 
   const seen = new Set(before.audit.map(auditKey));
-  const audit = after.audit.filter((a) => !seen.has(auditKey(a)));
+  const audit = after.audit
+    .filter((a) => !seen.has(auditKey(a)))
+    .map((a) => {
+      // The ledger seals every entry before this runs. An entry without its link would be refused by the database.
+      if (!a.hash || !a.prevHash) throw new Error("An audit entry was not sealed.");
+      return { at: a.at, type: a.type, detail: a.detail, prev_hash: a.prevHash, hash: a.hash };
+    });
   if (audit.length) c.audit = audit;
 
   const seenEvents = new Set(before.webhookEventIds);

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { NotApprovedError, requestApproval, withApproval, type Approval, type Purchase, type UserState } from "./index";
+import { NotApprovedError, requestApproval as request, withApproval, type Approval, type Purchase, type UserState } from "./index";
+import { verifyClaims } from "./signed";
 
 const NOW = new Date("2026-11-05T15:00:00Z");
 const settled = <T,>(value: T) => ({ value, changedAt: new Date("2026-10-01T00:00:00Z"), previous: null as T | null });
@@ -16,6 +17,10 @@ const state: UserState = {
     essentials: settled(["household"]),
   },
 };
+const KEY = Buffer.from("k".repeat(32));
+const signer = { key: KEY, now: () => NOW.getTime() };
+const binding = { userId: "u1", productId: "p1", currency: "USD", quantity: 1, nonce: "pur_1" };
+const requestApproval = (p: Purchase, st: UserState) => request(p, st, binding, signer);
 const buy = (over: Partial<Purchase> = {}): Purchase => ({
   amountCents: 250, item: "Notebook", category: "school and office", at: NOW, ...over,
 });
@@ -100,5 +105,36 @@ describe("withApproval (the only door to the charge step)", () => {
     }
     await withApproval(approval!, async (p) => void seen.push(p.amountCents));
     expect(seen).toEqual([250]);
+  });
+});
+
+describe("the signed statement inside an approval", () => {
+  it("is bound to the user, product, exact amount, currency and quantity", async () => {
+    const { approval } = request(buy({ amountCents: 1100 }), state, { ...binding, quantity: 2 }, signer);
+    const seen: string[] = [];
+    await withApproval(approval!, async (_p, token) => void seen.push(token));
+    const want = { kind: "charge" as const, userId: "u1", ref: "p1", amountCents: 1100, currency: "USD", quantity: 2 };
+    expect(verifyClaims(seen[0], want, KEY, NOW.getTime()).ok).toBe(true);
+    for (const wrong of [{ userId: "u2" }, { ref: "p2" }, { amountCents: 1000 }, { currency: "EUR" }, { quantity: 1 }]) {
+      expect(verifyClaims(seen[0], { ...want, ...wrong }, KEY, NOW.getTime()).ok).toBe(false);
+    }
+  });
+
+  it("is made only for an approve", () => {
+    expect(request(buy({ amountCents: 34_900 }), state, binding, signer).approval).toBeNull();
+    expect(request(buy({ amountCents: 90_000 }), state, binding, signer).approval).toBeNull();
+  });
+
+  it("fails closed if it can't be signed (a short key): the buy is refused, not approved", () => {
+    const r = request(buy(), state, binding, { key: Buffer.alloc(4), now: () => NOW.getTime() });
+    expect(r.approval).toBeNull();
+    expect(r.result.decision).toBe("refuse");
+  });
+
+  it("the amount it signs is the Guardian's amount, not anything the caller can pass separately", async () => {
+    const { approval } = request(buy({ amountCents: 777 }), state, binding, signer);
+    const seen: string[] = [];
+    await withApproval(approval!, async (_p, token) => void seen.push(token));
+    expect(verifyClaims(seen[0], { kind: "charge", userId: "u1", ref: "p1", amountCents: 777, currency: "USD", quantity: 1 }, KEY, NOW.getTime()).ok).toBe(true);
   });
 });

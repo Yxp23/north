@@ -3,9 +3,9 @@ import { createPaymentToken } from "../paypal";
 import { getLedger } from "../ledger/server";
 import { savePaypal } from "./connect";
 
-export function runSavePaypal(setupToken: string) {
+export function runSavePaypal(userId: string, setupToken: string) {
   return savePaypal(setupToken, {
-    ledger: getLedger(),
+    ledger: getLedger(userId),
     now: () => new Date(),
     exchange: async (token) => {
       const r = await createPaymentToken(token);

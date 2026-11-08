@@ -12,14 +12,20 @@ export function effective<T>(rule: Changeable<T>, now: Date): T | null {
   return age >= RULE_DELAY_MS ? rule.value : rule.previous;
 }
 
+const hourFormats = new Map<string, Intl.DateTimeFormat>();
+
 /** The hour (0-23) on the user's own clock. Throws on a bad time zone. */
 export function localHour(at: Date, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    hourCycle: "h23", // 0-23, so midnight is 0 and never 24
-    timeZone,
-  }).formatToParts(at);
-  return Number(parts.find((p) => p.type === "hour")!.value);
+  let fmt = hourFormats.get(timeZone);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      hourCycle: "h23", // 0-23, so midnight is 0 and never 24
+      timeZone,
+    }); // (throws for a time zone that doesn't exist, and then nothing is cached)
+    if (hourFormats.size < 200) hourFormats.set(timeZone, fmt);
+  }
+  return Number(fmt.formatToParts(at).find((p) => p.type === "hour")!.value);
 }
 
 /** Is this hour inside the window? The window may cross midnight (10 PM to 5 AM). */

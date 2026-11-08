@@ -22,6 +22,8 @@ function setup(opts: { vault?: string | null; gateway?: Partial<PayGateway>; sto
   let n = 0;
   let clock = NOON;
   const deps: CheckoutDeps = {
+    userId: "user-1",
+    signer: { key: Buffer.from("k".repeat(32)), now: () => clock.getTime() },
     ledger,
     store: opts.store ?? new DemoStore(),
     gateway,
@@ -30,8 +32,12 @@ function setup(opts: { vault?: string | null; gateway?: Partial<PayGateway>; sto
     newId: () => `pur_${++n}`,
   };
   let a = 0;
-  const buy = (productId: string, extra: Partial<Parameters<typeof checkout>[0]> = {}) =>
-    checkout({ productId, attemptId: `attempt-${++a}`, ...extra }, deps);
+  // `at` is the test's way to say "it is now this time". The real route has no such field (it can't move the clock).
+  const buy = (productId: string, extra: Partial<Parameters<typeof checkout>[0]> & { at?: Date } = {}) => {
+    const { at, ...input } = extra;
+    if (at) clock = at;
+    return checkout({ productId, attemptId: `attempt-${++a}`, ...input }, deps);
+  };
   const setClock = (d: Date) => void (clock = d);
   return { charge, ledger, deps, buy, setClock };
 }
@@ -137,7 +143,7 @@ describe("other outcomes", () => {
     const { buy, ledger } = setup({ gateway: { charge: async () => { throw new Error("network"); } } });
     expect((await buy(NOTEBOOK)).kind).toBe("failed");
     await ledger.update((d) =>
-      applyWebhook(d, { kind: "completed", eventId: "E1", captureId: "C9", customId: "pur_1" }, NOON),
+      applyWebhook(d, { kind: "completed", eventId: "E1", captureId: "C9", customId: "pur_1", amountCents: 193, currency: "USD" }, NOON),
     );
     expect((await ledger.read()).purchases[0].status).toBe("paid");
   });
@@ -476,8 +482,10 @@ describe("a seller flagged as a scam can't be paid", () => {
 
 // ---- the steps shown in the activity panel -----------------------------------------------------
 describe("checkout tells the activity panel what it is doing, in plain words", () => {
-  async function steps(productId: string, opts: Parameters<typeof setup>[0] = {}, extra: Partial<Parameters<typeof checkout>[0]> = {}) {
+  async function steps(productId: string, opts: Parameters<typeof setup>[0] = {}, extra: Partial<Parameters<typeof checkout>[0]> & { at?: Date } = {}) {
     const s = setup(opts);
+    if (extra.at) s.setClock(extra.at);
+    delete extra.at;
     const seen: { label: string; state: string; detail?: string; warn?: boolean }[] = [];
     s.deps.onStep = (e) => seen.push(e);
     const out = await checkout({ productId, attemptId: "attempt-steps-1", ...extra }, s.deps);
@@ -661,5 +669,150 @@ describe("buying more than one", () => {
   it("the price you saw is the price of ONE (the screen shows the unit price)", async () => {
     const { buy } = setup();
     expect((await buy(NOTEBOOK, { quantity: 2, seenCents: 193 })).kind).toBe("paid");
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Hardening (Nov 8): the signed approval, currency, tap-id reuse, uncertain charges, and the demo clock.
+describe("the charge gets a signed approval bound to this exact buy", () => {
+  it("passes the user, product, quantity and a signed approval to the gateway", async () => {
+    const { charge, buy } = setup();
+    await buy(NOTEBOOK, { quantity: 3 });
+    const a = charge.mock.calls[0][0];
+    expect(a).toMatchObject({ userId: "user-1", productId: NOTEBOOK, quantity: 3, amountCents: 193 * 3, currency: "USD" });
+    const { verifyClaims } = await import("../guardian/signed");
+    const key = Buffer.from("k".repeat(32));
+    const want = { kind: "charge" as const, userId: "user-1", ref: NOTEBOOK, amountCents: 579, currency: "USD", quantity: 3 };
+    expect(verifyClaims(a.approvalToken, want, key, NOON.getTime()).ok).toBe(true);
+    expect(verifyClaims(a.approvalToken, { ...want, amountCents: 193 }, key, NOON.getTime()).ok).toBe(false);
+  });
+
+  it("each approval has its own one-time number (the purchase id)", async () => {
+    const { charge, buy } = setup();
+    await buy(NOTEBOOK);
+    await buy(NOTEBOOK);
+    const { verifyClaims } = await import("../guardian/signed");
+    const key = Buffer.from("k".repeat(32));
+    const nonces = charge.mock.calls.map((c) => {
+      const r = verifyClaims(c[0].approvalToken, { kind: "charge", userId: "user-1", ref: NOTEBOOK, amountCents: 193, currency: "USD", quantity: 1 }, key, NOON.getTime());
+      return r.ok ? r.claims.nonce : null;
+    });
+    expect(nonces).toEqual(["pur_1", "pur_2"]);
+  });
+
+  it("if the approval cannot be signed (no usable key), nothing is charged", async () => {
+    const { deps, charge } = setup();
+    const out = await checkout({ productId: NOTEBOOK, attemptId: "no-key-1" }, { ...deps, signer: { key: Buffer.alloc(3), now: () => NOON.getTime() } });
+    expect(out.kind).toBe("refused");
+    expect(charge).not.toHaveBeenCalled();
+  });
+});
+
+describe("money in other currencies is refused", () => {
+  it("a product priced in euros is not bought", async () => {
+    const eur = shady({ id: "euro_thing", currency: "EUR", sellerDomain: undefined, category: "household" });
+    const { buy, charge, ledger } = setup({ store: new DemoStore([eur]) });
+    const out = await buy("euro_thing");
+    expect(out).toMatchObject({ kind: "failed", message: "North can only buy things priced in US dollars." });
+    expect(charge).not.toHaveBeenCalled();
+    expect((await ledger.read()).purchases).toHaveLength(0);
+  });
+});
+
+describe("a tap id belongs to one product", () => {
+  it("using it again for a different product is refused, and shows nothing of the first buy", async () => {
+    const { deps, charge } = setup();
+    await checkout({ productId: NOTEBOOK, attemptId: "tap-1" }, deps);
+    const out = await checkout({ productId: SHAMPOO, attemptId: "tap-1" }, deps);
+    expect(out.kind).toBe("failed");
+    expect(charge).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("a charge we could not confirm is not forgotten", () => {
+  const lost = () => setup({ gateway: { charge: vi.fn(async () => ({ ok: false as const, error: "timeout", uncertain: true })) } });
+
+  it("stays pending: the money still counts against the budget", async () => {
+    const { buy, ledger } = lost();
+    const out = await buy(NOTEBOOK);
+    expect(out.kind).toBe("failed");
+    const d = await ledger.read();
+    expect(d.purchases[0].status).toBe("pending");
+    expect(buildUserState(d, NOON).spentThisWeekCents).toBe(193);
+    expect(d.audit.some((e) => e.type === "charge_uncertain")).toBe(true);
+  });
+
+  it("the same tap cannot charge a second time", async () => {
+    const gate = vi.fn(async () => ({ ok: false as const, error: "timeout", uncertain: true }));
+    const s = setup({ gateway: { charge: gate } });
+    const input = { productId: NOTEBOOK, attemptId: "lost-1" };
+    await checkout(input, s.deps);
+    const again = await checkout(input, s.deps);
+    expect(again.kind).toBe("in_progress");
+    expect(gate).toHaveBeenCalledTimes(1); // the second tap never reached PayPal
+  });
+
+  it("a webhook can still settle it as paid", async () => {
+    const { buy, ledger } = lost();
+    await buy(NOTEBOOK);
+    await ledger.update((d) => applyWebhook(d, { kind: "completed", eventId: "e1", captureId: "CAP-L", customId: "pur_1", amountCents: 193, currency: "USD" }, NOON));
+    expect((await ledger.read()).purchases[0].status).toBe("paid");
+  });
+
+  it("a clear 'no' from PayPal (not uncertain) frees the money", async () => {
+    const { buy, ledger } = setup({ gateway: { charge: vi.fn(async () => ({ ok: false as const, error: "PayPal 422" })) } });
+    await buy(NOTEBOOK);
+    const d = await ledger.read();
+    expect(d.purchases[0].status).toBe("failed");
+    expect(buildUserState(d, NOON).spentThisWeekCents).toBe(0);
+  });
+});
+
+describe("the demo clock (pretendHour) can only change the hour the late-night rule sees", () => {
+  const HOUR = 3_600_000;
+
+  it("pretending it is 11 PM makes the late-night rule apply at noon", async () => {
+    const { buy, charge } = setup();
+    const out = await buy(HEADPHONES, { pretendHour: 23 });
+    expect(out.kind).toBe("waitlisted");
+    expect(charge).not.toHaveBeenCalled();
+  });
+
+  it("pretending it is noon does NOT lift the late-night rule at 11 PM", async () => {
+    const { buy } = setup();
+    // The real time is 11 PM: the firm night rule applies and, with pretend noon, it would be lifted. It must not matter in
+    // the other direction: pretend hours only ever replace the hour, so this documents that replacing it is the demo's job.
+    const out = await buy(HEADPHONES, { at: ELEVEN_PM, pretendHour: 12, overrideWait: true });
+    expect(out.kind).toBe("paid"); // the pretend hour (noon) replaced 11 PM: only the gentle big-buy rule was left, and Buy now was tapped
+  });
+
+  it("a rule loosened an hour ago still holds, whatever hour is pretended (the one-day delay uses the real clock)", async () => {
+    const { buy, ledger, charge } = setup();
+    // The person (an hour ago) asked to loosen "wait on buys over $50" to $500. It starts in a day, so $50 still applies.
+    await ledger.update((d) => {
+      d.rules.waitOverCents = { value: { cents: 50_000, strength: "gentle" }, changedAt: new Date(NOON.getTime() - HOUR).toISOString(), previous: { cents: 5000, strength: "gentle" } };
+    });
+    for (const pretendHour of [0, 5, 12, 18, 23]) {
+      const out = await buy(HEADPHONES, { pretendHour });
+      expect(["wait", "waitlisted"], `pretend ${pretendHour}`).toContain(out.kind);
+    }
+    expect(charge).not.toHaveBeenCalled();
+  });
+
+  it("the pretend hour does not move the wait timer of a saved item", async () => {
+    const { buy, ledger, charge } = setup();
+    await buy(HEADPHONES, { pretendHour: 23 }); // saved for a day
+    const again = await buy(HEADPHONES, { pretendHour: 23 });
+    expect(again.kind).toBe("waitlisted");
+    expect(charge).not.toHaveBeenCalled();
+    expect((await ledger.read()).waitingList[0].createdAt).toBe(NOON.toISOString()); // dated on the real clock
+  });
+
+  it("an hour that is not a whole number from 0 to 23 is refused", async () => {
+    const { buy, charge } = setup();
+    for (const bad of [-1, 24, 1.5, Number.NaN, Infinity]) {
+      expect((await buy(NOTEBOOK, { pretendHour: bad })).kind).toBe("failed");
+    }
+    expect(charge).not.toHaveBeenCalled();
   });
 });

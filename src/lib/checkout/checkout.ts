@@ -4,7 +4,7 @@
 // approval (see guardian/approval.ts). The price always comes from the store, never from the caller.
 // Money is reserved (a "pending" buy) in the same locked step as the decision, so two quick taps
 // can't both spend the same money.
-import { requestApproval, withApproval, type Approval, type GuardianResult, type RuleId } from "../guardian";
+import { NotApprovedError, requestApproval, withApproval, type Approval, type GuardianResult, type RuleId, type Signer } from "../guardian";
 import type { Ledger } from "../ledger/ledger";
 import { activeWaiting, addAudit, buildUserState, isSellerFlagged, markPaid, summarize, waitingView } from "../ledger/logic";
 import type { PurchaseRecord, PurchaseView, WaitingView } from "../ledger/types";
@@ -13,6 +13,12 @@ import type { StepEvent } from "../agents/loop"; // a type only: erased when bui
 
 export type ChargeArgs = {
   vaultId: string;
+  /** Who is paying and for what. The gateway checks the signed approval is for exactly this. */
+  userId: string;
+  productId: string;
+  quantity: number;
+  /** The Guardian's signed, single-use approval (see guardian/signed.ts). The gateway refuses without a valid one. */
+  approvalToken: string;
   amountCents: number;
   currency: string;
   /** Our purchase id. PayPal sends it back on the webhook so we can match the payment. */
@@ -31,6 +37,10 @@ export interface PayGateway {
 }
 
 export type CheckoutDeps = {
+  /** Whose money this is (the logged-in person). It is signed into the Guardian's approval. */
+  userId: string;
+  /** Signs the Guardian's approvals (see guardian/secret.ts). */
+  signer: Signer;
   ledger: Ledger;
   store: StoreProvider;
   gateway: PayGateway;
@@ -47,8 +57,12 @@ export type CheckoutInput = {
   attemptId: string;
   /** The user tapped "Buy now" on a wait screen. */
   overrideWait?: boolean;
-  /** Demo clock. Normally the real time. */
-  at?: Date;
+  /**
+   * Demo tools only: "pretend it is this hour (0-23)". It changes ONLY which hour the late-night rule sees. It never moves
+   * the clock the one-day rule delay, the wait timers and "this week" use (those always use the real time), so it can't
+   * be used to make a loosened rule count early. The route allows it only when demo tools are on.
+   */
+  pretendHour?: number;
   /** How many to buy, 1 to 5. The Guardian and PayPal see the total (store price times this). Default 1. */
   quantity?: number;
   /**
@@ -101,6 +115,9 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
 
   const quantity = input.quantity ?? 1;
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) return { kind: "failed", message: "That quantity is not allowed." };
+  if (input.pretendHour !== undefined && !(Number.isInteger(input.pretendHour) && input.pretendHour >= 0 && input.pretendHour <= 23)) {
+    return { kind: "failed", message: "That time is not allowed." };
+  }
 
   working("Looking up the price…");
   // A fresh read from the live store: the price is never a cached one, and never from the browser or a model.
@@ -118,18 +135,30 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
     return { kind: "price_changed", name: product.name, seenCents: input.seenCents, nowCents: product.priceCents };
   }
 
+  // North's money (budget, protected money) is in US dollars, and so is the PayPal order. Anything else is refused.
+  if (product.currency !== "USD") {
+    said("North can only buy in US dollars. I did not buy it.", true);
+    return { kind: "failed", message: "North can only buy things priced in US dollars." };
+  }
+
   // The Guardian and PayPal see the TOTAL. The price on screen (seenCents) is the price of one.
   const amountCents = product.priceCents * quantity;
+  if (!Number.isSafeInteger(amountCents)) return { kind: "failed", message: "I can't read that price, so I can't buy it." };
   const label = quantity > 1 ? `${product.name} × ${quantity}` : product.name;
   const vaultId = await deps.getVaultId();
   const now = deps.now();
-  const at = input.at ?? now;
+  const at = now; // always the real time: see pretendHour
 
   // Step 1 (locked): the Guardian decides, and an approved buy reserves its money right away.
   working("Asking the Money Guardian…");
   const gate = await deps.ledger.update<Gate>((data) => {
     const existing = data.purchases.find((p) => p.attemptId === input.attemptId);
     if (existing) {
+      // A tap id belongs to ONE product. Using it again for another is a mistake or an attack: say no, never reuse the answer.
+      if (existing.productId !== product.id) {
+        addAudit(data, "attempt_reuse", `Attempt ${input.attemptId} was used again for a different product. Refused.`, now);
+        return { early: { kind: "failed", message: "That tap was already used for something else. Please try again." } };
+      }
       if (existing.status === "paid") return { early: { kind: "paid", purchase: view(existing), leftCents: summarize(data, now).leftCents } };
       if (existing.status === "pending") return { early: { kind: "in_progress" } };
       return { early: { kind: "failed", message: existing.failureReason ?? "That did not go through.", purchase: view(existing) } };
@@ -138,14 +167,17 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
     // Was this product saved on the waiting list earlier? Then its wait counts (from OUR record, never the browser).
     const waiting = activeWaiting(data, product.id);
 
+    const purchaseId = deps.newId(); // also the approval's one-time number, so it can be spent once
     const { result, approval } = requestApproval(
       {
-        amountCents, item: label, category: product.category, at, overrideWait: input.overrideWait,
+        amountCents, item: label, category: product.category, at, overrideWait: input.overrideWait, hourOverride: input.pretendHour,
         waitlist: waiting ? { since: new Date(waiting.createdAt), waitHours: waiting.waitHours } : undefined,
         // A seller the scam checker flagged can't be paid: the Guardian's hard wall refuses. The list is OUR record.
         sellerFlaggedScam: isSellerFlagged(data, product.sellerDomain),
       },
       buildUserState(data, now),
+      { userId: deps.userId, productId: product.id, currency: product.currency, quantity, nonce: purchaseId },
+      deps.signer,
     );
     addAudit(data, "decision", `${label} ${dollars(amountCents)}: ${result.decision} (${result.code})`, now);
 
@@ -155,7 +187,7 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
         let item = waiting;
         if (!item) {
           item = {
-            id: `wait_${deps.newId().replace(/^pur_/, "")}`, productId: product.id, name: label, category: product.category,
+            id: `wait_${purchaseId.replace(/^pur_/, "")}`, productId: product.id, name: label, category: product.category,
             imageUrl: product.imageUrl, amountCents, currency: product.currency,
             createdAt: at.toISOString(), // the same clock the Guardian used, so the wait is measured on it (the real time, outside demo mode)
             remindAt: (result.remindAt ?? now).toISOString(), waitHours: result.waitHours ?? 24, rules: result.triggered, status: "waiting",
@@ -177,7 +209,6 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
       addAudit(data, "override", `Buy now: ${label}, ${dollars(amountCents)}, ${ruleList(result.overriddenRules)}`, now);
     }
 
-    const purchaseId = deps.newId();
     data.purchases.push({
       id: purchaseId, attemptId: input.attemptId, productId: product.id, name: label, category: product.category,
       imageUrl: product.imageUrl, amountCents, currency: product.currency, status: "pending",
@@ -208,9 +239,13 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
   working("Charging your saved PayPal…");
   let charged: Awaited<ReturnType<PayGateway["charge"]>>;
   try {
-    charged = await withApproval(gate.approval, (approved) =>
+    charged = await withApproval(gate.approval, (approved, approvalToken) =>
       deps.gateway.charge({
         vaultId: vaultId!,
+        userId: deps.userId,
+        productId: product.id,
+        quantity,
+        approvalToken,
         amountCents: approved.amountCents,
         currency: product.currency,
         customId: gate.purchaseId,
@@ -218,7 +253,10 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
       }),
     );
   } catch (e) {
-    charged = { ok: false, error: e instanceof Error ? e.message : "Could not reach PayPal.", uncertain: true };
+    // A refused approval means PayPal was never called. Anything else (we lost contact) might have charged: we can't tell.
+    charged = e instanceof NotApprovedError
+      ? { ok: false, error: "The Guardian's approval was not accepted. Nothing was charged." }
+      : { ok: false, error: e instanceof Error ? e.message : "Could not reach PayPal.", uncertain: true };
   }
 
   finished("Charging your saved PayPal…", charged.ok ? `PayPal said ${charged.status}.` : "PayPal did not take the payment.");
@@ -231,6 +269,17 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
       markPaid(data, p.id, { captureId: charged.captureId, orderId: charged.orderId, via: "checkout" }, now);
       addAudit(data, "paid", `${p.id} ${dollars(p.amountCents)} (${charged.status})`, now);
       return { kind: "paid", purchase: view(p), leftCents: summarize(data, now).leftCents };
+    }
+    // We lost contact, so PayPal may have taken the money. FAIL CLOSED: the buy stays "pending", which still counts
+    // against the budget, until PayPal's webhook (or a person at PayPal) settles it. The same tap can't charge again.
+    if (charged.uncertain && p.status === "pending") {
+      p.failureReason = charged.error;
+      addAudit(data, "charge_uncertain", `${p.id}: ${charged.error}`, now);
+      return {
+        kind: "failed",
+        message: "I could not confirm the payment. If PayPal took the money, it will show up here soon.",
+        purchase: view(p),
+      };
     }
     // A webhook may already have told us it was paid. Don't undo that.
     if (p.status === "pending") {

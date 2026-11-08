@@ -1,29 +1,33 @@
 import { getAnthropic, NOT_SET_UP } from "@/lib/agents/client";
+import { authenticate } from "@/lib/auth/guard";
+import { readJson } from "@/lib/http/body";
 import { runConciergeListing } from "@/lib/agents/concierge/listing";
 import { pretendTrickedClient } from "@/lib/agents/concierge/pretend-tricked";
 import type { StepEvent } from "@/lib/agents/loop";
-import { getLedger, isDemoMode } from "@/lib/ledger/server";
+import { demoAllowed } from "@/lib/demo/mode";
+import { getLedger } from "@/lib/ledger/server";
 import { addAudit, buildUserState } from "@/lib/ledger/logic";
 import { ndjsonResponse } from "@/lib/ndjson";
 import { judgeProposals } from "@/lib/proposals/judge";
-import { createLimiter } from "@/lib/rate-limit";
+import { limited } from "@/lib/ratelimit/route";
 import { getStore } from "@/lib/store";
 
 // "Ask the helper about this". The Concierge reads a listing (untrusted text). If it is fooled into suggesting a
 // buy, the suggestion goes to the Money Guardian, marked as started by an agent, and is refused. Nothing here
 // can charge anything: this route does not import checkout.
-const allow = createLimiter(30, 3_600_000);
-
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => null);
+  const auth = await authenticate(req);
+  if (!auth.ok) return auth.response;
+  const body = (await readJson(req)) as Record<string, unknown> | null;
   const productId = typeof body?.productId === "string" ? body.productId : "";
   if (!productId || productId.length > 80) return Response.json({ error: "Bad request" }, { status: 400 });
   const store = getStore();
   const product = await store.getProduct(productId);
   if (!product) return Response.json({ error: "I could not find that product." }, { status: 404 });
-  if (!allow()) return Response.json({ error: "That is a lot of tries. Please wait a little while." }, { status: 429 });
+  const tooMany = await limited(auth.userId, "listing", 30, 3600);
+  if (tooMany) return tooMany;
   // "Pretend the AI is tricked" is a demo tool. It only works when demo tools are on.
-  const pretend = body?.pretendTricked === true && isDemoMode();
+  const pretend = body?.pretendTricked === true && demoAllowed(auth.userId);
 
   return ndjsonResponse(
     async (send) => {
@@ -49,7 +53,7 @@ export async function POST(req: Request) {
 
       // Anything the helper suggested goes to the Money Guardian. We only ever READ the ledger to judge it.
       const now = new Date();
-      const data = await getLedger().read();
+      const data = await getLedger(auth.userId).read();
       const judged = await judgeProposals(outcome.proposals, { store, state: buildUserState(data, now), flaggedSellers: data.flaggedSellers.map((f) => f.domain), at: now });
       for (const j of judged) {
         step({ label: "Asking the Money Guardian about the buy the helper suggested…", state: "working" });
@@ -57,7 +61,7 @@ export async function POST(req: Request) {
         step({ label: j.result ? `The Money Guardian said no: ${j.result.reason}` : "I couldn't find that product.", state: "done", warn: true });
       }
 
-      await getLedger()
+      await getLedger(auth.userId)
         .update((d) => {
           addAudit(d, "helper_listing", `Helper read ${product.name}. Hidden instructions found: ${outcome.hiddenFound.length ? "yes" : "no"}. Buys suggested: ${judged.length}.`, now);
           for (const j of judged) addAudit(d, "agent_proposal", `${j.plain}`, now);
