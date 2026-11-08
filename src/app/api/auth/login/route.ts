@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   const limiter = getRateLimiter();
   const ip = (req.headers.get("x-forwarded-for")?.split(",")[0] ?? req.headers.get("x-real-ip") ?? "unknown").trim().slice(0, 64);
   const who = createHash("sha256").update(email.toLowerCase()).digest("hex").slice(0, 32);
-  const [okIp, okWho] = await Promise.all([limiter.allow(`login:ip:${ip}`, 30, 900), limiter.allow(`login:who:${who}`, 8, 900)]);
+  const [okIp, okWho] = await Promise.all([limiter.allow(`login:ip:${ip}`, 30, 900), limiter.allow(`login:who:${who}:${ip}`, 8, 900)]);
   if (!okIp || !okWho) return Response.json({ error: "That is a lot of tries. Please wait a few minutes." }, { status: 429, headers: { ...noStore, "Retry-After": "300" } });
 
   const r = await signIn(email, password);

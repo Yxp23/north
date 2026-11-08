@@ -3,8 +3,9 @@
 //  - while developing or testing (NODE_ENV is "development" or "test", or unset) they are on, unless DEMO_MODE=0,
 //  - anywhere else (production, staging, anything unknown) they are OFF, unless the deployer sets BOTH DEMO_MODE=1 and
 //    DEMO_DEPLOYMENT=1 (the explicit "this is the judges' demo" flag). DEMO_MODE=1 by itself is not enough.
-// Even when on, the demo tools can never change how long a rule takes to change: the pretend hour only moves the hour of
-// day the late-night rule sees (see CheckoutInput.pretendHour).
+// Even when on, the pretend hour can never change how long a rule takes to change (it only moves the hour of day the late-night rule
+// sees, see CheckoutInput.pretendHour). The one exception is the demo "Start over", which on purpose erases the practice account and
+// puts the starting rules back at once. It is practice account only, and off in production (docs/security.md, known limits).
 export type DemoState = {
   on: boolean;
   /** A deployed demo (production with both flags). The screens say so. */

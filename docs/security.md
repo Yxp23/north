@@ -46,7 +46,18 @@ declined turns and warns when a category was thinly tested. Attacks that mattere
 ## Independent review
 
 An AI reviewer that had not seen this work was given the repo and the goal "make money move without the Guardian's approval, or past a user's rule".
-See "Independent review results" below.
+Results below.
+
+### Independent review results
+
+One pass (about 9 minutes, 58 tool calls, white-box, against a copy with pretend payments) found **1 serious hole, 2 low issues and 1 note**; everything else held (signed approvals, parallel buys, rule timing, CSRF/origin, proxy path tricks, logout, key handling, demo gating):
+
+1. **HIGH, fixed:** an assistant could buy with no yes from the person once a firm wait had been served (the checkpoint's "save to the waiting list" call ran the Guardian again, which approved and charged). Also, an item saved at quantity 1 could be bought at quantity 5 on the same wait. Fix: the save call can never charge (`neverCharge`), the checkpoint asks the Guardian with the same waiting-list input as checkout (so a served wait becomes a normal approve, which makes a card), and a saved item's wait cannot be used for a bigger amount. Regression tests: "a served wait can't be used by an assistant to buy with no yes" in `service.test.ts`.
+2. **LOW, documented:** the demo "Start over" puts the starting rules back at once. Demo/practice account only, off in production.
+3. **LOW, fixed:** anyone who knew the email could lock the person out of logging in. The lockout is now per account AND address.
+4. **INFO, fixed:** the proxy's static-file exception matched any path ending in `.png`; it now matches top-level files only. (No user data was exposed; every API route checks the login itself.)
+
+Not reviewed by that pass: anything that needs the Claude or Channel3 keys (helpers), the real Supabase path and real PayPal (covered separately by `test:supabase` once the migration is run, and by the PayPal sandbox end-to-end run, which passed). The fixes were verified by tests, not by a second independent pass.
 
 ## Findings fixed during this work
 
@@ -61,6 +72,7 @@ See "Independent review results" below.
 - Double tap on Yes could mark a bought request failed. Fixed.
 - Ten simultaneous asks could pile up more than the card limit. Fixed (checked inside the lock).
 - The demo ledger peek returned assistant key hashes. Removed.
+- (From the independent review) an assistant could buy with no yes after a served firm wait. Fixed, see above.
 
 ## Known limits (said plainly)
 
@@ -68,7 +80,7 @@ See "Independent review results" below.
 - **CSP allows `'unsafe-inline'` scripts**: prerendered pages cannot carry per-request nonces. Protection against script injection relies on React escaping, a test that bans `dangerouslySetInnerHTML`/`innerHTML`/`eval`, and plain-text rendering of untrusted text.
 - **A person's own session is the person.** Anything that runs inside their logged-in browser (for example script injection) can tap Yes on an assistant's card. CSP, CSRF tokens, SameSite cookies and framing bans are the defences.
 - **Sessions are stateless cookies** checked against a "logged out" list; another server may accept a logged-out cookie for up to 10 seconds.
-- **The demo clock can replace the hour** the late-night rule sees (that is its job in the video). It cannot move rule delays, wait timers or the week, it is off in production, and in a deployed demo only the practice account can use it. The demo "Start over" erases the whole practice account by design.
+- **The demo clock can replace the hour** the late-night rule sees (that is its job in the video). It cannot move rule delays, wait timers or the week, it is off in production, and in a deployed demo only the practice account can use it. The demo "Start over" erases the whole practice account and restores the starting rules at once, by design.
 - **The practice login is public** (README). Anyone can use the practice account's sandbox money; it is rate limited.
 - **A charge we could not confirm stays pending** until PayPal's webhook settles it. If the webhook never comes it keeps counting against the budget (the safe direction).
 - **The audit chain** detects edits, deletions and reordering. Cutting entries off the very end is only detected if the last hash is known elsewhere. Entries written before the migration are unprotected.

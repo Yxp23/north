@@ -70,6 +70,11 @@ export type CheckoutInput = {
    * charged and the user looks again. It never sets the price, and can't approve anything.
    */
   seenCents?: number;
+  /**
+   * The caller may SAVE a buy to the waiting list but must never cause a charge (the assistant checkpoint uses this when it
+   * only means to save). If the Guardian would approve, nothing is charged and the outcome is "not_charged".
+   */
+  neverCharge?: boolean;
 };
 
 export type CheckoutOutcome =
@@ -84,6 +89,8 @@ export type CheckoutOutcome =
   /** A hard wall or a locked rule. Never an override. */
   | { kind: "refused"; result: GuardianResult }
   | { kind: "needs_paypal"; result: GuardianResult }
+  /** `neverCharge` was set and the Guardian would approve. Nothing was charged. */
+  | { kind: "not_charged"; result: GuardianResult }
   | { kind: "failed"; message: string; purchase?: PurchaseView }
   | { kind: "in_progress" }
   | { kind: "not_found" };
@@ -166,6 +173,12 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
 
     // Was this product saved on the waiting list earlier? Then its wait counts (from OUR record, never the browser).
     const waiting = activeWaiting(data, product.id);
+    // A saved item's wait was served for the amount that was SAVED. Asking for more (a bigger quantity, a higher price) is a
+    // different buy: it must be saved again, not slipped through on the old wait.
+    if (waiting && amountCents > waiting.amountCents) {
+      addAudit(data, "waitlist_amount_grew", `${label} ${dollars(amountCents)} is more than the ${dollars(waiting.amountCents)} that was saved. Refused.`, now);
+      return { early: { kind: "failed", message: "That is more than the amount you saved. Please ask again for what you saved." } };
+    }
 
     const purchaseId = deps.newId(); // also the approval's one-time number, so it can be spent once
     const { result, approval } = requestApproval(
@@ -199,6 +212,7 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
       }
       return { early: result.decision === "wait" ? { kind: "wait", result } : { kind: "refused", result } };
     }
+    if (input.neverCharge) return { early: { kind: "not_charged", result } };
     if (!vaultId) {
       addAudit(data, "needs_paypal", "approved, but no saved PayPal", now);
       return { early: { kind: "needs_paypal", result } };
@@ -231,6 +245,7 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
     else if (early.kind === "wait") said("The Money Guardian says wait.");
     else if (early.kind === "waitlisted") said("The Money Guardian saved it for later.");
     else if (early.kind === "needs_paypal") said("Connect PayPal first.");
+    else if (early.kind === "not_charged") said("Nothing was charged: this ask is only for saving.");
     return early;
   }
   finished("Asking the Money Guardian…", `Money Guardian: ${gate.approval.result.decision} (${gate.approval.result.code}). ${gate.approval.result.reason}`);

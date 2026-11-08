@@ -495,3 +495,43 @@ describe("the 'Try to break North' preview", () => {
     }
   });
 });
+
+describe("a served wait can't be used by an assistant to buy with no yes (red-team finding)", () => {
+  async function firmWorld() {
+    const s = await setup();
+    await s.ledger.update((d) => {
+      d.rules.waitOverCents = { value: { cents: 5000, strength: "firm", waitHours: 24 }, previous: null, changedAt: new Date(NOON.getTime() - 40 * 24 * HOUR).toISOString() };
+    });
+    return s;
+  }
+
+  it("the first ask saves the item; after the wait, the next ask makes a CARD and buys nothing", async () => {
+    const s = await firmWorld();
+    expect((await s.ask(HEADPHONES)).status).toBe("saved_for_later");
+    s.setClock(new Date(NOON.getTime() + 25 * HOUR));
+    const again = await s.ask(HEADPHONES);
+    expect(again.status).toBe("asked_person");
+    expect(s.charge).not.toHaveBeenCalled();
+    expect((await s.ledger.read()).purchases).toHaveLength(0);
+    expect((await s.ledger.read()).agentCheckpoint.requests.filter((r) => r.status === "pending")).toHaveLength(1);
+  });
+
+  it("only the person's Yes then buys it", async () => {
+    const s = await firmWorld();
+    await s.ask(HEADPHONES);
+    s.setClock(new Date(NOON.getTime() + 25 * HOUR));
+    const a = await s.ask(HEADPHONES);
+    expect((await answerRequest(s.deps, a.requestId!, "yes")).kind).toBe("bought");
+    expect(s.charge).toHaveBeenCalledTimes(1);
+  });
+
+  it("saving one and asking for five later does not ride on the old wait", async () => {
+    const s = await firmWorld();
+    expect((await s.ask("OpovWAw", { quantity: 1 })).status).toBe("saved_for_later");
+    s.setClock(new Date(NOON.getTime() + 25 * HOUR));
+    const five = await s.ask("OpovWAw", { quantity: 5 });
+    expect(five.status).not.toBe("bought");
+    expect(s.charge).not.toHaveBeenCalled();
+    expect((await s.ledger.read()).purchases).toHaveLength(0);
+  });
+});

@@ -19,7 +19,7 @@ import { MAX_QUANTITY } from "../checkout/checkout";
 import { decide, effective, isEssential } from "../guardian";
 import { findHiddenInstructions } from "../injection/scan";
 import type { Ledger } from "../ledger/ledger";
-import { addAudit, buildUserState, isSellerFlagged, REQUEST_LIFETIME_MS, summarize } from "../ledger/logic";
+import { activeWaiting, addAudit, buildUserState, isSellerFlagged, REQUEST_LIFETIME_MS, summarize } from "../ledger/logic";
 import type { AgentRequest, ConnectedAgent, LedgerData, RequestStep } from "../ledger/types";
 import { dollarsLabel } from "../rules/describe";
 import { rulesInWords } from "../rules/summary";
@@ -160,9 +160,12 @@ export async function requestPurchase(deps: CheckpointDeps, agent: ConnectedAgen
 
   const state = buildUserState(data, now);
   step("Asking the Money Guardian…");
+  // Same question checkout asks: an item already saved on the waiting list keeps its own timer (a served wait is a normal buy).
+  const waiting = activeWaiting(data, product.id);
   const result = decide(
     {
       amountCents, item: label, category: product.category, at: now,
+      waitlist: waiting ? { since: new Date(waiting.createdAt), waitHours: waiting.waitHours } : undefined,
       overrideWait: false, // an assistant can never press "Buy now". Only the person can.
       sellerFlaggedScam: isSellerFlagged(data, product.sellerDomain),
       agentStartedFromUntrustedText: untrusted,
@@ -209,7 +212,7 @@ export async function requestPurchase(deps: CheckpointDeps, agent: ConnectedAgen
 
   // ---- a firm wait: it goes on the waiting list, as for anyone ----------------------------------
   if (result.decision === "waitlist") {
-    const out = await deps.checkout({ productId: product.id, attemptId, quantity });
+    const out = await deps.checkout({ productId: product.id, attemptId, quantity, neverCharge: true });
     step("Saved it on the waiting list.", result.reason);
     return saveThen({ status: "saved_for_later", needsPerson: false, needsOverride: false }, auditText, () => ({ decision: "wait", status: "saved_for_later", reason: `${result.reason} ${out.kind === "waitlisted" ? "I saved it for later." : ""}`.trim(), requestId, item }));
   }
