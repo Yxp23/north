@@ -38,7 +38,7 @@ WEBHOOK_ID=$(echo "$REG" | sed -n 's/^PAYPAL_WEBHOOK_ID=//p')
 if [ "${E2E_LOCAL:-}" = "1" ]; then
   PAYPAL_WEBHOOK_ID="$WEBHOOK_ID" SUPABASE_URL= SUPABASE_SECRET_KEY= NORTH_DEV_RATE_MULTIPLIER=20 npx next dev -p "$PORT" >"$LOG/server.log" 2>&1 &
 else
-  PAYPAL_WEBHOOK_ID="$WEBHOOK_ID" DEMO_MODE=1 DEMO_DEPLOYMENT=1 npx next start -p "$PORT" >"$LOG/server.log" 2>&1 &
+  PAYPAL_WEBHOOK_ID="$WEBHOOK_ID" DEMO_MODE=1 DEMO_DEPLOYMENT=1 DEMO_USER_ID=00000000-0000-4000-8000-000000000001 npx next start -p "$PORT" >"$LOG/server.log" 2>&1 &
 fi
 SERVER_PID=$!
 for _ in $(seq 1 40); do curl -s -o /dev/null "localhost:$PORT/login" && break; sleep 1; done
