@@ -28,7 +28,7 @@ type Stage =
   | { name: "done"; result: Extract<ChangeResult, { ok: true }> };
 
 const h1 = "text-3xl font-bold outline-none";
-const field = "min-h-14 w-full rounded-xl border-2 border-line bg-card px-3 text-lg";
+const field = "n-field";
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
 export function ChangeRule({ kind }: { kind: RuleKind }) {
@@ -105,7 +105,7 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
 
     case "missing":
       return (
-        <div className="space-y-4">
+        <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>That rule is not on</h1>
           <p className="text-xl">There is nothing to change. You can make a new rule.</p>
           <Link href="/rules/new" className={btnPrimary}>Make a rule</Link>
@@ -115,7 +115,7 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
 
     case "error":
       return (
-        <div className="space-y-4">
+        <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>That did not work</h1>
           <p role="alert" className="text-xl">{stage.message}</p>
           <Link href="/rules" className={btnPrimary}>Back to my rules</Link>
@@ -124,7 +124,7 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
 
     case "menu":
       return (
-        <div className="space-y-4">
+        <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>What do you want to do?</h1>
           <div className={`${card} space-y-1`}>
             <p className="text-lg font-semibold">Your rule now</p>
@@ -142,7 +142,7 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
       // Same code as the server: is the change stricter (starts now) or weaker (waits a day)?
       const timing = !next ? null : kind === "big_buy" ? bigBuyTiming(now as BigBuyRule, next as BigBuyRule) : lateNightTiming(now as LateNightRule, next as LateNightRule);
       return (
-        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); if (next) send({ action: "set", rule: { kind, ...next } }); }}>
+        <form className="n-col" onSubmit={(e) => { e.preventDefault(); if (next) send({ action: "set", rule: { kind, ...next } }); }}>
           <h1 ref={headingRef} tabIndex={-1} className={h1}>Change this rule</h1>
           <p className="text-xl">{title}</p>
 
@@ -204,7 +204,7 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
 
     case "remove":
       return (
-        <div className="space-y-4">
+        <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>Remove this rule?</h1>
           <div className={card}>
             <p className="text-xl">{stage.line.text}</p>
@@ -220,7 +220,7 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
     case "done": {
       const r = stage.result;
       return (
-        <div className="space-y-4">
+        <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>{r.changed ? "Done" : "Nothing changed"}</h1>
           <div className={`${card} space-y-1`}>
             {r.text && <p className="text-xl">{r.text}</p>}

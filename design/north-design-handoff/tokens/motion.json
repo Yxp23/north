@@ -1,0 +1,53 @@
+{
+  "sampler": {
+    "mass": 1,
+    "samples": 49,
+    "lastSampleForcedTo": 1,
+    "interpolation": "linear between sampled frames",
+    "implementation": "spring-sampler.js"
+  },
+  "press": {
+    "durationMs": 490,
+    "stiffness": 440,
+    "damping": 21,
+    "initialScale": 0.955,
+    "finalScale": 1
+  },
+  "navigation": {
+    "durationMs": 560,
+    "stiffness": 350,
+    "damping": 21,
+    "stretchCoefficient": 0.08,
+    "translation": "selector width multiplied by active tab index"
+  },
+  "sheetEntry": {
+    "durationMs": 610,
+    "stiffness": 280,
+    "damping": 25,
+    "phoneInitialTranslateYpx": 240,
+    "laptopInitialTranslateYpx": 110,
+    "laptopTranslateX": "-50% throughout animation",
+    "opacity": "min(1, normalizedTime * 6)"
+  },
+  "sheetClose": {
+    "animated": false
+  },
+  "reflection": {
+    "durationMs": 700,
+    "easing": "ease-out",
+    "iterations": 1,
+    "trigger": "interaction",
+    "keyframe": "ng-shine"
+  },
+  "reducedMotion": {
+    "disableSpringAndSweep": true,
+    "followOSWhenExposed": true,
+    "explicitControl": true
+  },
+  "solidSurfaces": {
+    "independentOfTheme": true,
+    "independentOfMotion": true,
+    "disableBackdropFilter": true,
+    "disableGlassPseudoElements": true
+  }
+}

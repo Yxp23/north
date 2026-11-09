@@ -11,7 +11,7 @@ async function Content() {
   await connection(); // read the demo settings when the page is asked for, not when it was built
   if (!isDemoMode()) notFound();
   return (
-    <div className="space-y-6">
+    <div className="n-col" style={{ maxWidth: 720 }}>
       <h1 className="text-3xl font-bold">Try to break North</h1>
       <p className="text-lg">Pretend to be an AI assistant. Type any trick you like. North&apos;s Money Guardian answers live. This is a practice run: nothing is bought and nothing is saved.</p>
       <BreakIt />

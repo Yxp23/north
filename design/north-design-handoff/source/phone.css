@@ -1,0 +1,120 @@
+#north-elements-phone-distinct{color-scheme:light dark;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+#north-elements-phone-distinct *{box-sizing:border-box}
+#north-elements-phone-distinct .ng-stage{display:flex;align-items:flex-start;justify-content:center;gap:34px;padding:26px 12px 32px}
+#north-elements-phone-distinct .ng-device{--n-paper:#f0f7f8;--n-content:#fcfdfd;--n-ink:#244249;--n-muted:#536b71;--n-accent:#2b5c66;--n-action:#fff;--n-line:#d3e1e3;--n-haze:#b3d6de;--n-light:#e1f0f2;--n-deep:#7daebd;--n-milk:#ffffffe6;--n-glass:#ffffff59;--n-glass-light:#fffffffa;--n-glass-shade:#173b321f;--n-lens:#79ad9d40;--n-quiet:#e6efea;--n-success:#365c43;--n-edge:#8eaba2;--n-skin-shadow:#31483c1f;--n-state:#855114;--n-state-bg:#fff3dc;--n-stop:#8a403b;--n-stop-bg:#faeae6;width:364px;max-width:100%;border:1px solid var(--n-edge);border-radius:40px;background:var(--n-paper);padding:15px 21px 17px;color:var(--n-ink);font-size:17px;line-height:1.45;box-shadow:0 22px 60px var(--n-skin-shadow),inset 0 0 0 5px #ffffff70;position:relative;isolation:isolate;overflow:hidden;color-scheme:light}
+#north-elements-phone-distinct .ng-device[data-theme="opal"]{--n-paper:#f5f5f2;--n-content:#fdfdfb;--n-ink:#292a2b;--n-muted:#626365;--n-accent:#303335;--n-line:#ddded8;--n-haze:#d5dcd9;--n-light:#eef0eb;--n-deep:#a9b7b1;--n-glass-shade:#262d2c1c;--n-lens:#a4b2ac4a;--n-quiet:#e9ede8;--n-edge:#b5beb7;--n-skin-shadow:#373b351f}
+#north-elements-phone-distinct .ng-device[data-theme="dune"]{--n-paper:#f7f2eb;--n-content:#fdfbf7;--n-ink:#48352d;--n-muted:#756054;--n-accent:#765145;--n-line:#e3d7c9;--n-haze:#dfc1a6;--n-light:#f2e6d3;--n-deep:#c19372;--n-glass-shade:#6e443025;--n-lens:#b8825140;--n-quiet:#eee1d2;--n-edge:#c6ad95;--n-skin-shadow:#6d47301e}
+#north-elements-phone-distinct .ng-device[data-theme="grove"]{--n-paper:#f3f5ed;--n-content:#fcfdf7;--n-ink:#35432e;--n-muted:#626e56;--n-accent:#4d6340;--n-line:#dbe1cb;--n-haze:#c1ce9e;--n-light:#e8edda;--n-deep:#96ab75;--n-glass-shade:#3c4c2422;--n-lens:#9aaf6a40;--n-quiet:#e5ead8;--n-edge:#acbb91;--n-skin-shadow:#45552b1f}
+#north-elements-phone-distinct .ng-device[data-theme="bloom"]{--n-paper:#f9f3f3;--n-content:#fffafa;--n-ink:#4c343e;--n-muted:#775e68;--n-accent:#78505f;--n-line:#e6d8dd;--n-haze:#e4c6d0;--n-light:#f4e5e9;--n-deep:#c29aa9;--n-glass-shade:#63364c22;--n-lens:#ba819c40;--n-quiet:#f0e2e7;--n-edge:#c6a8b4;--n-skin-shadow:#623a4e1f}
+#north-elements-phone-distinct .ng-landscape{position:absolute;inset:0;z-index:-1;overflow:hidden;background:linear-gradient(155deg,var(--n-paper) 0%,var(--n-paper) 25%,var(--n-light) 69%,var(--n-haze) 100%);pointer-events:none}
+#north-elements-phone-distinct .ng-landscape::before{content:"";position:absolute;width:590px;height:590px;left:-370px;top:-331px;border:35px solid var(--n-haze);border-radius:44% 56% 60% 40%;box-shadow:0 0 0 1px #ffffff9c,0 0 0 22px var(--n-light),0 0 0 23px #ffffffae;transform:rotate(-26deg);opacity:.64}
+#north-elements-phone-distinct .ng-landscape::after{content:"";position:absolute;width:560px;height:460px;left:63px;bottom:-280px;border:34px solid var(--n-deep);border-radius:50%;transform:rotate(-24deg);box-shadow:0 0 0 2px #ffffffb0,0 0 0 19px var(--n-light),0 0 0 21px #ffffffc2,0 0 0 40px var(--n-haze);opacity:.7}
+#north-elements-phone-distinct .ng-device[data-theme="dune"] .ng-landscape::before{border-radius:75% 40% 30% 60%;transform:rotate(15deg)}
+#north-elements-phone-distinct .ng-device[data-theme="grove"] .ng-landscape::after{border-radius:60% 25% 65% 30%;transform:rotate(-35deg)}
+#north-elements-phone-distinct .ng-status{height:25px;padding:0 8px;display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:500}
+#north-elements-phone-distinct .ng-status-icons{display:flex;gap:5px;align-items:center}
+#north-elements-phone-distinct .ng-status-icons svg{height:14px;width:14px}
+#north-elements-phone-distinct .ng-top{margin:19px 0 26px;display:flex;justify-content:space-between;align-items:center}
+#north-elements-phone-distinct .ng-brand{display:flex;gap:7px;align-items:center;letter-spacing:-1px;font-size:26px;font-weight:500}
+#north-elements-phone-distinct .ng-brand-star{font-size:29px;font-weight:400;line-height:1}
+#north-elements-phone-distinct .ng-device button,#north-elements-phone-distinct .ng-device input{font-family:inherit}
+#north-elements-phone-distinct .ng-glass{--light-x:27%;--light-y:0%;background:var(--n-glass);border:1px solid var(--n-glass-light);box-shadow:inset 0 1px 1px 0 var(--n-glass-light),inset 1px 0 1px var(--n-glass-light),inset 0 -2px 3px var(--n-lens),0 4px 13px var(--n-glass-shade),0 0 0 1px #ffffff35;-webkit-backdrop-filter:blur(14px) saturate(1.65);backdrop-filter:blur(14px) saturate(1.65);position:relative;isolation:isolate;overflow:hidden}
+#north-elements-phone-distinct .ng-glass::before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(ellipse at var(--light-x) var(--light-y),#ffffffed 0%,#ffffff65 22%,transparent 59%),linear-gradient(130deg,#ffffffb0 0%,transparent 25%,transparent 67%,#ffffff80 100%);z-index:-1;pointer-events:none;opacity:.58}
+#north-elements-phone-distinct .ng-glass::after{content:"";position:absolute;width:70%;inset:-60% auto -60% -90%;transform:rotate(26deg);background:linear-gradient(90deg,transparent,#ffffffba 44%,#ffffffdb 51%,transparent);pointer-events:none;opacity:0}
+#north-elements-phone-distinct .ng-glass.ng-shine::after{animation:ng-shine 700ms ease-out 1}
+#north-elements-phone-distinct .ng-top-help{display:flex;align-items:center;justify-content:center;gap:6px;border-radius:25px;min-height:46px;padding:10px 13px;color:var(--n-ink);font-size:14px;line-height:1.3}
+#north-elements-phone-distinct .ng-top-help svg{height:16px;width:16px}
+#north-elements-phone-distinct .ng-device h1,#north-elements-phone-distinct .ng-device h2,#north-elements-phone-distinct .ng-device h3,#north-elements-phone-distinct .ng-device p{margin:0;color:inherit;font-family:inherit}
+#north-elements-phone-distinct .ng-eyebrow{font-size:14px;color:var(--n-muted);margin-bottom:7px}
+#north-elements-phone-distinct .ng-device h1{font-size:34px;line-height:1.15;letter-spacing:-1.25px;font-weight:500}
+#north-elements-phone-distinct .ng-intro{color:var(--n-muted);font-size:16px;line-height:1.5;margin-top:13px}
+#north-elements-phone-distinct .ng-find{width:100%;min-height:57px;display:flex;align-items:center;justify-content:center;gap:11px;border-radius:21px;color:var(--n-action);background:var(--n-accent);font-size:17px;font-weight:500;line-height:1.35;padding:15px 19px;margin-top:22px;box-shadow:inset 0 1px 1px #ffffff60,inset 0 -1px 1px #00000024,0 5px 13px var(--n-glass-shade);position:relative;isolation:isolate;overflow:hidden;border:1px solid #ffffff44;touch-action:manipulation}
+#north-elements-phone-distinct .ng-find::before{content:"";position:absolute;inset:0;background:linear-gradient(170deg,#ffffff21,transparent 50%);z-index:-1;pointer-events:none}
+#north-elements-phone-distinct .ng-find::after{content:"";position:absolute;inset:-90% auto -90% -90%;width:55%;background:linear-gradient(90deg,transparent,#ffffff60,transparent);transform:rotate(25deg);opacity:0;pointer-events:none}
+#north-elements-phone-distinct .ng-find.ng-shine::after{animation:ng-shine 700ms ease-out 1}
+#north-elements-phone-distinct .ng-find svg{width:19px;height:19px}
+#north-elements-phone-distinct .ng-money{background:var(--n-content);border:1px solid var(--n-line);border-radius:23px;padding:21px 21px 18px;margin-top:25px;box-shadow:0 3px 12px #00000003}
+#north-elements-phone-distinct .ng-money-top{display:flex;align-items:center;justify-content:space-between;font-size:15px;gap:10px}
+#north-elements-phone-distinct .ng-money-top svg{height:18px;width:18px;color:var(--n-muted)}
+#north-elements-phone-distinct .ng-amount{font-size:47px;font-weight:400;letter-spacing:-2px;line-height:1.25;margin:7px 0 12px;font-variant-numeric:tabular-nums}
+#north-elements-phone-distinct .ng-amount span{font-size:27px;letter-spacing:-.5px}
+#north-elements-phone-distinct .ng-safe{display:flex;align-items:flex-start;gap:7px;font-size:14px;line-height:1.5;padding-top:12px;border-top:1px solid var(--n-line);color:var(--n-success)}
+#north-elements-phone-distinct .ng-safe svg{width:17px;height:17px;flex-shrink:0;margin-top:2px}
+#north-elements-phone-distinct .ng-section{display:flex;align-items:center;justify-content:space-between;margin:21px 0 11px;font-size:16px;font-weight:500}
+#north-elements-phone-distinct .ng-view-saved{border:0;background:transparent;color:var(--n-muted);font-size:13px;text-decoration:underline;text-underline-offset:4px;padding:9px 0;min-height:44px}
+#north-elements-phone-distinct .ng-saved{display:flex;align-items:center;gap:14px;border-radius:20px;background:var(--n-content);padding:15px;border:1px solid var(--n-line);width:100%;text-align:left;color:var(--n-ink);font-size:15px;line-height:1.45}
+#north-elements-phone-distinct .ng-product-image{width:63px;height:72px;border-radius:14px;background:var(--n-quiet);display:grid;place-items:center;flex-shrink:0}
+#north-elements-phone-distinct .ng-product-image svg{height:38px;width:38px;stroke-width:1.2}
+#north-elements-phone-distinct .ng-headphones{display:block;width:37px;height:42px;border:5px solid #c6c2b4;border-bottom:0;border-radius:24px 24px 7px 7px;position:relative;background:transparent;box-shadow:inset 0 2px 0 #f3f0e4,0 -1px 0 #a9a494;transform:rotate(-10deg)}
+#north-elements-phone-distinct .ng-headphones::before,#north-elements-phone-distinct .ng-headphones::after{content:"";position:absolute;bottom:-3px;height:24px;width:11px;border:1px solid #aaa18d;border-radius:6px;background:linear-gradient(90deg,#d6d0bf,#e7e1d3 45%,#b9b09e);box-shadow:0 2px 3px #564f331c}
+#north-elements-phone-distinct .ng-headphones::before{left:-8px;transform:rotate(-5deg)}#north-elements-phone-distinct .ng-headphones::after{right:-8px;transform:rotate(5deg)}
+#north-elements-phone-distinct .ng-product-copy{display:grid;gap:3px;min-width:0}
+#north-elements-phone-distinct .ng-product-copy strong{font-size:17px;font-weight:500}
+#north-elements-phone-distinct .ng-product-copy small{font-size:12px;line-height:1.4;color:var(--n-success)}
+#north-elements-phone-distinct .ng-ask{margin-top:20px;min-height:53px;border-radius:28px;padding:12px 15px;width:100%;display:flex;align-items:center;gap:10px;color:var(--n-ink);font-size:15px;text-align:left;touch-action:manipulation}
+#north-elements-phone-distinct .ng-ask span:nth-child(2){flex:1}
+#north-elements-phone-distinct .ng-ask svg{width:18px;height:18px}
+#north-elements-phone-distinct .ng-nav{margin:15px -7px 0;padding:6px;display:flex;border-radius:32px;gap:0}
+#north-elements-phone-distinct .ng-nav-selector{position:absolute;left:6px;top:6px;bottom:6px;width:calc((100% - 12px)/4);border-radius:25px;background:#ffffffbc;border:1px solid #ffffffeb;box-shadow:inset 0 1px 2px #fff,0 2px 7px var(--n-glass-shade);z-index:0;pointer-events:none;transform-origin:center}
+#north-elements-phone-distinct .ng-nav button{flex:1;min-width:0;min-height:53px;border:0;background:transparent;color:var(--n-muted);display:flex;align-items:center;justify-content:center;gap:4px;flex-direction:column;font-size:11px;line-height:1.25;padding:5px 3px;z-index:1;position:relative;border-radius:25px;touch-action:manipulation}
+#north-elements-phone-distinct .ng-nav button[aria-current]{color:var(--n-ink);font-weight:500}
+#north-elements-phone-distinct .ng-nav svg{height:19px;width:19px;stroke-width:1.7}
+#north-elements-phone-distinct .ng-indicator{height:4px;width:97px;border-radius:4px;background:var(--n-ink);margin:15px auto 0;opacity:.8}
+#north-elements-phone-distinct .ng-pages{min-height:571px}
+#north-elements-phone-distinct .ng-page[hidden]{display:none}
+#north-elements-phone-distinct .ng-page-title{padding:0 0 18px}
+#north-elements-phone-distinct .ng-page-title p{margin-top:12px!important;font-size:16px;color:var(--n-muted)!important}
+#north-elements-phone-distinct .ng-panel{border:1px solid var(--n-line);background:var(--n-content);border-radius:23px;padding:21px;margin-top:19px;font-size:16px;line-height:1.55}
+#north-elements-phone-distinct .ng-panel h2{font-size:20px;line-height:1.35;font-weight:500;letter-spacing:-.4px;margin-bottom:12px}
+#north-elements-phone-distinct .ng-panel p+p{margin-top:14px}
+#north-elements-phone-distinct .ng-label{font-size:14px;display:block;margin-bottom:8px}
+#north-elements-phone-distinct .ng-device input[type="search"]{width:100%;min-height:54px;border:1px solid var(--n-muted);border-radius:14px;background:var(--n-content);color:var(--n-ink);font-size:17px;padding:13px 14px}
+#north-elements-phone-distinct .ng-secondary{min-height:48px;padding:12px 10px;width:100%;border:0;background:transparent;font-size:15px;color:var(--n-ink);text-decoration:underline;text-underline-offset:4px;line-height:1.5}
+#north-elements-phone-distinct .ng-hint{font-size:13px;color:var(--n-muted);margin-top:13px;line-height:1.5}
+#north-elements-phone-distinct .ng-sheet-dimmer{position:absolute;inset:0;z-index:5;background:#192a251a;pointer-events:none}
+#north-elements-phone-distinct .ng-sheet-dimmer[hidden],#north-elements-phone-distinct .ng-sheet[hidden]{display:none}
+#north-elements-phone-distinct .ng-sheet{position:absolute;bottom:0;left:0;right:0;z-index:6;background:var(--n-content);padding:12px 23px 25px;border-radius:32px 32px 39px 39px;border:1px solid var(--n-line);box-shadow:0 -8px 45px var(--n-skin-shadow);transform-origin:center bottom}
+#north-elements-phone-distinct .ng-sheet-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:23px}
+#north-elements-phone-distinct .ng-handle{height:4px;width:38px;border-radius:4px;background:var(--n-line);margin-left:calc(50% - 19px)}
+#north-elements-phone-distinct .ng-sheet-close{border-radius:50%;width:43px;height:43px;display:grid;place-items:center;color:var(--n-ink);position:absolute;right:17px;top:10px}
+#north-elements-phone-distinct .ng-sheet-close svg{width:18px;height:18px}
+#north-elements-phone-distinct .ng-sheet h2{font-size:28px;line-height:1.2;font-weight:500;letter-spacing:-.8px;margin-bottom:16px}
+#north-elements-phone-distinct .ng-sheet p{font-size:16px;line-height:1.5;color:var(--n-muted);margin-bottom:18px}
+#north-elements-phone-distinct .ng-review{background:var(--n-quiet);border-radius:15px;padding:16px;margin:20px 0;font-size:15px;line-height:1.6}
+#north-elements-phone-distinct .ng-review-row{display:flex;justify-content:space-between;gap:15px;padding:5px 0}
+#north-elements-phone-distinct .ng-review-row strong{font-weight:500}
+#north-elements-phone-distinct .ng-decision{color:var(--n-state);background:var(--n-state-bg);border-radius:16px;padding:17px;font-size:16px;line-height:1.5;margin:18px 0}
+#north-elements-phone-distinct .ng-decision.stop{color:var(--n-stop);background:var(--n-stop-bg)}
+#north-elements-phone-distinct .ng-controls{width:190px;max-width:100%;padding-top:42px;color:light-dark(#333836,#e7ebe7);font-size:14px;line-height:1.45}
+#north-elements-phone-distinct .ng-controls h2{font-family:inherit;font-size:20px;letter-spacing:-.4px;line-height:1.3;font-weight:500;margin:0 0 17px}
+#north-elements-phone-distinct .ng-theme-list{display:grid;gap:9px}
+#north-elements-phone-distinct .ng-theme-choice{display:flex;align-items:center;gap:10px;text-align:left;border:1px solid light-dark(#d5dad4,#535c55);border-radius:14px;min-height:61px;padding:10px;background:light-dark(#ffffff90,#20292190);color:inherit;font-family:inherit;font-size:14px;line-height:1.4;font-weight:400}
+#north-elements-phone-distinct .ng-theme-choice[aria-pressed="true"]{border-color:light-dark(#55685c,#b7cbbb);box-shadow:inset 0 0 0 1px light-dark(#55685c,#b7cbbb)}
+#north-elements-phone-distinct .ng-theme-choice small{font-size:12px;display:block;opacity:.75;margin-top:2px}
+#north-elements-phone-distinct .ng-theme-disc{width:33px;height:33px;flex-shrink:0;border-radius:50%;border:1px solid #ffffffb0;box-shadow:inset 0 1px 3px #ffffffc0,0 2px 6px #0000000f}
+#north-elements-phone-distinct .ng-controls-divider{border:0;border-top:1px solid light-dark(#d9ded9,#515a51);margin:22px 0 15px}
+#north-elements-phone-distinct .ng-check{display:flex;align-items:center;gap:9px;font-size:13px;min-height:42px}
+#north-elements-phone-distinct .ng-check input{height:18px;width:18px;accent-color:light-dark(#3c5c4a,#adc7b4);flex-shrink:0}
+#north-elements-phone-distinct .ng-demo{width:100%;min-height:45px;border:1px solid light-dark(#a7b3a9,#6d8071);background:light-dark(#fff,#202d24);color:inherit;border-radius:12px;padding:10px 12px;font-family:inherit;font-size:13px;line-height:1.4;margin:12px 0 9px}
+#north-elements-phone-distinct .ng-notice{min-height:42px;font-size:12px;line-height:1.5;opacity:.8}
+#north-elements-phone-distinct .ng-swatch-caption{display:flex;align-items:center;gap:7px;margin-top:19px;font-size:12px;opacity:.8}
+#north-elements-phone-distinct .ng-swatch-caption i{display:block;width:28px;height:20px;border-radius:7px;border:1px solid #ffffffb0;background:linear-gradient(140deg,#ffffffd0,#a5bdb26b 43%,#ffffffc9 48%,#c9d9ce80);box-shadow:inset 0 1px 1px #fff,0 2px 5px #00000013}
+#north-elements-phone-distinct .ng-device.ng-solid .ng-glass{background:var(--n-content);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 2px 5px var(--n-glass-shade);border-color:var(--n-line)}
+#north-elements-phone-distinct .ng-device.ng-solid .ng-glass::before,#north-elements-phone-distinct .ng-device.ng-solid .ng-glass::after{display:none}
+#north-elements-phone-distinct .ng-device.ng-solid .ng-nav-selector{background:var(--n-quiet);border-color:var(--n-line);box-shadow:none}
+#north-elements-phone-distinct .ng-device.ng-reduced *,#north-elements-phone-distinct .ng-device.ng-reduced *::after{animation:none!important;transition:none!important}
+#north-elements-phone-distinct .ng-vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@keyframes ng-shine{0%{left:-90%;opacity:0}20%{opacity:.85}80%{opacity:.65}100%{left:140%;opacity:0}}
+@media(max-width:610px){#north-elements-phone-distinct .ng-stage{flex-direction:column-reverse;align-items:center;padding:12px 0 20px;gap:21px}#north-elements-phone-distinct .ng-controls{width:364px;padding:0 8px}#north-elements-phone-distinct .ng-controls h2{margin-bottom:12px}#north-elements-phone-distinct .ng-theme-list{grid-template-columns:1fr 1fr;gap:8px}#north-elements-phone-distinct .ng-theme-choice{min-height:58px}#north-elements-phone-distinct .ng-controls-divider{margin:15px 0 9px}#north-elements-phone-distinct .ng-preferences{display:flex;flex-wrap:wrap;gap:0 15px}#north-elements-phone-distinct .ng-check{font-size:12px}#north-elements-phone-distinct .ng-demo{margin-top:7px}#north-elements-phone-distinct .ng-notice{min-height:18px}#north-elements-phone-distinct .ng-swatch-caption{display:none}}
+@media(max-width:360px){#north-elements-phone-distinct .ng-device{padding-left:17px;padding-right:17px;border-radius:32px}#north-elements-phone-distinct .ng-device h1{font-size:30px}#north-elements-phone-distinct .ng-pages{min-height:585px}#north-elements-phone-distinct .ng-sheet{border-bottom-left-radius:31px;border-bottom-right-radius:31px}#north-elements-phone-distinct .ng-headphones{display:block;width:37px;height:42px;border:5px solid #c6c2b4;border-bottom:0;border-radius:24px 24px 7px 7px;position:relative;background:transparent;box-shadow:inset 0 2px 0 #f3f0e4,0 -1px 0 #a9a494;transform:rotate(-10deg)}
+#north-elements-phone-distinct .ng-headphones::before,#north-elements-phone-distinct .ng-headphones::after{content:"";position:absolute;bottom:-3px;height:24px;width:11px;border:1px solid #aaa18d;border-radius:6px;background:linear-gradient(90deg,#d6d0bf,#e7e1d3 45%,#b9b09e);box-shadow:0 2px 3px #564f331c}
+#north-elements-phone-distinct .ng-headphones::before{left:-8px;transform:rotate(-5deg)}#north-elements-phone-distinct .ng-headphones::after{right:-8px;transform:rotate(5deg)}
+#north-elements-phone-distinct .ng-product-copy{font-size:14px}}
+@media(prefers-reduced-motion:reduce){#north-elements-phone-distinct *{animation:none!important;transition:none!important}}
+/* Element-specific geometry: waves, petals, and faceted planes. */
+#north-elements-phone-distinct .ng-device[data-theme="tide"] .ng-landscape::before{width:650px;height:240px;left:-180px;right:auto;top:-172px;bottom:auto;border:0;border-bottom:29px solid var(--n-haze);border-radius:0 0 52% 48%;background:transparent;box-shadow:0 12px 0 -5px var(--n-light),0 14px 0 -5px #ffffffa0;transform:rotate(-14deg);opacity:.7}
+#north-elements-phone-distinct .ng-device[data-theme="tide"] .ng-landscape::after{width:730px;height:310px;left:-210px;right:auto;bottom:-150px;top:auto;border:0;border-top:2px solid #ffffffc0;border-radius:48% 62% 0 0 / 75% 80% 0 0;background:linear-gradient(180deg,var(--n-haze),var(--n-light));box-shadow:0 -13px 0 -3px var(--n-light),0 -15px 0 -3px #ffffffa0,0 -30px 0 -7px var(--n-deep);transform:rotate(-12deg);opacity:.76}
+#north-elements-phone-distinct .ng-device[data-theme="bloom"] .ng-landscape::before{width:330px;height:440px;left:170px;right:auto;top:-240px;bottom:auto;border:1px solid #ffffffa0;border-radius:82% 12% 78% 14%;background:linear-gradient(145deg,var(--n-light),var(--n-haze));box-shadow:-75px 42px 0 -18px var(--n-light),inset -14px -18px 0 #ffffff40;transform:rotate(-30deg);opacity:.78}
+#north-elements-phone-distinct .ng-device[data-theme="bloom"] .ng-landscape::after{width:395px;height:485px;left:-230px;right:auto;bottom:-195px;top:auto;border:1px solid #ffffffb0;border-radius:12% 85% 17% 82%;background:linear-gradient(120deg,var(--n-haze),var(--n-light));box-shadow:83px -29px 0 -26px var(--n-haze),inset 18px 15px 0 #ffffff35;transform:rotate(-24deg);opacity:.76}
+#north-elements-phone-distinct .ng-device[data-theme="opal"] .ng-landscape::before{width:420px;height:530px;left:155px;right:auto;top:-295px;bottom:auto;border:0;border-radius:0;clip-path:polygon(20% 0,100% 0,79% 100%,0 79%);background:linear-gradient(118deg,var(--n-light) 0%,#ffffffd0 38%,var(--n-haze) 39%,var(--n-light) 67%,#ffffff90 68%);box-shadow:none;transform:rotate(14deg);opacity:.82}
+#north-elements-phone-distinct .ng-device[data-theme="opal"] .ng-landscape::after{width:480px;height:485px;left:-190px;right:auto;bottom:-240px;top:auto;border:0;border-radius:0;clip-path:polygon(0 17%,70% 0,100% 80%,20% 100%);background:linear-gradient(130deg,var(--n-haze) 0%,var(--n-light) 44%,#ffffffe0 45%,#ffffff80 47%,var(--n-deep) 48%,var(--n-light) 100%);box-shadow:none;transform:rotate(-17deg);opacity:.64}

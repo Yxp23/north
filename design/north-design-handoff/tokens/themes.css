@@ -1,0 +1,130 @@
+/* Resolved values extracted from the approved North source. */
+.north-app[data-theme="tide"] {
+  --n-paper: #f0f7f8;
+  --n-content: #fcfdfd;
+  --n-ink: #244249;
+  --n-muted: #536b71;
+  --n-accent: #2b5c66;
+  --n-action: #fff;
+  --n-line: #d3e1e3;
+  --n-haze: #b3d6de;
+  --n-light: #e1f0f2;
+  --n-deep: #7daebd;
+  --n-milk: #ffffffe6;
+  --n-glass: #ffffff59;
+  --n-glass-light: #fffffffa;
+  --n-glass-shade: #173b321f;
+  --n-lens: #79ad9d40;
+  --n-quiet: #e6efea;
+  --n-success: #365c43;
+  --n-edge: #8eaba2;
+  --n-skin-shadow: #31483c1f;
+  --n-state: #855114;
+  --n-state-bg: #fff3dc;
+  --n-stop: #8a403b;
+  --n-stop-bg: #faeae6;
+}
+
+.north-app[data-theme="dune"] {
+  --n-paper: #f7f2eb;
+  --n-content: #fdfbf7;
+  --n-ink: #48352d;
+  --n-muted: #756054;
+  --n-accent: #765145;
+  --n-action: #fff;
+  --n-line: #e3d7c9;
+  --n-haze: #dfc1a6;
+  --n-light: #f2e6d3;
+  --n-deep: #c19372;
+  --n-milk: #ffffffe6;
+  --n-glass: #ffffff59;
+  --n-glass-light: #fffffffa;
+  --n-glass-shade: #6e443025;
+  --n-lens: #b8825140;
+  --n-quiet: #eee1d2;
+  --n-success: #365c43;
+  --n-edge: #c6ad95;
+  --n-skin-shadow: #6d47301e;
+  --n-state: #855114;
+  --n-state-bg: #fff3dc;
+  --n-stop: #8a403b;
+  --n-stop-bg: #faeae6;
+}
+
+.north-app[data-theme="grove"] {
+  --n-paper: #f3f5ed;
+  --n-content: #fcfdf7;
+  --n-ink: #35432e;
+  --n-muted: #626e56;
+  --n-accent: #4d6340;
+  --n-action: #fff;
+  --n-line: #dbe1cb;
+  --n-haze: #c1ce9e;
+  --n-light: #e8edda;
+  --n-deep: #96ab75;
+  --n-milk: #ffffffe6;
+  --n-glass: #ffffff59;
+  --n-glass-light: #fffffffa;
+  --n-glass-shade: #3c4c2422;
+  --n-lens: #9aaf6a40;
+  --n-quiet: #e5ead8;
+  --n-success: #365c43;
+  --n-edge: #acbb91;
+  --n-skin-shadow: #45552b1f;
+  --n-state: #855114;
+  --n-state-bg: #fff3dc;
+  --n-stop: #8a403b;
+  --n-stop-bg: #faeae6;
+}
+
+.north-app[data-theme="opal"] {
+  --n-paper: #f5f5f2;
+  --n-content: #fdfdfb;
+  --n-ink: #292a2b;
+  --n-muted: #626365;
+  --n-accent: #303335;
+  --n-action: #fff;
+  --n-line: #ddded8;
+  --n-haze: #d5dcd9;
+  --n-light: #eef0eb;
+  --n-deep: #a9b7b1;
+  --n-milk: #ffffffe6;
+  --n-glass: #ffffff59;
+  --n-glass-light: #fffffffa;
+  --n-glass-shade: #262d2c1c;
+  --n-lens: #a4b2ac4a;
+  --n-quiet: #e9ede8;
+  --n-success: #365c43;
+  --n-edge: #b5beb7;
+  --n-skin-shadow: #373b351f;
+  --n-state: #855114;
+  --n-state-bg: #fff3dc;
+  --n-stop: #8a403b;
+  --n-stop-bg: #faeae6;
+}
+
+.north-app[data-theme="bloom"] {
+  --n-paper: #f9f3f3;
+  --n-content: #fffafa;
+  --n-ink: #4c343e;
+  --n-muted: #775e68;
+  --n-accent: #78505f;
+  --n-action: #fff;
+  --n-line: #e6d8dd;
+  --n-haze: #e4c6d0;
+  --n-light: #f4e5e9;
+  --n-deep: #c29aa9;
+  --n-milk: #ffffffe6;
+  --n-glass: #ffffff59;
+  --n-glass-light: #fffffffa;
+  --n-glass-shade: #63364c22;
+  --n-lens: #ba819c40;
+  --n-quiet: #f0e2e7;
+  --n-success: #365c43;
+  --n-edge: #c6a8b4;
+  --n-skin-shadow: #623a4e1f;
+  --n-state: #855114;
+  --n-state-bg: #fff3dc;
+  --n-stop: #8a403b;
+  --n-stop-bg: #faeae6;
+}

@@ -14,15 +14,15 @@ export function PicturePicker({ id, label, picture, onChange }: { id: string; la
       onChange({ name: file.name, base64: await shrinkPicture(file) });
     } catch {
       onChange(null);
-      setError("I couldn't open that picture. Please try a different one.");
+      setError("I couldn't open that picture. Nothing was changed. Please try a different one.");
     }
   }
   return (
-    <div className="space-y-2">
-      <label htmlFor={id} className="block text-xl font-semibold">{label}</label>
-      <input id={id} type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => choose(e.target.files?.[0])} className="block min-h-14 w-full text-lg" />
-      {picture && <p className="text-lg">Picture added: {picture.name}</p>}
-      {error && <p role="alert" className="text-lg text-bad-ink">{error}</p>}
+    <div className="n-stack" style={{ gap: 8 }}>
+      <label htmlFor={id} className="n-label" style={{ marginBottom: 0 }}>{label}</label>
+      <input id={id} type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => choose(e.target.files?.[0])} className="n-field" style={{ padding: 12 }} />
+      {picture && <p role="status">Picture added: {picture.name}</p>}
+      {error && <p role="alert" className="n-note n-note-stop"><span>{error}</span></p>}
     </div>
   );
 }

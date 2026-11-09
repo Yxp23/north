@@ -1,363 +1,107 @@
 "use client";
-// "This week's money": the home screen. Asks the server again every few seconds, so a payment
-// or refund that PayPal reports by webhook shows up on its own.
+// Home: the approved composition. A hero with "Find an item", the money for this week, a saved item, and a short note that the rules are on.
+// Anything that needs the person (an assistant's one-tap card, price news) comes first. Every number comes from the server's summary.
+import { ArrowUpRight, Bookmark, ShieldCheck, Wallet } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import { ActivityPanel } from "@/components/activity-panel";
-import { AskNorth } from "./ask-north";
-import { btnPrimary, btnSecondary, card } from "@/components/classes";
-import type { StepEvent } from "@/lib/agents/loop";
-import { setDemoHour, useDemoHour } from "@/lib/demo-hour";
+import { useState } from "react";
+import { card } from "@/components/classes";
+import { BigMoney, RealThingsLine } from "@/components/money";
+import { ErrorNote, Loading } from "@/components/states";
+import { SpeakButton } from "@/components/shell/speak";
 import { formatMoney } from "@/lib/format";
-import type { AssistantAskView, HomeSummary, PriceNotice, PurchaseStatus, PurchaseView, WaitingView } from "@/lib/ledger/types";
-import { postAgent } from "@/lib/ndjson-client";
-import type { WatchRunResult } from "@/lib/watcher/run";
-
-type Summary = HomeSummary & { paypalSaved: boolean; demoMode: boolean; demoDeployment?: boolean };
-
-const STATUS: Record<PurchaseStatus, { label: string; cls: string; icon: string }> = {
-  paid: { label: "Paid", cls: "bg-good-bg text-good-ink", icon: "✓" },
-  pending: { label: "Waiting for PayPal", cls: "bg-warn-bg text-warn-ink", icon: "…" },
-  refunded: { label: "Money back", cls: "bg-warn-bg text-warn-ink", icon: "↩" },
-  failed: { label: "Did not go through", cls: "bg-bad-bg text-bad-ink", icon: "✕" },
-};
+import { AskRow, NoticeRow, useSummary, when } from "./summary-parts";
 
 export function Home() {
-  const [data, setData] = useState<Summary | null>(null);
-  const [error, setError] = useState(false);
+  const { data, error, load } = useSummary();
   // What the person just answered on an assistant's card. It stays on screen after the card goes away.
   const [answered, setAnswered] = useState("");
 
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch("/api/summary", { cache: "no-store" });
-      if (!res.ok) throw new Error(String(res.status));
-      setData(await res.json());
-      setError(false);
-    } catch {
-      setError(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    const first = setTimeout(load, 0);
-    const timer = setInterval(() => {
-      if (document.visibilityState === "visible") load();
-    }, 4000);
-    const onVisible = () => document.visibilityState === "visible" && load();
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      clearTimeout(first);
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [load]);
-
-  if (!data) {
-    return <p role="status" className="text-xl">{error ? "I can't load your money right now. Please try again." : "Loading your money…"}</p>;
-  }
+  if (!data) return error ? <ErrorNote what="your money" onRetry={load} /> : <Loading what="your money" />;
 
   const spentPct = data.weeklyBudgetCents > 0 ? Math.min(100, Math.round((data.spentThisWeekCents / data.weeklyBudgetCents) * 100)) : 100;
+  const first = data.waitingList[0];
+  const hear = `You have ${formatMoney(data.leftCents)} left to spend this week. ${formatMoney(data.protectedCents)} for rent and bills stays safe. I can't spend it.`;
+  const needsYou = data.assistantAsks.length > 0 || data.priceNotices.length > 0 || !data.paypalSaved || !!answered || error;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">This week&apos;s money</h1>
+    <div className="ng-home">
+      {needsYou && (
+        <div className="ng-wide n-stack">
+          {error && <p role="status" className="n-note n-note-wait">I could not check for news just now. I will try again.</p>}
+          {!data.paypalSaved && (
+            <div role="note" className="n-note n-note-wait">
+              <Wallet aria-hidden="true" />
+              <div className="n-stack" style={{ gap: 8 }}>
+                <p><strong>PayPal is not connected yet.</strong> You need it to buy things.</p>
+                <Link href="/connect" className="n-btn n-btn-secondary n-btn-auto">Connect PayPal</Link>
+              </div>
+            </div>
+          )}
+          {answered && <p role="status" className="n-note n-note-good">{answered}</p>}
+          {data.assistantAsks.length > 0 && (
+            <section aria-labelledby="asks-h" className="n-stack">
+              <h2 id="asks-h">Your assistant is asking</h2>
+              <ul className="n-stack" aria-live="polite">
+                {data.assistantAsks.map((a) => <AskRow key={a.id} a={a} onChange={load} onAnswered={setAnswered} />)}
+              </ul>
+            </section>
+          )}
+          {data.priceNotices.length > 0 && (
+            <section aria-labelledby="news-h" className="n-stack">
+              <h2 id="news-h">Price news</h2>
+              <ul className="n-stack" aria-live="polite">
+                {data.priceNotices.map((n) => <NoticeRow key={n.id} n={n} onChange={load} />)}
+              </ul>
+            </section>
+          )}
+        </div>
+      )}
 
-      {error && <p role="status" className="rounded-xl bg-warn-bg p-3 text-warn-ink">I could not check for news just now. I will try again.</p>}
+      <div className="ng-hero">
+        <div className="ng-eyebrow">Your week with North</div>
+        <h1>What are you<br />looking for?</h1>
+        <p className="ng-intro">Shop with a little help from North.</p>
+        <Link href="/find" className="ng-find n-btn n-btn-primary">Find an item <ArrowUpRight aria-hidden="true" /></Link>
+      </div>
 
-      {!data.paypalSaved && (
-        <div role="note" className="rounded-2xl border-2 border-warn-ink bg-warn-bg p-4 text-warn-ink">
-          <p className="text-lg font-semibold">PayPal is not connected yet.</p>
-          <p>You need it to buy things.</p>
-          <Link href="/connect" className="mt-2 inline-block rounded-lg px-1 py-2 font-semibold underline">
-            Connect PayPal
+      <section className="ng-money" aria-labelledby="left-h">
+        <div className="ng-money-top"><span id="left-h">Left to spend this week</span><Wallet aria-hidden="true" /></div>
+        <BigMoney cents={data.leftCents} label="Left to spend this week" />
+        <RealThingsLine cents={data.leftCents} />
+        <div role="img" aria-label={`You have spent ${spentPct} percent of this week's plan`} className="ng-bar"><div style={{ width: `${spentPct}%` }} /></div>
+        <p className="ng-real" style={{ margin: "8px 0 14px" }}>Your plan this week is {formatMoney(data.weeklyBudgetCents)}. You have spent {formatMoney(data.spentThisWeekCents)}.</p>
+        <div className="ng-safe"><ShieldCheck aria-hidden="true" /><span>{formatMoney(data.protectedCents)} for rent and bills stays safe. I can&apos;t spend it.</span></div>
+        <div style={{ marginTop: 14 }}><SpeakButton text={hear} label="Hear my money" /></div>
+      </section>
+
+      <section className="ng-saved-section" aria-labelledby="saved-h" style={{ minWidth: 0 }}>
+        <div className="ng-section"><h2 id="saved-h" style={{ fontSize: "inherit" }}>Saved for later</h2><Link href="/saved" className="n-link">View saved</Link></div>
+        {first ? (
+          <Link href={`/shop/${first.productId}`} className="ng-saved">
+            <span className="ng-product-image">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={first.imageUrl} alt="" />
+            </span>
+            <span className="ng-product-copy">
+              {first.name}
+              <strong>{formatMoney(first.amountCents)}</strong>
+              <small>{first.ready ? "Ready. You can buy it." : `I'll remind you. Ready ${when(first.remindAt)}.`}{data.waitingList.length > 1 ? ` And ${data.waitingList.length - 1} more saved.` : ""}</small>
+            </span>
           </Link>
-        </div>
-      )}
-
-      <section aria-labelledby="left-h" className={card}>
-        <h2 id="left-h" className="text-xl font-semibold text-muted">Left to spend this week</h2>
-        <p className="text-5xl font-bold">{formatMoney(data.leftCents)}</p>
-        <div
-          role="img"
-          aria-label={`You have spent ${spentPct} percent of this week's plan`}
-          className="mt-4 h-6 w-full overflow-hidden rounded-full border border-line bg-slate-200"
-        >
-          <div className="h-full bg-accent" style={{ width: `${spentPct}%` }} />
-        </div>
-        <p className="mt-3 text-lg">
-          Your plan for this week is {formatMoney(data.weeklyBudgetCents)}. You have spent {formatMoney(data.spentThisWeekCents)}.
-        </p>
-      </section>
-
-      <section aria-labelledby="safe-h" className={`${card} flex items-center gap-4`}>
-        <span aria-hidden="true" className="text-4xl">🔒</span>
-        <div>
-          <h2 id="safe-h" className="text-xl font-semibold text-muted">Saved for rent and bills</h2>
-          <p className="text-3xl font-bold">{formatMoney(data.protectedCents)}</p>
-          <p>This money is safe. I can&apos;t spend it.</p>
-        </div>
-      </section>
-
-      <AskNorth />
-
-      <Link href="/shop" className={btnPrimary}>Shop for something</Link>
-      <Link href="/payments" className={btnSecondary}>Ask about my payments</Link>
-
-      {answered && (
-        <p role="status" className="rounded-2xl border-2 border-good-ink bg-good-bg p-4 text-xl font-semibold text-good-ink">{answered}</p>
-      )}
-      {data.assistantAsks.length > 0 && (
-        <section aria-labelledby="asks-h" className="space-y-3">
-          <h2 id="asks-h" className="text-2xl font-bold">Your assistant is asking</h2>
-          <ul className="space-y-3" aria-live="polite">
-            {data.assistantAsks.map((a) => (
-              <AskRow key={a.id} a={a} onChange={load} onAnswered={setAnswered} />
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {data.priceNotices.length > 0 && (
-        <section aria-labelledby="news-h" className="space-y-3">
-          <h2 id="news-h" className="text-2xl font-bold">Price news</h2>
-          <ul className="space-y-3" aria-live="polite">
-            {data.priceNotices.map((n) => (
-              <NoticeRow key={n.id} n={n} onChange={load} />
-            ))}
-          </ul>
-        </section>
-      )}
-      {data.watching.length > 0 && (
-        <p className="text-lg">I am watching the price of: {data.watching.map((w) => w.name).join(", ")}.</p>
-      )}
-
-      {data.waitingList.length > 0 && (
-        <section aria-labelledby="waiting-h" className="space-y-3">
-          <h2 id="waiting-h" className="text-2xl font-bold">Waiting list</h2>
-          <ul className="space-y-3">
-            {data.waitingList.map((w) => (
-              <WaitingRow key={w.id} w={w} />
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section aria-labelledby="buys-h" className="space-y-3">
-        <h2 id="buys-h" className="text-2xl font-bold">Your last buys</h2>
-        {data.purchases.length === 0 ? (
-          <p className="text-lg">No buys yet.</p>
         ) : (
-          <ul className="space-y-3" aria-live="polite">
-            {data.purchases.map((p) => (
-              <PurchaseRow key={p.id} p={p} onChange={load} />
-            ))}
-          </ul>
+          <div className={`${card} n-rowitem`} style={{ minHeight: 120 }}>
+            <Bookmark aria-hidden="true" size={32} />
+            <p>Nothing is saved yet. When you wait on something, it shows here.</p>
+          </div>
         )}
       </section>
 
-      {data.demoMode && <DemoTools onChange={load} deployed={!!data.demoDeployment} />}
+      <div className="ng-trust">
+        <div className="ng-trust-title"><ShieldCheck aria-hidden="true" /><h2 style={{ fontSize: "inherit" }}>Your rules are on</h2></div>
+        <p>North checks the item, seller, and total before you pay.</p>
+        {data.buyNowThisWeek > 0 && <p>You chose Buy now {data.buyNowThisWeek} {data.buyNowThisWeek === 1 ? "time" : "times"} this week.</p>}
+        <Link href="/rules" className="n-link">See my spending rules</Link>
+      </div>
     </div>
-  );
-}
-
-// A one-tap card: "Your assistant wants to buy Warm Socks, $11. Yes / No". Yes still goes through the Money Guardian.
-function AskRow({ a, onChange, onAnswered }: { a: AssistantAskView; onChange: () => void; onAnswered: (message: string) => void }) {
-  const [working, setWorking] = useState(false);
-
-  async function answer(yes: boolean) {
-    setWorking(true);
-    try {
-      const res = await fetch("/api/agents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "answer", id: a.id, answer: yes ? "yes" : "no" }) });
-      const out = await res.json();
-      onAnswered(out.message ?? "Something went wrong. Please try again.");
-    } catch {
-      onAnswered("Something went wrong. Nothing was bought.");
-    }
-    setWorking(false);
-    onChange();
-  }
-
-  return (
-    <li className={`${card} space-y-3 border-2 border-accent`}>
-      <div className="flex items-center gap-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={a.imageUrl} alt="" className="h-20 w-20 shrink-0 rounded-xl bg-white object-contain" />
-        <div className="min-w-0 flex-1">
-          <p className="text-lg font-semibold">{a.agentName} wants to buy {a.name}, {formatMoney(a.amountCents)}</p>
-          {a.reason && <p className="mt-1 text-base">It says: &ldquo;{a.reason}&rdquo;</p>}
-        </div>
-      </div>
-      {a.needsOverride && <p className="rounded-xl bg-warn-bg p-3 text-base text-warn-ink">{a.note} Only you can say Buy now.</p>}
-      <button type="button" className={btnPrimary} onClick={() => answer(true)} disabled={working}>{a.needsOverride ? "Yes, buy now" : "Yes, buy it"}</button>
-      <button type="button" className={btnSecondary} onClick={() => answer(false)} disabled={working}>No</button>
-    </li>
-  );
-}
-
-// One piece of price news. It only tells you: "Look at it" opens the product, and a buy still goes through the Money Guardian.
-function NoticeRow({ n, onChange }: { n: PriceNotice; onChange: () => void }) {
-  async function dismiss() {
-    await fetch("/api/watch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dismiss", id: n.id }) }).catch(() => undefined);
-    onChange();
-  }
-  return (
-    <li className={`${card} space-y-3`}>
-      <div className="flex items-center gap-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={n.imageUrl} alt="" className="h-20 w-20 shrink-0 rounded-xl bg-white object-contain" />
-        <p className="min-w-0 flex-1 text-lg font-semibold">{n.message}</p>
-      </div>
-      {n.kind !== "sold_out" && <Link href={`/shop/${n.productId}`} className={btnPrimary}>Look at it</Link>}
-      <button type="button" className={btnSecondary} onClick={dismiss}>Not now</button>
-    </li>
-  );
-}
-
-// One saved buy. Waiting until the wait is over; then it can be bought like any other buy.
-function WaitingRow({ w }: { w: WaitingView }) {
-  const when = new Date(w.remindAt).toLocaleString("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" });
-  return (
-    <li className={`${card} space-y-3`}>
-      <div className="flex items-center gap-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={w.imageUrl} alt="" className="h-20 w-20 shrink-0 rounded-xl bg-white object-contain" />
-        <div className="min-w-0 flex-1">
-          <p className="text-lg font-semibold">{w.name}</p>
-          <p className="text-lg">{formatMoney(w.amountCents)}</p>
-          <p className="mt-1 inline-block rounded-full bg-warn-bg px-3 py-1 text-base font-semibold text-warn-ink">
-            {w.ready ? "Ready. You can buy it." : `I'll remind you. Ready ${when}.`}
-          </p>
-        </div>
-      </div>
-      {w.ready && (
-        <Link href={`/shop/${w.productId}`} className={btnPrimary}>
-          Look at it again
-        </Link>
-      )}
-    </li>
-  );
-}
-
-// One buy in the list. A paid buy has a "Get my money back" button, with one question first.
-function PurchaseRow({ p, onChange }: { p: PurchaseView; onChange: () => void }) {
-  const st = STATUS[p.status];
-  const [step, setStep] = useState<"idle" | "asking" | "working">("idle");
-  const [message, setMessage] = useState("");
-
-  async function refund() {
-    setStep("working");
-    try {
-      const res = await fetch("/api/refund", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ purchaseId: p.id }),
-      });
-      const out = await res.json();
-      setMessage(
-        out.kind === "refunded" ? `Done. ${formatMoney(p.amountCents)} is coming back to you.`
-        : out.kind === "already_refunded" ? "Already refunded."
-        : out.kind === "pending" ? "PayPal is sending your money back. It can take a moment."
-        : "I could not refund this. Please try again.",
-      );
-    } catch {
-      setMessage("I could not refund this. Please try again.");
-    }
-    setStep("idle");
-    onChange();
-  }
-
-  return (
-    <li className={`${card} space-y-3`}>
-      <div className="flex items-center gap-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={p.imageUrl} alt="" className="h-20 w-20 shrink-0 rounded-xl bg-white object-contain" />
-        <div className="min-w-0 flex-1">
-          <p className="text-lg font-semibold">{p.name}</p>
-          <p className="text-lg">{formatMoney(p.amountCents)}</p>
-          <p className={`mt-1 inline-block rounded-full px-3 py-1 text-base font-semibold ${st.cls}`}>
-            <span aria-hidden="true">{st.icon} </span>{st.label}
-          </p>
-        </div>
-      </div>
-      {message && <p role="status" className="text-lg font-semibold">{message}</p>}
-      {p.status === "paid" && step === "idle" && (
-        <button type="button" className={btnSecondary} onClick={() => setStep("asking")}>
-          Get my money back
-        </button>
-      )}
-      {step === "asking" && (
-        <div role="group" aria-label={`Refund ${p.name}?`} className="space-y-2">
-          <p className="text-lg font-semibold">Refund {p.name}? You will get {formatMoney(p.amountCents)} back.</p>
-          <button type="button" className={btnPrimary} onClick={refund}>Yes, refund it</button>
-          <button type="button" className={btnSecondary} onClick={() => setStep("idle")}>No, keep it</button>
-        </div>
-      )}
-      {step === "working" && <p role="status" className="text-lg">Asking PayPal…</p>}
-    </li>
-  );
-}
-
-// Demo only: lets us show a late-night buy at any time of day, and start over.
-function DemoTools({ onChange, deployed }: { onChange: () => void; deployed: boolean }) {
-  const hour = useDemoHour();
-  const [busy, setBusy] = useState(false);
-  const [check, setCheck] = useState<{ events: StepEvent[]; result?: WatchRunResult; error?: string; working: boolean } | null>(null);
-
-  // The Price Watcher: look at the prices of what you are waiting on, now (normally a schedule does this).
-  async function checkPrices(pretendDropPercent?: number) {
-    setCheck({ events: [], working: true });
-    const r = await postAgent<WatchRunResult>("/api/watch/run", { pretendDropPercent }, (events) => setCheck({ events, working: true }));
-    setCheck({ events: r.events, result: r.payload ?? undefined, error: r.error ?? r.payload?.error, working: false });
-    onChange();
-  }
-
-  async function reset() {
-    setBusy(true);
-    await fetch("/api/demo/reset", { method: "POST" });
-    setBusy(false);
-    onChange();
-  }
-
-  return (
-    <details className={card}>
-      <summary className="cursor-pointer rounded-lg py-2 text-lg font-semibold">Demo tools{deployed ? " (practice version)" : ""}</summary>
-      <div className="mt-3 space-y-4">
-        <p role="note" className="rounded-xl bg-warn-bg p-3 text-base text-warn-ink">
-          {deployed ? "This is a practice version of North with practice money. " : "These tools are for practice. "}
-          They never change how long a rule takes to change: the pretend time only changes what time of day the late-night rule sees.
-        </p>
-        <label className="block">
-          <span className="block text-lg font-semibold">Pretend it is</span>
-          <select
-            value={hour}
-            onChange={(e) => setDemoHour(e.target.value)}
-            className="mt-1 min-h-14 w-full rounded-xl border-2 border-line bg-card px-3 text-lg"
-          >
-            <option value="">The real time</option>
-            <option value="23">11:00 PM (late at night)</option>
-            <option value="12">12:00 PM (noon)</option>
-          </select>
-        </label>
-        <Link href="/try-to-break" className={btnSecondary}>Try to break North</Link>
-        <div className="space-y-2">
-          <button type="button" onClick={() => checkPrices()} disabled={check?.working} className={btnSecondary}>Check prices now</button>
-          <button type="button" onClick={() => checkPrices(20)} disabled={check?.working} className={btnSecondary}>Check prices now (pretend they dropped 20%)</button>
-          {check && (
-            <div className="space-y-2">
-              {!check.working && (
-                <p role="status" className="text-lg font-semibold">
-                  {check.error ? check.error : check.result && check.result.checked === 0 ? "Nothing to watch yet. Wait on something first." : `Checked ${check.result?.checked ?? 0}. ${check.result?.notices.length ? `${check.result.notices.length} piece${check.result.notices.length === 1 ? "" : "s"} of news above.` : "No news."}`}
-                </p>
-              )}
-              <ActivityPanel events={check.events} title="What the Price Watcher did" />
-            </div>
-          )}
-        </div>
-        <button type="button" onClick={reset} disabled={busy} className={btnSecondary}>
-          {busy ? "Starting over…" : "Start over (clear buys)"}
-        </button>
-      </div>
-    </details>
   );
 }

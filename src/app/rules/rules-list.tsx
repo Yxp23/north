@@ -1,16 +1,19 @@
 "use client";
-// "My rules": every rule in plain words, with its strength.
+// "My rules": every rule in plain words, with its strength. Each rule can be read aloud. A change that has not started yet can be
+// undone: that only brings back the rule you have now, so it can never make a rule weaker.
+import { Bell, Clock, Lock, Undo2, type LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
+import { SpeakButton } from "@/components/shell/speak";
+import { Empty, ErrorNote, Loading } from "@/components/states";
 import type { Strength } from "@/lib/guardian";
 import type { RuleLine } from "@/lib/rules/summary";
-import { Assistants } from "./assistants";
 
-const STRENGTH: Record<Strength, { label: string; cls: string; icon: string }> = {
-  gentle: { label: "Gentle", cls: "bg-good-bg text-good-ink", icon: "🔔" },
-  firm: { label: "Firm", cls: "bg-warn-bg text-warn-ink", icon: "⏳" },
-  locked: { label: "Locked", cls: "bg-bad-bg text-bad-ink", icon: "🔒" },
+const STRENGTH: Record<Strength, { label: string; cls: string; Icon: LucideIcon; what: string }> = {
+  gentle: { label: "Gentle", cls: "n-chip-good", Icon: Bell, what: "I ask. You can buy now." },
+  firm: { label: "Firm", cls: "n-chip-wait", Icon: Clock, what: "I save it for later. No Buy now." },
+  locked: { label: "Locked", cls: "n-chip-stop", Icon: Lock, what: "Never, while this rule is on." },
 };
 
 export const whenLabel = (iso: string) => new Date(iso).toLocaleString("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" });
@@ -18,47 +21,80 @@ export const whenLabel = (iso: string) => new Date(iso).toLocaleString("en-US", 
 export function RulesList() {
   const [data, setData] = useState<{ rules: RuleLine[]; always: string[] } | null>(null);
   const [error, setError] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch("/api/rules", { cache: "no-store" });
+      if (!r.ok) throw new Error();
+      setData(await r.json());
+      setError(false);
+    } catch {
+      setError(true);
+    }
+  }, []);
 
   useEffect(() => {
-    let alive = true;
-    fetch("/api/rules", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((j) => alive && setData(j))
-      .catch(() => alive && setError(true));
+    const t = setTimeout(load, 0);
     return () => {
-      alive = false;
+      clearTimeout(t);
       // Next keeps a page you left. Clear it, so coming back never shows a rule from before a change.
       setData(null);
     };
-  }, []);
+  }, [load]);
 
-  if (error) return <p role="status" className="text-xl">I can&apos;t load your rules right now. Please try again.</p>;
-  if (!data) return <p role="status" className="text-xl">Loading your rules…</p>;
+  async function undo(kind: string) {
+    setMessage("");
+    try {
+      const r = await fetch("/api/rules/change", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "cancel", kind }) });
+      const j = await r.json();
+      setMessage(r.ok ? j.message : "That did not work. Your rule is the same. Try again.");
+    } catch {
+      setMessage("That did not work. Your rule is the same. Try again.");
+    }
+    load();
+  }
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">My rules</h1>
+  const page = (body: React.ReactNode) => (
+    <div className="n-col" style={{ maxWidth: 720 }}>
+      <div className="ng-page-title">
+        <div className="ng-eyebrow">My money · My rules</div>
+        <h1>Your rules,<br />your call.</h1>
+        <p>You set them. You can change or remove any of them.</p>
+      </div>
+      {body}
+    </div>
+  );
+  if (error) return page(<ErrorNote what="your rules" onRetry={load} />);
+  if (!data) return page(<Loading what="your rules" />);
 
-      <section aria-labelledby="mine-h" className="space-y-3">
-        <h2 id="mine-h" className="text-2xl font-bold">Rules I follow for you</h2>
-        {data.rules.length === 0 && <p className="text-lg">You have no wait rules yet.</p>}
-        <ul className="space-y-3">
+  return page(
+    <>
+      {message && <p role="status" className="n-note n-note-good">{message}</p>}
+      <section aria-labelledby="mine-h" className="n-stack">
+        <h2 id="mine-h">Rules I follow for you</h2>
+        {data.rules.length === 0 && <Empty>You have no wait rules yet. Add one in your own words.</Empty>}
+        <ul className="n-stack">
           {data.rules.map((r) => {
             const s = r.strength ? STRENGTH[r.strength] : null;
             return (
-              <li key={r.kind} className={`${card} space-y-2`}>
+              <li key={r.kind} className={`${card} n-stack`}>
                 {s && (
-                  <p className={`inline-block rounded-full px-3 py-1 text-base font-semibold ${s.cls}`}>
-                    <span aria-hidden="true">{s.icon} </span>{s.label}
-                  </p>
+                  <p className={`n-chip ${s.cls}`} style={{ justifySelf: "start" }}><s.Icon aria-hidden="true" />{s.label}<span className="ng-vh">: {s.what}</span></p>
                 )}
                 <p className="text-xl">{r.text}</p>
+                {s && <p style={{ color: "var(--n-muted)" }}>{s.what}</p>}
                 {r.pending && (
-                  <p className="rounded-xl bg-warn-bg p-3 text-lg text-warn-ink">
-                    A change is waiting. It starts {whenLabel(r.pending.startsAt)}. Until then, the rule above stays.
-                    <span className="mt-1 block font-semibold">New: {r.pending.text}</span>
-                  </p>
+                  <div className="n-note n-note-wait">
+                    <Clock aria-hidden="true" />
+                    <div className="n-stack" style={{ gap: 8 }}>
+                      <p>A change is waiting. It starts {whenLabel(r.pending.startsAt)}. Until then, the rule above stays.</p>
+                      <p><strong>New: {r.pending.text}</strong></p>
+                      <button type="button" className="n-btn n-btn-secondary n-btn-auto" onClick={() => undo(r.kind)}><Undo2 aria-hidden="true" />Undo this change</button>
+                    </div>
+                  </div>
                 )}
+                <SpeakButton text={`${s ? `${s.label} rule. ` : ""}${r.text}${s ? ` ${s.what}` : ""}`} label="Hear this rule" />
                 <Link href={`/rules/change/${r.kind}`} className={btnSecondary}>Change or remove this rule</Link>
               </li>
             );
@@ -67,16 +103,19 @@ export function RulesList() {
         <Link href="/rules/new" className={btnPrimary}>Add a rule in my own words</Link>
       </section>
 
-      <section aria-labelledby="always-h" className="space-y-3">
-        <h2 id="always-h" className="text-2xl font-bold">Rules I always keep</h2>
-        <ul className="space-y-3">
+      <section aria-labelledby="always-h" className="n-stack">
+        <h2 id="always-h">Rules I always keep</h2>
+        <ul className="n-stack">
           {data.always.map((t) => (
-            <li key={t} className={`${card} text-lg`}>{t}</li>
+            <li key={t} className={`${card} n-stack`}>
+              <p className="text-lg">{t}</p>
+              <SpeakButton text={t} label="Hear this rule" />
+            </li>
           ))}
         </ul>
       </section>
 
-      <Assistants />
-    </div>
+      <Link href="/assistants" className="n-link">What can my assistants do on their own?</Link>
+    </>,
   );
 }

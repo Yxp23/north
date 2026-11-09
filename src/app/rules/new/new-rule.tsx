@@ -122,7 +122,7 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
   switch (stage.name) {
     case "write":
       return (
-        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (words.trim()) ask(); }}>
+        <form className="n-col" onSubmit={(e) => { e.preventDefault(); if (words.trim()) ask(); }}>
           <h1 ref={headingRef} tabIndex={-1} className={h1}>Make a rule</h1>
           <label className="block space-y-2">
             <span className="block text-xl">Write your rule in your own words.</span>
@@ -142,7 +142,7 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
 
     case "thinking":
       return (
-        <div className="space-y-4">
+        <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>One moment</h1>
           <ActivityPanel events={events} />
         </div>
@@ -150,7 +150,7 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
 
     case "question":
       return (
-        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (answer.trim()) ask({ missing: stage.missing, answer }); }}>
+        <form className="n-col" onSubmit={(e) => { e.preventDefault(); if (answer.trim()) ask({ missing: stage.missing, answer }); }}>
           <h1 ref={headingRef} tabIndex={-1} className={h1}>One question</h1>
           <label className="block space-y-2">
             <span className="block text-xl">{stage.question}</span>
@@ -163,7 +163,7 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
 
     case "cannot":
       return (
-        <div className="space-y-4">
+        <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>{stage.message}</h1>
           {stage.reasons.map((r) => <p key={r} className="text-xl">{r}</p>)}
           <ActivityPanel events={events} />
@@ -174,7 +174,7 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
 
     case "error":
       return (
-        <div className="space-y-4">
+        <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>That did not work</h1>
           <p role="alert" className="text-xl">{stage.message}</p>
           <button type="button" className={btnPrimary} onClick={startAgain}>Try again</button>
@@ -186,7 +186,7 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
       const { proposal } = stage;
       const ok = proposal.items.filter((i) => i.status !== "looser");
       return (
-        <div className="space-y-4">
+        <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>Is that right?</h1>
           {proposal.items.map((i) => (
             <div key={i.id} className={`${card} space-y-2`}>
@@ -210,7 +210,7 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
       const ready = items.every((i) => choices[i.id].strength);
       const set = (id: string, patch: Partial<Choice>) => setStage({ ...stage, choices: { ...choices, [id]: { ...choices[id], ...patch } } });
       return (
-        <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); if (ready) save(items, choices); }}>
+        <form className="n-col" onSubmit={(e) => { e.preventDefault(); if (ready) save(items, choices); }}>
           <h1 ref={headingRef} tabIndex={-1} className={h1}>How strong should it be?</h1>
           {items.map((i) => {
             const c = choices[i.id];
@@ -258,7 +258,7 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
 
     case "saved":
       return (
-        <div className="space-y-4">
+        <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>{stage.result.saved.length ? "Saved" : "You already have that"}</h1>
           {stage.result.saved.map((s) => (
             <div key={s.kind} className={`${card} space-y-1`}>

@@ -18,7 +18,7 @@ type Stage =
   | { name: "message"; title: string; message: string; events: StepEvent[] };
 
 const h1 = "text-3xl font-bold outline-none";
-const field = "min-h-14 w-full rounded-xl border-2 border-line bg-card px-3 py-2 text-lg";
+const field = "n-field";
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
 export function PaymentsHelp() {
@@ -41,7 +41,7 @@ export function PaymentsHelp() {
 
   if (stage.name === "ask") {
     return (
-      <div className="space-y-5">
+      <div className="n-col">
         <h1 ref={headingRef} tabIndex={-1} className={h1}>My payments</h1>
         <p className="text-xl">I can look at your orders with PayPal. I can only look. I can&apos;t pay or change anything.</p>
         <button type="button" className={btnPrimary} onClick={() => ask("Did my last order go through?")}>Did my last order go through?</button>
@@ -60,7 +60,7 @@ export function PaymentsHelp() {
 
   if (stage.name === "thinking") {
     return (
-      <div className="space-y-4">
+      <div className="n-col">
         <h1 ref={headingRef} tabIndex={-1} className={h1}>Looking</h1>
         <p role="status" className="text-xl">I am asking PayPal. This takes a few seconds.</p>
         <ActivityPanel events={stage.events} />
@@ -70,7 +70,7 @@ export function PaymentsHelp() {
 
   if (stage.name === "message") {
     return (
-      <div className="space-y-4">
+      <div className="n-col">
         <h1 ref={headingRef} tabIndex={-1} className={h1}>{stage.title}</h1>
         <p role="status" className="text-xl">{stage.message}</p>
         <ActivityPanel events={stage.events} />
@@ -81,7 +81,7 @@ export function PaymentsHelp() {
 
   const { answer } = stage;
   return (
-    <div className="space-y-4">
+    <div className="n-col">
       <h1 ref={headingRef} tabIndex={-1} className={h1}>{answer.summary}</h1>
       <ul className="space-y-3">
         {answer.rows.map((r, i) => (

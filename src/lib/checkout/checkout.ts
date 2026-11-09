@@ -97,6 +97,7 @@ export type CheckoutOutcome =
 
 const view = (p: PurchaseRecord): PurchaseView => ({
   id: p.id, name: p.name, imageUrl: p.imageUrl, amountCents: p.amountCents, status: p.status, at: p.createdAt,
+  ...(p.paypalOrderId ? { paypalOrderId: p.paypalOrderId } : {}), ...(p.captureId ? { paypalCaptureId: p.captureId } : {}),
 });
 
 export const MAX_QUANTITY = 5;

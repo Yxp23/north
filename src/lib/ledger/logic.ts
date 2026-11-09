@@ -123,6 +123,25 @@ export const waitingView = (w: WaitingItem, now: Date): WaitingView => ({
   remindAt: w.remindAt, ready: now.getTime() >= new Date(w.remindAt).getTime(),
 });
 
+/**
+ * "Remove from my waiting list" and its Undo. Removing only forgets the saved item: it never approves or loosens anything
+ * (buying it again just starts a new wait). Undo puts back the SAME record, so its own timer is exactly what it was.
+ * Returns false when there is nothing to do (an unknown item, one already bought, or the same product saved again since).
+ */
+export function dropWaiting(data: LedgerData, id: string): boolean {
+  const w = data.waitingList.find((x) => x.id === id && x.status === "waiting");
+  if (!w) return false;
+  w.status = "dropped";
+  return true;
+}
+
+export function restoreWaiting(data: LedgerData, id: string): boolean {
+  const w = data.waitingList.find((x) => x.id === id && x.status === "dropped");
+  if (!w || activeWaiting(data, w.productId)) return false;
+  w.status = "waiting";
+  return true;
+}
+
 export function summarize(data: LedgerData, now: Date): HomeSummary {
   const spent = spentThisWeekCents(data, now);
   const spendable = balanceCents(data) - data.protectedCents;
@@ -135,7 +154,10 @@ export function summarize(data: LedgerData, now: Date): HomeSummary {
     purchases: [...data.purchases]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, 10)
-      .map((p) => ({ id: p.id, name: p.name, imageUrl: p.imageUrl, amountCents: p.amountCents, status: p.status, at: p.createdAt })),
+      .map((p) => ({
+        id: p.id, name: p.name, imageUrl: p.imageUrl, amountCents: p.amountCents, status: p.status, at: p.createdAt,
+        ...(p.paypalOrderId ? { paypalOrderId: p.paypalOrderId } : {}), ...(p.captureId ? { paypalCaptureId: p.captureId } : {}),
+      })),
     waitingList: data.waitingList
       .filter((w) => w.status === "waiting")
       .sort((a, b) => a.remindAt.localeCompare(b.remindAt))

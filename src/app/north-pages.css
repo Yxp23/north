@@ -1,0 +1,55 @@
+/* Page-level touches: form controls and small things that every screen shares. */
+.n-main :where(textarea, select, input:not([type="checkbox"], [type="radio"], [type="file"], [type="submit"], [type="button"])),
+.ng-sheet :where(textarea, select, input:not([type="checkbox"], [type="radio"], [type="file"], [type="submit"], [type="button"])) {
+  border: 1px solid var(--n-muted); border-radius: 14px; background: var(--n-content); color: var(--n-ink); font-size: 17px; padding: 13px 14px; min-height: 54px; width: 100%;
+}
+.n-main :where(input[type="checkbox"], input[type="radio"]), .ng-sheet :where(input[type="checkbox"], input[type="radio"]) { accent-color: var(--n-accent); width: 24px; height: 24px; }
+.n-main :where(input[type="file"]) { font-size: 17px; }
+.n-main :where(input[type="file"])::file-selector-button, .ng-sheet :where(input[type="file"])::file-selector-button {
+  min-height: 44px; border-radius: 12px; border: 1px solid var(--n-muted); background: var(--n-content); color: var(--n-ink); font-size: 16px; padding: 8px 14px; margin-right: 12px; cursor: pointer;
+}
+.n-main summary { min-height: 44px; }
+.n-main a:not([class]) { color: var(--n-ink); text-underline-offset: 4px; }
+.n-main hr { border: 0; border-top: 1px solid var(--n-line); }
+.n-main ul.list-disc { color: var(--n-ink); }
+
+/* ---- How it works ---- */
+.hw-flow { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; }
+.hw-step { position: relative; display: flex; }
+.hw-conn { position: absolute; left: -12px; top: 50%; width: 24px; height: 4px; transform: translateY(-50%); z-index: 2; background: var(--n-line); border-radius: 4px; overflow: hidden; }
+.hw-fill { display: block; width: 100%; height: 100%; background: var(--n-accent); transform-origin: left center; }
+.hw-fill[data-on="false"] { transform: scale(0); }
+.hw-node {
+  width: 100%; margin: 0 6px; padding: 18px 14px; border-radius: 22px; display: grid; gap: 6px; justify-items: start; text-align: left; color: var(--n-ink); cursor: pointer; font-size: 16px; line-height: 1.35;
+  touch-action: manipulation; background: var(--n-content); border: 1px solid var(--n-line); box-shadow: 0 3px 12px #00000003; position: relative;
+}
+.hw-node strong { font-weight: 500; font-size: 18px; }
+.hw-sub { color: var(--n-muted); }
+.hw-num { color: var(--n-muted); font-size: 16px; }
+.hw-tag { font-size: 16px; border-radius: 999px; padding: 2px 10px; background: var(--n-quiet); color: var(--n-ink); }
+.hw-node.hw-on { border: 2px solid var(--n-accent); }
+.hw-node.hw-done { background: var(--n-light); }
+.hw-controls { display: flex; flex-wrap: wrap; gap: 12px; }
+.hw-actors { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.hw-actors > li p.n-chip { justify-self: start; display: inline-flex; margin-bottom: 4px; }
+.hw-order { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.hw-order > li { display: flex; gap: 16px; align-items: flex-start; }
+.hw-badge { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--n-accent); color: var(--n-action); font-weight: 500; }
+.hw-rule { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.hw-rule > li { display: grid; gap: 12px; align-content: start; }
+.hw-rule .n-chip { justify-self: start; }
+.hw-quote { font-size: 20px; line-height: 1.4; letter-spacing: -.3px; }
+.hw-code { margin: 0; padding: 14px; border-radius: 14px; background: var(--n-quiet); color: var(--n-ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 16px; overflow-x: auto; white-space: pre; }
+.hw-stats { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+.hw-stats > li { display: grid; gap: 6px; align-content: start; }
+.hw-stats strong { font-size: 44px; line-height: 1.1; letter-spacing: -1.5px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.hw-table { width: 100%; border-collapse: collapse; font-size: 16px; font-variant-numeric: tabular-nums; }
+.hw-table th, .hw-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--n-line); }
+.hw-table thead th { color: var(--n-muted); font-weight: 400; }
+.hw-table tbody th { font-weight: 400; text-transform: capitalize; }
+@media (max-width: 860px) {
+  .hw-flow { grid-template-columns: 1fr; gap: 20px; }
+  .hw-conn { left: 50%; top: -20px; width: 4px; height: 20px; transform: translateX(-50%); }
+  .hw-fill { transform-origin: center top; }
+  .hw-node { margin: 0; }
+}

@@ -1,0 +1,100 @@
+/* North design tokens and the static background. Values are the approved handoff's (design/north-design-handoff/tokens/themes.css
+   and source/laptop.css), unchanged, with ONE addition: --n-success-bg, the fixed "good" background. Status colours
+   (success, wait, stop) are the same in every theme: a theme never turns a stopped payment into a positive colour. */
+
+.north-app {
+  --n-success-bg: #e3efe6;
+  --n-focus: #1f2a2e;
+}
+
+.north-app[data-theme="tide"] {
+  --n-paper: #f0f7f8; --n-content: #fcfdfd; --n-ink: #244249; --n-muted: #536b71; --n-accent: #2b5c66; --n-action: #fff;
+  --n-line: #d3e1e3; --n-haze: #b3d6de; --n-light: #e1f0f2; --n-deep: #7daebd; --n-milk: #ffffffe6; --n-glass: #ffffff59;
+  --n-glass-light: #fffffffa; --n-glass-shade: #173b321f; --n-lens: #79ad9d40; --n-quiet: #e6efea; --n-success: #365c43;
+  --n-edge: #8eaba2; --n-skin-shadow: #31483c1f; --n-state: #855114; --n-state-bg: #fff3dc; --n-stop: #8a403b; --n-stop-bg: #faeae6;
+}
+.north-app[data-theme="dune"] {
+  --n-paper: #f7f2eb; --n-content: #fdfbf7; --n-ink: #48352d; --n-muted: #756054; --n-accent: #765145; --n-action: #fff;
+  --n-line: #e3d7c9; --n-haze: #dfc1a6; --n-light: #f2e6d3; --n-deep: #c19372; --n-milk: #ffffffe6; --n-glass: #ffffff59;
+  --n-glass-light: #fffffffa; --n-glass-shade: #6e443025; --n-lens: #b8825140; --n-quiet: #eee1d2; --n-success: #365c43;
+  --n-edge: #c6ad95; --n-skin-shadow: #6d47301e; --n-state: #855114; --n-state-bg: #fff3dc; --n-stop: #8a403b; --n-stop-bg: #faeae6;
+}
+.north-app[data-theme="grove"] {
+  --n-paper: #f3f5ed; --n-content: #fcfdf7; --n-ink: #35432e; --n-muted: #626e56; --n-accent: #4d6340; --n-action: #fff;
+  --n-line: #dbe1cb; --n-haze: #c1ce9e; --n-light: #e8edda; --n-deep: #96ab75; --n-milk: #ffffffe6; --n-glass: #ffffff59;
+  --n-glass-light: #fffffffa; --n-glass-shade: #3c4c2422; --n-lens: #9aaf6a40; --n-quiet: #e5ead8; --n-success: #365c43;
+  --n-edge: #acbb91; --n-skin-shadow: #45552b1f; --n-state: #855114; --n-state-bg: #fff3dc; --n-stop: #8a403b; --n-stop-bg: #faeae6;
+}
+.north-app[data-theme="opal"] {
+  --n-paper: #f5f5f2; --n-content: #fdfdfb; --n-ink: #292a2b; --n-muted: #626365; --n-accent: #303335; --n-action: #fff;
+  --n-line: #ddded8; --n-haze: #d5dcd9; --n-light: #eef0eb; --n-deep: #a9b7b1; --n-milk: #ffffffe6; --n-glass: #ffffff59;
+  --n-glass-light: #fffffffa; --n-glass-shade: #262d2c1c; --n-lens: #a4b2ac4a; --n-quiet: #e9ede8; --n-success: #365c43;
+  --n-edge: #b5beb7; --n-skin-shadow: #373b351f; --n-state: #855114; --n-state-bg: #fff3dc; --n-stop: #8a403b; --n-stop-bg: #faeae6;
+}
+.north-app[data-theme="bloom"] {
+  --n-paper: #f9f3f3; --n-content: #fffafa; --n-ink: #4c343e; --n-muted: #775e68; --n-accent: #78505f; --n-action: #fff;
+  --n-line: #e6d8dd; --n-haze: #e4c6d0; --n-light: #f4e5e9; --n-deep: #c29aa9; --n-milk: #ffffffe6; --n-glass: #ffffff59;
+  --n-glass-light: #fffffffa; --n-glass-shade: #63364c22; --n-lens: #ba819c40; --n-quiet: #f0e2e7; --n-success: #365c43;
+  --n-edge: #c6a8b4; --n-skin-shadow: #623a4e1f; --n-state: #855114; --n-state-bg: #fff3dc; --n-stop: #8a403b; --n-stop-bg: #faeae6;
+}
+
+/* ---- The static background: CSS geometry, never animated. It sits behind everything, fixed to the window. ---- */
+.north-app { background: var(--n-paper); }
+.ng-landscape {
+  position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+  background: linear-gradient(155deg, var(--n-paper) 0%, var(--n-paper) 25%, var(--n-light) 69%, var(--n-haze) 100%);
+}
+.ng-landscape::before {
+  content: ""; position: absolute; width: 1050px; height: 900px; right: -460px; top: -750px; border: 66px solid var(--n-haze);
+  border-radius: 44% 56% 60% 40%; transform: rotate(-14deg); opacity: .62;
+  box-shadow: 0 0 0 1px #ffffffb0, 0 0 0 37px var(--n-light), 0 0 0 39px #ffffffc0;
+}
+.ng-landscape::after {
+  content: ""; position: absolute; width: 1100px; height: 750px; left: -580px; bottom: -520px; border: 55px solid var(--n-deep);
+  border-radius: 50%; transform: rotate(-15deg); opacity: .62;
+  box-shadow: 0 0 0 2px #ffffffb0, 0 0 0 26px var(--n-light), 0 0 0 28px #ffffffd0, 0 0 0 64px var(--n-haze);
+}
+.north-app[data-theme="dune"] .ng-landscape::before { border-radius: 75% 40% 30% 60%; transform: rotate(15deg); }
+.north-app[data-theme="grove"] .ng-landscape::after { border-radius: 60% 25% 65% 30%; transform: rotate(-35deg); }
+
+/* Element-specific geometry: waves (Tide), petals (Bloom) and faceted planes (Opal). These come last on purpose: they replace the shapes above. */
+.north-app[data-theme="tide"] .ng-landscape::before {
+  width: 1150px; height: 390px; left: auto; right: -170px; top: -352px; bottom: auto; border: 0; border-bottom: 47px solid var(--n-haze);
+  border-radius: 0 0 52% 48%; background: transparent; box-shadow: 0 20px 0 -8px var(--n-light), 0 22px 0 -8px #ffffffb0;
+  transform: rotate(-10deg); opacity: .68;
+}
+.north-app[data-theme="tide"] .ng-landscape::after {
+  width: 1700px; height: 420px; left: -320px; right: auto; bottom: -273px; top: auto; border: 0; border-top: 2px solid #ffffffc0;
+  border-radius: 48% 62% 0 0 / 75% 80% 0 0; background: linear-gradient(180deg, var(--n-haze), var(--n-light));
+  box-shadow: 0 -21px 0 -5px var(--n-light), 0 -23px 0 -5px #ffffffa0, 0 -44px 0 -10px var(--n-deep); transform: rotate(-9deg); opacity: .72;
+}
+.north-app[data-theme="bloom"] .ng-landscape::before {
+  width: 540px; height: 650px; left: auto; right: -65px; top: -420px; bottom: auto; border: 1px solid #ffffffa0; border-radius: 82% 12% 78% 14%;
+  background: linear-gradient(145deg, var(--n-light), var(--n-haze)); box-shadow: -120px 65px 0 -26px var(--n-light), inset -24px -24px 0 #ffffff40;
+  transform: rotate(-28deg); opacity: .76;
+}
+.north-app[data-theme="bloom"] .ng-landscape::after {
+  width: 670px; height: 650px; left: -390px; right: auto; bottom: -290px; top: auto; border: 1px solid #ffffffb0; border-radius: 12% 85% 17% 82%;
+  background: linear-gradient(120deg, var(--n-haze), var(--n-light)); box-shadow: 120px -48px 0 -37px var(--n-haze), inset 26px 23px 0 #ffffff35;
+  transform: rotate(-22deg); opacity: .72;
+}
+.north-app[data-theme="opal"] .ng-landscape::before {
+  width: 650px; height: 610px; left: auto; right: -100px; top: -345px; bottom: auto; border: 0; border-radius: 0;
+  clip-path: polygon(20% 0, 100% 0, 79% 100%, 0 79%);
+  background: linear-gradient(118deg, var(--n-light) 0%, #ffffffd0 38%, var(--n-haze) 39%, var(--n-light) 67%, #ffffff90 68%);
+  box-shadow: none; transform: rotate(17deg); opacity: .78;
+}
+.north-app[data-theme="opal"] .ng-landscape::after {
+  width: 750px; height: 620px; left: -220px; right: auto; bottom: -345px; top: auto; border: 0; border-radius: 0;
+  clip-path: polygon(0 17%, 70% 0, 100% 80%, 20% 100%);
+  background: linear-gradient(130deg, var(--n-haze) 0%, var(--n-light) 44%, #ffffffe0 45%, #ffffff80 47%, var(--n-deep) 48%, var(--n-light) 100%);
+  box-shadow: none; transform: rotate(-17deg); opacity: .58;
+}
+@media (max-width: 650px) {
+  .north-app[data-theme="tide"] .ng-landscape::before { width: 700px; height: 240px; top: -200px; right: -250px; }
+  .north-app[data-theme="tide"] .ng-landscape::after { width: 950px; height: 340px; left: -290px; bottom: -190px; }
+  .north-app[data-theme="bloom"] .ng-landscape::before { width: 340px; height: 450px; right: -170px; top: -270px; }
+  .north-app[data-theme="bloom"] .ng-landscape::after { width: 400px; height: 500px; left: -250px; bottom: -210px; }
+  .north-app[data-theme="opal"] .ng-landscape::before { width: 430px; height: 530px; right: -210px; top: -320px; }
+  .north-app[data-theme="opal"] .ng-landscape::after { width: 490px; height: 490px; left: -210px; bottom: -250px; }
+}

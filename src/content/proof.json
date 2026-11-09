@@ -1,0 +1,25 @@
+{
+  "generatedAt": "2026-11-09T00:27:35.518Z",
+  "commit": "7fa4298",
+  "tests": {
+    "files": 98,
+    "total": 1805,
+    "passed": 1804,
+    "failed": 0,
+    "skipped": 1
+  },
+  "guardianPropertyTests": 29,
+  "attacker": {
+    "at": "2026-11-08T08:30:57.013Z",
+    "tried": 612,
+    "breaches": 0,
+    "movedAgainstRulesCents": 0,
+    "categories": 10,
+    "model": "Haiku 4.5"
+  },
+  "evals": {
+    "dealCases": 32,
+    "injectionListings": 10,
+    "conciergeRuleCases": 37
+  }
+}

@@ -18,7 +18,7 @@ type Stage =
   | { name: "error"; message: string; events: StepEvent[] };
 
 const h1 = "text-3xl font-bold outline-none";
-const field = "min-h-14 w-full rounded-xl border-2 border-line bg-card px-3 py-2 text-lg";
+const field = "n-field";
 
 export function FindIt() {
   const [stage, setStage] = useState<Stage>({ name: "ask" });
@@ -41,7 +41,7 @@ export function FindIt() {
 
   if (stage.name === "ask") {
     return (
-      <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); if (text.trim() || picture) find(); }}>
+      <form className="n-col" onSubmit={(e) => { e.preventDefault(); if (text.trim() || picture) find(); }}>
         <h1 ref={headingRef} tabIndex={-1} className={h1}>Find something</h1>
         <p className="text-xl">Tell me what you are looking for, or show me a picture.</p>
         <label className="block space-y-2">
@@ -57,7 +57,7 @@ export function FindIt() {
 
   if (stage.name === "thinking") {
     return (
-      <div className="space-y-4">
+      <div className="n-col">
         <h1 ref={headingRef} tabIndex={-1} className={h1}>Looking</h1>
         <p role="status" className="text-xl">This takes a few seconds.</p>
         <ActivityPanel events={stage.events} />
@@ -67,7 +67,7 @@ export function FindIt() {
 
   if (stage.name === "error" || stage.name === "none") {
     return (
-      <div className="space-y-4">
+      <div className="n-col">
         <h1 ref={headingRef} tabIndex={-1} className={h1}>{stage.name === "none" ? "I did not find it" : "I couldn't look that up"}</h1>
         <p role={stage.name === "error" ? "alert" : "status"} className="text-xl">
           {stage.name === "error" ? stage.message : "I could not find a good match. Try different words, or a clearer picture."}
@@ -81,7 +81,7 @@ export function FindIt() {
 
   const { outcome } = stage;
   return (
-    <div className="space-y-4">
+    <div className="n-col">
       <h1 ref={headingRef} tabIndex={-1} className={h1}>{outcome.items.length === 1 ? "I found this" : "I found these"}</h1>
       {outcome.unsure && <p role="status" className="rounded-xl bg-warn-bg p-3 text-lg text-warn-ink">I am not sure these are right. Look at the pictures and pick the one that matches.</p>}
       <ul className="space-y-4">

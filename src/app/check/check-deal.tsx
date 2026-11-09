@@ -3,14 +3,17 @@
 //   paste a link / type the ad / add a picture -> (one question if the price is missing) -> the verdict.
 // The verdict and every price in it are written by code from store facts (see lib/dealcheck/verdict.ts).
 // The AI only reads the ad and finds the product. The activity panel shows each step in plain words.
+import { CircleCheck, Hand, ShieldAlert, TriangleAlert, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
+import { DecisionDialog, Row } from "@/components/decision-dialog";
+import { PicturePicker, type Picture } from "@/components/picture-picker";
+import { ErrorNote } from "@/components/states";
 import type { StepEvent } from "@/lib/agents/loop";
 import type { DealPayload } from "@/lib/agents/scam-checker/scam-checker";
 import { formatMoney } from "@/lib/format";
-import { shrinkPicture as shrink } from "@/lib/image-client";
 import { readNdjson } from "@/lib/ndjson-client";
 
 type Flagged = "yes" | "no_seller" | "not_saved" | "no";
@@ -22,37 +25,26 @@ type Stage =
   | { name: "verdict"; payload: Verdict; flagged: Flagged; events: StepEvent[] }
   | { name: "error"; message: string; events: StepEvent[] };
 
-const h1 = "text-3xl font-bold outline-none";
-const field = "min-h-14 w-full rounded-xl border-2 border-line bg-card px-3 py-2 text-lg";
 
-const LOOK: Record<Verdict["verdict"]["kind"], { icon: string; label: string; box: string }> = {
-  fine: { icon: "✓", label: "Looks fine", box: "bg-good-bg text-good-ink" },
-  careful: { icon: "⚠", label: "Be careful", box: "bg-warn-bg text-warn-ink" },
-  scam: { icon: "✋", label: "Looks like a scam", box: "bg-bad-bg text-bad-ink" },
+const LOOK: Record<Verdict["verdict"]["kind"], { Icon: LucideIcon; word: string; box: string }> = {
+  fine: { Icon: CircleCheck, word: "Looks fine", box: "n-note-good" },
+  careful: { Icon: TriangleAlert, word: "Be careful", box: "n-note-wait" },
+  scam: { Icon: ShieldAlert, word: "Looks like a scam", box: "n-note-stop" },
 };
+
+const SCAM_CHECKER = [{ name: "Scam checker", ai: true, did: "Read the ad and found the matching listing. Code worked out the verdict from real prices." }];
 
 export function CheckDeal({ prefill }: { prefill: string }) {
   const [stage, setStage] = useState<Stage>({ name: "ask" });
   const [text, setText] = useState(prefill);
   const [price, setPrice] = useState("");
-  const [picture, setPicture] = useState<{ name: string; base64: string } | null>(null);
-  const [pictureError, setPictureError] = useState("");
+  const [picture, setPicture] = useState<Picture | null>(null);
+  const [showScam, setShowScam] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     headingRef.current?.focus();
   }, [stage.name]);
-
-  async function choosePicture(file: File | undefined) {
-    setPictureError("");
-    if (!file) return setPicture(null);
-    try {
-      setPicture({ name: file.name, base64: await shrink(file) });
-    } catch {
-      setPicture(null);
-      setPictureError("I couldn't open that picture. Please try a different one.");
-    }
-  }
 
   async function check(priceText = price) {
     const events: StepEvent[] = [];
@@ -71,7 +63,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
       });
       if (!res.ok || !res.body) {
         const j = await res.json().catch(() => null);
-        return show({ name: "error", message: j?.error ?? "Something went wrong. Please try again.", events });
+        return show({ name: "error", message: j?.error ?? "That did not work. Nothing was bought. Try again.", events });
       }
       let payload: DealPayload | null = null;
       let flagged: Flagged = "no";
@@ -85,12 +77,15 @@ export function CheckDeal({ prefill }: { prefill: string }) {
         }
       });
       const p = payload as DealPayload | null;
-      if (!p) show({ name: "error", message: "Something went wrong. Please try again.", events });
+      if (!p) show({ name: "error", message: "That did not work. Nothing was bought. Try again.", events });
       else if (p.kind === "error") show({ name: "error", message: p.message, events });
       else if (p.kind === "needs_price") show({ name: "price", question: p.question, events });
-      else show({ name: "verdict", payload: p, flagged, events });
+      else {
+        show({ name: "verdict", payload: p, flagged, events });
+        setShowScam(p.verdict.kind === "scam");
+      }
     } catch {
-      show({ name: "error", message: "Something went wrong. Please try again.", events });
+      show({ name: "error", message: "That did not work. Nothing was bought. Try again.", events });
     }
   }
 
@@ -98,99 +93,105 @@ export function CheckDeal({ prefill }: { prefill: string }) {
     setText("");
     setPrice("");
     setPicture(null);
+    setShowScam(false);
     setStage({ name: "ask" });
   }
 
+  const head = (title: string, intro?: string) => (
+    <div className="ng-page-title">
+      <div className="ng-eyebrow">Shop · Check a deal</div>
+      <h1 ref={headingRef} tabIndex={-1} style={{ outline: "none" }}>{title}</h1>
+      {intro && <p>{intro}</p>}
+    </div>
+  );
+
+  let body: React.ReactNode = null;
   switch (stage.name) {
     case "ask":
-      return (
+      body = (
         <form
-          className="space-y-5"
+          className="n-stack"
+          style={{ gap: 20 }}
           onSubmit={(e) => {
             e.preventDefault();
             if (text.trim() || picture) check();
           }}
         >
-          <h1 ref={headingRef} tabIndex={-1} className={h1}>Is this deal real?</h1>
-          <p className="text-xl">Found a deal? I will check it for you. I will not buy anything.</p>
-          <label className="block space-y-2">
-            <span className="block text-xl font-semibold">Paste a link, or type what the ad says</span>
-            <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} maxLength={2000} className={field} placeholder="70% off sneakers, $27" />
+          {head("Is this deal real?", "Found a deal? I will check it for you. I will not buy anything.")}
+          <label className="block">
+            <span className="n-label">Paste a link, or type what the ad says</span>
+            <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} maxLength={2000} className="n-field" placeholder="70% off sneakers, $27" />
           </label>
-          <div className="space-y-2">
-            <label htmlFor="ad-picture" className="block text-xl font-semibold">Or add a picture of the ad</label>
-            <input id="ad-picture" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => choosePicture(e.target.files?.[0])} className="block min-h-14 w-full text-lg" />
-            {picture && <p className="text-lg">Picture added: {picture.name}</p>}
-            {pictureError && <p role="alert" className="text-lg text-bad-ink">{pictureError}</p>}
-          </div>
-          <label className="block space-y-2">
-            <span className="block text-xl font-semibold">What price does the ad say? (if you know)</span>
-            <input type="number" inputMode="decimal" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className={field} placeholder="27" />
+          <PicturePicker id="ad-picture" label="Or add a picture of the ad" picture={picture} onChange={setPicture} />
+          <label className="block">
+            <span className="n-label">What price does the ad say? (if you know)</span>
+            <input type="number" inputMode="decimal" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="n-field" placeholder="27" />
           </label>
           <button type="submit" className={btnPrimary} disabled={!text.trim() && !picture}>Check this deal</button>
           <Link href="/shop" className={btnSecondary}>Back to the shop</Link>
         </form>
       );
+      break;
 
     case "thinking":
-      return (
-        <div className="space-y-4">
-          <h1 ref={headingRef} tabIndex={-1} className={h1}>Checking the deal</h1>
-          <p role="status" className="text-xl">This takes a few seconds.</p>
-          <ActivityPanel events={stage.events} />
+      body = (
+        <div className="n-stack">
+          {head("Checking the deal")}
+          <p role="status" className="n-note n-note-quiet"><span>This takes a few seconds. Nothing is bought.</span></p>
+          <ActivityPanel events={stage.events} agents={SCAM_CHECKER} />
         </div>
       );
+      break;
 
     case "price":
-      return (
-        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (Number(price) > 0) check(price); }}>
-          <h1 ref={headingRef} tabIndex={-1} className={h1}>{stage.question}</h1>
-          <p className="text-xl">I couldn&apos;t find a price in the ad. Type it here and I will check again.</p>
-          <label className="block space-y-2">
-            <span className="block text-lg font-semibold">Price in dollars</span>
-            <input type="number" inputMode="decimal" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className={field} />
+      body = (
+        <form className="n-stack" onSubmit={(e) => { e.preventDefault(); if (Number(price) > 0) check(price); }}>
+          {head(stage.question, "I couldn't find a price in the ad. Type it here and I will check again.")}
+          <label className="block">
+            <span className="n-label">Price in dollars</span>
+            <input type="number" inputMode="decimal" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="n-field" />
           </label>
-          <ActivityPanel events={stage.events} />
+          <ActivityPanel events={stage.events} agents={SCAM_CHECKER} />
           <button type="submit" className={btnPrimary} disabled={!(Number(price) > 0)}>Check again</button>
           <button type="button" className={btnSecondary} onClick={startOver}>Start over</button>
         </form>
       );
+      break;
 
     case "error":
-      return (
-        <div className="space-y-4">
-          <h1 ref={headingRef} tabIndex={-1} className={h1}>I couldn&apos;t check that</h1>
-          <p role="alert" className="text-xl">{stage.message}</p>
-          <button type="button" className={btnPrimary} onClick={() => setStage({ name: "ask" })}>Try again</button>
+      body = (
+        <div className="n-stack">
+          {head("I couldn't check that")}
+          <ErrorNote what="that deal" touched="Nothing was bought." onRetry={() => setStage({ name: "ask" })} />
+          <p role="alert" className="n-note n-note-stop"><span>{stage.message}</span></p>
           <Link href="/shop" className={btnSecondary}>Back to the shop</Link>
         </div>
       );
+      break;
 
     case "verdict": {
       const { payload, flagged } = stage;
       const look = LOOK[payload.verdict.kind];
       const [main, ...rest] = payload.verdict.reasons;
-      return (
-        <div className="space-y-4">
-          <div className={`rounded-3xl p-5 ${look.box}`}>
-            <p aria-hidden="true" className="text-4xl">{look.icon}</p>
-            <h1 ref={headingRef} tabIndex={-1} className="text-3xl font-bold outline-none">{payload.verdict.headline}</h1>
-            <p className="mt-2 text-xl">{main}</p>
+      const scam = payload.verdict.kind === "scam";
+      body = (
+        <div className="n-stack">
+          <div className={`n-note ${look.box}`} style={{ padding: 22, borderRadius: 23 }}>
+            <look.Icon aria-hidden="true" size={30} />
+            <div className="n-stack" style={{ gap: 8 }}>
+              <p className="n-chip" style={{ padding: 0, background: "none" }}>{look.word}</p>
+              <h1 ref={headingRef} tabIndex={-1} style={{ outline: "none" }}>{payload.verdict.headline}</h1>
+              <p className="text-xl">{main}</p>
+            </div>
           </div>
-          {rest.length > 0 && (
-            <ul className="list-disc space-y-1 pl-6 text-lg">
-              {rest.map((r) => <li key={r}>{r}</li>)}
-            </ul>
-          )}
+          {rest.length > 0 && <ul className="list-disc space-y-1 pl-6 text-lg">{rest.map((r) => <li key={r}>{r}</li>)}</ul>}
           {flagged === "yes" && payload.sellerDomain && (
-            <p role="status" className="rounded-xl border-2 border-bad-ink bg-bad-bg p-3 text-lg font-semibold text-bad-ink">
-              I will not let you pay {payload.sellerDomain}. The Money Guardian will say no.
-            </p>
+            <p role="status" className="n-note n-note-stop"><Hand aria-hidden="true" /><span><strong>I will not let you pay {payload.sellerDomain}.</strong> The Money Guardian will say no.</span></p>
           )}
-          {flagged === "no_seller" && <p role="status" className="rounded-xl bg-warn-bg p-3 text-lg text-warn-ink">I don&apos;t know who the seller is, so I couldn&apos;t block them.</p>}
-          {flagged === "not_saved" && <p role="alert" className="rounded-xl bg-warn-bg p-3 text-lg text-warn-ink">I couldn&apos;t save a warning about this seller. Please be careful.</p>}
-          <section aria-label="What I looked at" className={`${card} space-y-2`}>
-            <h2 className="text-lg font-semibold text-muted">What I looked at</h2>
+          {flagged === "no_seller" && <p role="status" className="n-note n-note-wait"><span>I don&apos;t know who the seller is, so I couldn&apos;t block them.</span></p>}
+          {flagged === "not_saved" && <p role="alert" className="n-note n-note-wait"><span>I couldn&apos;t save a warning about this seller. Please be careful.</span></p>}
+          <section aria-label="What I looked at" className={`${card} n-stack`} style={{ gap: 8 }}>
+            <h2 style={{ fontSize: 18 }} className="text-muted">What I looked at</h2>
             <ul className="space-y-1 text-lg">
               {payload.productTitle && <li>Product: {payload.productTitle}</li>}
               {payload.verdict.evidence.map((e) => <li key={e}>{e}</li>)}
@@ -199,12 +200,33 @@ export function CheckDeal({ prefill }: { prefill: string }) {
           {payload.claimSource === "picture" && (
             <p className="text-lg">I read the price from your picture: {formatMoney(payload.claimedCents)}. If that is wrong, type the price and check again.</p>
           )}
-          <ActivityPanel events={stage.events} />
+          <ActivityPanel events={stage.events} agents={SCAM_CHECKER} guardian={scam && flagged === "yes" ? { decision: "refuse", code: "scam_seller", reason: "This seller looks like a scam. I won't pay them." } : undefined} />
           {payload.claimSource === "picture" && <button type="button" className={btnSecondary} onClick={() => setStage({ name: "ask" })}>Type the price myself</button>}
           <button type="button" className={btnPrimary} onClick={startOver}>Check another deal</button>
           <Link href="/shop" className={btnSecondary}>Back to the shop</Link>
+          {scam && showScam && (
+            <DecisionDialog
+              view={{ tone: "stop", icon: "shield-alert", word: "Scam stopped", title: "I will not pay this seller", reason: main }}
+              onClose={() => setShowScam(false)} wide
+              hear={`Scam stopped. ${main}`}
+            >
+              <div className="gd-evidence" role="group" aria-label="What I found">
+                {payload.productTitle && <Row label="Product">{payload.productTitle}</Row>}
+                <Row label="The ad says">{formatMoney(payload.claimedCents)}</Row>
+                {payload.sellerDomain && <Row label="Seller">{payload.sellerDomain}</Row>}
+              </div>
+              <h3 style={{ margin: "0 0 8px" }}>Real prices I checked</h3>
+              <ul className="list-disc space-y-1 pl-6" style={{ margin: "0 0 14px", color: "var(--n-ink)" }}>
+                {payload.verdict.evidence.map((e) => <li key={e}>{e}</li>)}
+              </ul>
+              {flagged === "yes" && <p className="n-note n-note-stop" style={{ margin: "0 0 14px" }}><Hand aria-hidden="true" /><span>I saved a warning about this seller. The Money Guardian will refuse to pay them.</span></p>}
+              <button type="button" className="n-btn n-btn-primary" data-autofocus onClick={() => setShowScam(false)}>Okay, I understand</button>
+            </DecisionDialog>
+          )}
         </div>
       );
+      break;
     }
   }
+  return <div className="n-col" style={{ maxWidth: 720 }}>{body}</div>;
 }

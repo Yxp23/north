@@ -10,7 +10,7 @@ import { postAgent } from "@/lib/ndjson-client";
 
 type Turn = { role: "person" | "assistant"; text: string; events?: StepEvent[]; warn?: boolean };
 const KEY = "north-demo-assistant-key";
-const field = "min-h-14 w-full rounded-xl border-2 border-line bg-card px-3 py-2 text-lg";
+const field = "n-field";
 
 const read = () => {
   try {
@@ -71,7 +71,7 @@ export function AssistantChat() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="n-col">
       <h1 className="text-3xl font-bold">Any AI assistant</h1>
       <p className="text-lg">A stand-in for an AI assistant you might use. It can look at products. To buy anything, it must ask North, and North follows <strong>your</strong> rules.</p>
       <p role="note" className="rounded-xl bg-warn-bg p-3 text-base text-warn-ink">Demo page. This assistant talks to North only through North&apos;s MCP server, using its own key.</p>

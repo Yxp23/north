@@ -2,30 +2,30 @@
 // "Buy this again": a photo of the empty item -> the 3 best matches with pictures -> one tap -> the Money Guardian
 // decides -> the saved PayPal pays -> a picture receipt that says what you still have this week.
 // The tap goes through the same guarded checkout as every other buy, so every rule still applies.
+import { Camera, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
 import { btnPrimary, btnSecondary } from "@/components/classes";
+import { CheckoutDialog, type CheckoutPhase } from "@/components/checkout-dialog";
 import { PicturePicker, type Picture } from "@/components/picture-picker";
 import { ProductCard } from "@/components/product-card";
+import { ErrorNote, Loading } from "@/components/states";
 import type { StepEvent } from "@/lib/agents/loop";
 import type { FinderOutcome, FoundItem } from "@/lib/agents/finder/finder";
-import type { CheckoutOutcome } from "@/lib/checkout/checkout";
 import { useDemoHour } from "@/lib/demo-hour";
 import { postAgent } from "@/lib/ndjson-client";
 import { streamCheckout } from "../shop/checkout-client";
-import { CheckoutResult } from "../shop/checkout-result";
 
 type Stage =
   | { name: "ask" }
   | { name: "looking"; events: StepEvent[] }
   | { name: "matches"; items: FoundItem[]; events: StepEvent[] }
   | { name: "none"; events: StepEvent[] }
-  | { name: "buying"; item: FoundItem["item"]; events: StepEvent[]; back: FoundItem[] }
-  | { name: "done"; item: FoundItem["item"]; outcome: CheckoutOutcome; events: StepEvent[]; back: FoundItem[] }
+  | { name: "buying"; item: FoundItem["item"]; phase: CheckoutPhase; back: FoundItem[] }
   | { name: "error"; message: string; events: StepEvent[] };
 
-const h1 = "text-3xl font-bold outline-none";
+const FINDER = [{ name: "Finder", ai: true, did: "Looked at your picture and matched it to products. It can only find, never buy." }];
 
 export function ReorderIt() {
   const [stage, setStage] = useState<Stage>({ name: "ask" });
@@ -42,104 +42,99 @@ export function ReorderIt() {
     setStage({ name: "looking", events: [] });
     const r = await postAgent<FinderOutcome>("/api/find", { mode: "reorder", imageBase64: picture.base64 }, (events) => setStage({ name: "looking", events }));
     const p = r.payload;
-    if (!p) setStage({ name: "error", message: r.error ?? "Something went wrong. Please try again.", events: r.events });
+    if (!p) setStage({ name: "error", message: r.error ?? "That did not work. Nothing was bought. Try again.", events: r.events });
     else if (p.kind === "error") setStage({ name: "error", message: p.message, events: r.events });
     else if (p.kind === "none") setStage({ name: "none", events: r.events });
     else setStage({ name: "matches", items: p.items, events: r.events });
   }
 
   async function buy(item: FoundItem["item"], back: FoundItem[], overrideWait: boolean) {
-    setStage({ name: "buying", item, events: [], back });
+    setStage({ name: "buying", item, phase: { name: "working", events: [] }, back });
     try {
       // The price on the card goes along only so that a changed price STOPS the buy. The store sets the price.
       const { outcome, events } = await streamCheckout(
         { productId: item.id, seenCents: item.priceCents, overrideWait, pretendHour: pretendHour ?? undefined },
-        (events) => setStage({ name: "buying", item, events, back }),
+        (events) => setStage({ name: "buying", item, phase: { name: "working", events }, back }),
       );
-      setStage({ name: "done", item, outcome, events, back });
+      setStage({ name: "buying", item, phase: { name: "done", outcome, events }, back });
     } catch {
-      setStage({ name: "error", message: "Something went wrong. Nothing was bought. Please try again.", events: [] });
+      setStage({ name: "error", message: "That did not work. Nothing was charged. Try again.", events: [] });
     }
   }
 
-  switch (stage.name) {
-    case "ask":
-      return (
-        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); look(); }}>
-          <h1 ref={headingRef} tabIndex={-1} className={h1}>Buy this again</h1>
-          <p className="text-xl">Take a picture of the empty one. I will find it for you.</p>
+  const head = (title: string, intro?: string) => (
+    <div className="ng-page-title">
+      <div className="ng-eyebrow">Shop · Buy this again</div>
+      <h1 ref={headingRef} tabIndex={-1} style={{ outline: "none" }}>{title}</h1>
+      {intro && <p>{intro}</p>}
+    </div>
+  );
+
+  // Items stay on screen under the dialog.
+  const matches = stage.name === "matches" ? stage.items : stage.name === "buying" ? stage.back : null;
+
+  return (
+    <div className="n-col" style={{ maxWidth: 720 }}>
+      {stage.name === "ask" && (
+        <form className="n-stack" style={{ gap: 20 }} onSubmit={(e) => { e.preventDefault(); look(); }}>
+          {head("Buy this again", "Take a picture of the empty one. I will find it for you.")}
           <PicturePicker id="reorder-picture" label="A picture of the empty item" picture={picture} onChange={setPicture} />
-          <button type="submit" className={btnPrimary} disabled={!picture}>Find it</button>
+          <button type="submit" className={btnPrimary} disabled={!picture}><Camera aria-hidden="true" />Find it</button>
           <Link href="/shop" className={btnSecondary}>Back to the shop</Link>
         </form>
-      );
+      )}
 
-    case "looking":
-      return (
-        <div className="space-y-4">
-          <h1 ref={headingRef} tabIndex={-1} className={h1}>Looking</h1>
-          <p role="status" className="text-xl">This takes a few seconds.</p>
-          <ActivityPanel events={stage.events} />
+      {stage.name === "looking" && (
+        <div className="n-stack">
+          {head("Looking")}
+          <Loading what="your picture matched" />
+          <ActivityPanel events={stage.events} agents={FINDER} />
         </div>
-      );
+      )}
 
-    case "matches":
-      return (
-        <div className="space-y-4">
-          <h1 ref={headingRef} tabIndex={-1} className={h1}>Which one is it?</h1>
-          <p className="text-xl">Tap Buy on the one that matches. The Money Guardian checks it first.</p>
-          <ul className="space-y-4">
-            {stage.items.map(({ item }) => (
+      {matches && (
+        <div className="n-stack">
+          {head("Which one is it?", "Tap Buy on the one that matches. The Money Guardian checks it first.")}
+          <ul className="n-stack" style={{ gap: 18 }}>
+            {matches.map(({ item }) => (
               <li key={item.id}>
                 <ProductCard item={item}>
-                  <button type="button" className={btnPrimary} onClick={() => buy(item, stage.items, false)}>Buy this one</button>
+                  <button type="button" className={btnPrimary} onClick={() => buy(item, matches, false)}><Wallet aria-hidden="true" />Buy this one</button>
                 </ProductCard>
               </li>
             ))}
           </ul>
-          <ActivityPanel events={stage.events} />
           <button type="button" className={btnSecondary} onClick={() => setStage({ name: "ask" })}>None of these</button>
+          {stage.name === "matches" && <ActivityPanel events={stage.events} agents={FINDER} />}
         </div>
-      );
+      )}
 
-    case "none":
-      return (
-        <div className="space-y-4">
-          <h1 ref={headingRef} tabIndex={-1} className={h1}>I did not find it</h1>
-          <p role="status" className="text-xl">I could not match that picture. Try a clearer picture, with the label showing.</p>
-          <ActivityPanel events={stage.events} />
+      {stage.name === "none" && (
+        <div className="n-stack">
+          {head("I did not find it")}
+          <p role="status" className="n-note n-note-quiet"><span>I could not match that picture. Try a clearer picture, with the label showing.</span></p>
+          <ActivityPanel events={stage.events} agents={FINDER} />
           <button type="button" className={btnPrimary} onClick={() => setStage({ name: "ask" })}>Try again</button>
         </div>
-      );
+      )}
 
-    case "buying":
-      return (
-        <div className="space-y-4">
-          <p role="status" className="text-2xl">Checking with the Money Guardian…</p>
-          <ActivityPanel events={stage.events} />
+      {stage.name === "error" && (
+        <div className="n-stack">
+          {head("I couldn't do that")}
+          <ErrorNote what="that" touched="Nothing was bought." onRetry={() => setStage({ name: "ask" })} />
+          <p role="alert" className="n-note n-note-stop"><span>{stage.message}</span></p>
+          <ActivityPanel events={stage.events} agents={FINDER} />
         </div>
-      );
+      )}
 
-    case "done":
-      return (
-        <CheckoutResult
-          outcome={stage.outcome}
-          events={stage.events}
+      {stage.name === "buying" && (
+        <CheckoutDialog
+          phase={stage.phase}
           product={stage.item}
-          headingRef={headingRef}
           onBuyNow={() => buy(stage.item, stage.back, true)}
-          onBack={() => setStage({ name: "matches", items: stage.back, events: [] })}
+          onClose={() => setStage({ name: "matches", items: stage.back, events: [] })}
         />
-      );
-
-    default:
-      return (
-        <div className="space-y-4">
-          <h1 ref={headingRef} tabIndex={-1} className={h1}>I couldn&apos;t do that</h1>
-          <p role="alert" className="text-xl">{stage.message}</p>
-          <ActivityPanel events={stage.events} />
-          <button type="button" className={btnPrimary} onClick={() => setStage({ name: "ask" })}>Try again</button>
-        </div>
-      );
-  }
+      )}
+    </div>
+  );
 }

@@ -98,7 +98,7 @@ export function Connect() {
 
   if (state === "connected") {
     return (
-      <div className="space-y-4">
+      <div className="n-col">
         <h1 ref={headingRef} tabIndex={-1} className={h1}>PayPal is connected</h1>
         <p className="text-xl">You can buy things now. No money was taken.</p>
         <Link href="/shop" className={btnPrimary}>Shop for something</Link>
@@ -108,7 +108,7 @@ export function Connect() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="n-col">
       <h1 ref={headingRef} tabIndex={-1} className={h1}>Connect PayPal</h1>
       <p className="text-xl">This saves your PayPal so you can buy things. It does not buy anything. No money moves.</p>
 

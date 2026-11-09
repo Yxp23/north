@@ -225,6 +225,9 @@ export type PurchaseView = {
   amountCents: number;
   status: PurchaseStatus;
   at: string;
+  /** PayPal's own receipt numbers (not secrets). Shown on receipts and in "Behind the scenes". Missing until PayPal has taken the money. */
+  paypalOrderId?: string;
+  paypalCaptureId?: string;
 };
 
 /** What the home screen shows for one waiting-list item. */

@@ -22,7 +22,7 @@ type Stage =
   | { name: "error"; message: string; events: StepEvent[] };
 
 const h1 = "text-3xl font-bold outline-none";
-const field = "min-h-14 w-full rounded-xl border-2 border-line bg-card px-3 py-2 text-lg";
+const field = "n-field";
 
 export function ChooseIt() {
   const [stage, setStage] = useState<Stage>({ name: "ask" });
@@ -46,7 +46,7 @@ export function ChooseIt() {
 
   if (stage.name === "ask") {
     return (
-      <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); if (text.trim() || picture) choose(); }}>
+      <form className="n-col" onSubmit={(e) => { e.preventDefault(); if (text.trim() || picture) choose(); }}>
         <h1 ref={headingRef} tabIndex={-1} className={h1}>Help me choose</h1>
         <p className="text-xl">Tell me what you need. I will give you 3 ideas that fit the money you have left this week.</p>
         <label className="block space-y-2">
@@ -62,7 +62,7 @@ export function ChooseIt() {
 
   if (stage.name === "thinking") {
     return (
-      <div className="space-y-4">
+      <div className="n-col">
         <h1 ref={headingRef} tabIndex={-1} className={h1}>Thinking</h1>
         <p role="status" className="text-xl">This takes a few seconds.</p>
         <ActivityPanel events={stage.events} />
@@ -72,7 +72,7 @@ export function ChooseIt() {
 
   if (stage.name === "question") {
     return (
-      <div className="space-y-4">
+      <div className="n-col">
         <h1 ref={headingRef} tabIndex={-1} className={h1}>{stage.outcome.question}</h1>
         <p className="text-xl">Tap the picture that is closest.</p>
         <ul className="grid grid-cols-2 gap-3">
@@ -95,7 +95,7 @@ export function ChooseIt() {
   if (stage.name === "picks") {
     const { picks, leftCents } = stage.outcome;
     return (
-      <div className="space-y-4">
+      <div className="n-col">
         <h1 ref={headingRef} tabIndex={-1} className={h1}>{picks.length === 3 ? "3 ideas for you" : picks.length === 1 ? "1 idea for you" : `${picks.length} ideas for you`}</h1>
         <p className="rounded-xl bg-good-bg p-3 text-xl text-good-ink">You have {formatMoney(leftCents)} left this week. These all fit.</p>
         {picks.length < 3 && <p className="text-lg">Only {picks.length === 1 ? "one" : "two"} fit your money this week.</p>}
@@ -118,7 +118,7 @@ export function ChooseIt() {
   if (stage.name === "nothing") {
     const o = stage.outcome;
     return (
-      <div className="space-y-4">
+      <div className="n-col">
         <h1 ref={headingRef} tabIndex={-1} className={h1}>{o.kind === "nothing_fits" ? "Nothing fits this week" : "I did not find anything"}</h1>
         <p role="status" className="text-xl">
           {o.kind === "nothing_fits"
@@ -133,7 +133,7 @@ export function ChooseIt() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="n-col">
       <h1 ref={headingRef} tabIndex={-1} className={h1}>I couldn&apos;t do that</h1>
       <p role="alert" className="text-xl">{stage.message}</p>
       <ActivityPanel events={stage.events} />

@@ -16,7 +16,7 @@ async function Product({ params }: { params: Promise<{ id: string }> }) {
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <Suspense fallback={<p role="status" className="text-xl">Loading…</p>}>
+    <Suspense fallback={<p role="status" className="n-note n-note-quiet">Getting this item. One moment.</p>}>
       <Product params={params} />
     </Suspense>
   );

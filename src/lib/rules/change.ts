@@ -34,9 +34,19 @@ export async function changeRule(input: unknown, deps: ChangeDeps): Promise<Chan
   const now = deps.now();
 
   return deps.ledger.update<ChangeResult>((data) => {
-    const kind: RuleKind = req.action === "remove" ? req.kind : req.rule.kind;
+    const kind: RuleKind = req.action === "set" ? req.rule.kind : req.kind;
     const current = (kind === "big_buy" ? data.rules.waitOverCents : data.rules.waitAfterHour) as StoredChangeable<BigBuyRule | LateNightRule>;
     const force = inForce(current, now);
+
+    // Undo: drop a change that has not started yet. The rule becomes exactly what is in force now, so this can never be weaker.
+    if (req.action === "cancel") {
+      if (sameJson(current.value, force)) return { ok: true, changed: false, startsNow: true, startsAt: startsAt("now", now), message: "There is no change waiting." };
+      const kept: StoredChangeable<BigBuyRule | LateNightRule> = { value: force, changedAt: current.changedAt, previous: force };
+      if (kind === "big_buy") data.rules.waitOverCents = kept as StoredChangeable<BigBuyRule>;
+      else data.rules.waitAfterHour = kept as StoredChangeable<LateNightRule>;
+      addAudit(data, "rule_change_cancelled", `By hand: the ${kind === "big_buy" ? "big-buy" : "late-night"} rule change that was waiting was cancelled. The rule stays as it is.`, now);
+      return { ok: true, changed: true, kind, startsNow: true, startsAt: startsAt("now", now), message: "Done. Nothing changes. Your rule stays as it is." };
+    }
 
     // What the rule should become. `null` = off.
     let next: BigBuyRule | LateNightRule | null = null;

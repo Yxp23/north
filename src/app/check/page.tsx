@@ -16,7 +16,7 @@ async function Inner({ searchParams }: { searchParams: Promise<{ product?: strin
 
 export default function CheckPage({ searchParams }: { searchParams: Promise<{ product?: string }> }) {
   return (
-    <Suspense fallback={<p role="status" className="text-xl">Loading…</p>}>
+    <Suspense fallback={<p role="status" className="n-note n-note-quiet">Getting this page. One moment.</p>}>
       <Inner searchParams={searchParams} />
     </Suspense>
   );

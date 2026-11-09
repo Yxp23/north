@@ -29,4 +29,6 @@ export const SaveRequestSchema = z.object({
 export const ChangeRequestSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("set"), rule: RuleSchema }).strict(),
   z.object({ action: z.literal("remove"), kind: z.enum(["big_buy", "late_night"]) }).strict(),
+  /** Undo a change that has not started yet: the rule stays exactly as it is now. */
+  z.object({ action: z.literal("cancel"), kind: z.enum(["big_buy", "late_night"]) }).strict(),
 ]);

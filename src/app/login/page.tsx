@@ -14,7 +14,7 @@ async function Form() {
   return (
     <>
       {practice && (
-        <p className="mb-4 rounded-xl border border-line bg-card px-4 py-3 text-base">
+        <p className="n-note n-note-quiet" style={{ marginBottom: 16 }}>
           <strong>This is a practice version.</strong> The practice account is filled in for you. It only has practice money.
         </p>
       )}
@@ -25,10 +25,13 @@ async function Form() {
 
 export default function LoginPage() {
   return (
-    <div className="space-y-5">
-      <h1 className="text-3xl font-bold">Log in to North</h1>
-      <p className="text-lg">You set the rules. You can override them.</p>
-      <Suspense fallback={<p className="text-lg">One moment…</p>}>
+    <div className="n-col" style={{ maxWidth: 480, margin: "40px auto 0" }}>
+      <div className="ng-page-title">
+        <div className="ng-eyebrow">Welcome</div>
+        <h1>Log in<br />to North.</h1>
+        <p>You set the rules. You can override them.</p>
+      </div>
+      <Suspense fallback={<p role="status" className="n-note n-note-quiet">One moment.</p>}>
         <Form />
       </Suspense>
     </div>

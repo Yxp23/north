@@ -28,19 +28,19 @@ export function LoginForm({ practice }: { practice: { email: string; password: s
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4" noValidate>
+    <form onSubmit={submit} className="n-stack" noValidate>
       <div>
-        <label htmlFor="email" className="block text-lg font-semibold">Email</label>
+        <label htmlFor="email" className="n-label">Email</label>
         <input id="email" name="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-line bg-card px-4 py-3 text-lg" />
+          className="n-field" />
       </div>
       <div>
-        <label htmlFor="password" className="block text-lg font-semibold">Password</label>
+        <label htmlFor="password" className="n-label">Password</label>
         <input id="password" name="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-line bg-card px-4 py-3 text-lg" />
+          className="n-field" />
       </div>
-      {error && <p role="alert" className="rounded-xl border border-line bg-card px-4 py-3 text-lg font-semibold">{error}</p>}
-      <button type="submit" disabled={busy} className="w-full rounded-xl bg-accent px-4 py-4 text-xl font-bold text-accent-ink disabled:opacity-60">
+      {error && <p role="alert" className="n-note n-note-stop">{error}</p>}
+      <button type="submit" disabled={busy} className="n-btn n-btn-primary">
         {busy ? "Logging in…" : "Log in"}
       </button>
     </form>

@@ -1,5 +1,5 @@
 "use client";
-// "Connected assistants" on My rules: connect an outside AI assistant (it gets its own key, shown once), say what it may do
+// "Connected assistants" (My money > Assistants): connect an outside AI assistant (it gets its own key, shown once), say what it may do
 // on its own, disconnect it, and see what it asked for. The assistant can only ASK. North's Money Guardian answers,
 // and the person's Yes is needed unless they allowed more (that takes a day).
 import { useCallback, useEffect, useState } from "react";
@@ -9,7 +9,7 @@ import { formatMoney } from "@/lib/format";
 import type { AssistantsView } from "@/lib/checkpoint/views";
 
 type View = AssistantsView & { mcpUrl: string };
-const field = "min-h-14 w-full rounded-xl border-2 border-line bg-card px-3 py-2 text-lg";
+const field = "n-field";
 const STATUS: Record<string, string> = { pending: "Waiting for you", bought: "Bought", declined: "You said no", refused: "North said no", saved_for_later: "Saved for later", failed: "Did not go through", expired: "Not answered" };
 const day = (iso: string) => new Date(iso).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" });
 
@@ -98,9 +98,9 @@ export function Assistants() {
           <p className="text-xl font-semibold">{created.name} is connected.</p>
           <p className="text-lg">Copy these now. You will not see the key again.</p>
           <p className="text-base font-semibold">North address</p>
-          <code className="block break-all rounded-lg bg-card p-2 text-base text-ink">{created.mcpUrl}</code>
+          <code className="block break-all rounded-lg bg-card p-2 text-base text-ink" style={{ border: "1px solid var(--n-line)" }}>{created.mcpUrl}</code>
           <p className="text-base font-semibold">Its key</p>
-          <code className="block break-all rounded-lg bg-card p-2 text-base text-ink">{created.key}</code>
+          <code className="block break-all rounded-lg bg-card p-2 text-base text-ink" style={{ border: "1px solid var(--n-line)" }}>{created.key}</code>
           <button type="button" className={btnSecondary} onClick={() => navigator.clipboard?.writeText(created.key)}>Copy the key</button>
         </div>
       )}
