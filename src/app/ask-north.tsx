@@ -73,10 +73,10 @@ export function AskNorth({ variant = "dialog", below }: { variant?: "dialog" | "
       )}
       <form onSubmit={(e) => { e.preventDefault(); ask(); }} className="n-stack">
         <label className="block">
-          <span className="n-label">{home ? "Ask North" : "What do you need?"}</span>
+          <span className="n-label">{home ? "What do you need?" : "What do you need?"}</span>
           <textarea value={text} onChange={(e) => setText(e.target.value)} rows={home ? 3 : 2} maxLength={500} className={`${field}${home ? " ng-askbox-field" : ""}`} placeholder="Tell North what you need, paste a deal, or add a photo" />
         </label>
-        <PicturePicker id={home ? "ask-picture-home" : "ask-picture"} label="Add a photo (optional)" picture={picture} onChange={setPicture} />
+        <PicturePicker id={home ? "ask-picture-home" : "ask-picture"} label="Or add a photo" picture={picture} onChange={setPicture} compact={home} />
         <button type="submit" className={btnPrimary} disabled={busy || (!text.trim() && !picture)}>{busy ? "One moment…" : "Ask North"}</button>
       </form>
       {below}

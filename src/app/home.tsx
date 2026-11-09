@@ -1,7 +1,7 @@
 "use client";
 // Home: a greeting, ONE large Ask North box with three quick buttons, then this week's money, the last time North stepped in, and a small
 // peek at what is saved. Anything that needs the person (an assistant's one-tap card, price news) comes first. Every number comes from the server.
-import { Bookmark, CircleCheck, FilePlus2, ListChecks, ScanSearch, ShieldCheck, ShoppingBag, Wallet } from "lucide-react";
+import { Bookmark, FilePlus2, ScanSearch, ShieldCheck, ShoppingBag, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { card } from "@/components/classes";
@@ -74,13 +74,13 @@ export function Home() {
         <div>
           <div className="ng-eyebrow">{hello()}</div>
           <h1>What do you<br />need today?</h1>
-          <p className="ng-intro">Tell North what you want. It finds it, checks the deal, or makes a rule, and your money stays under your rules.</p>
+          <p className="ng-intro">Say what you want. North helps, and your rules keep your money safe.</p>
         </div>
         <AskNorth
           variant="home"
           below={
             <div className="ng-quick" role="group" aria-label="Quick actions">
-              <Link href="/find" className="n-btn n-btn-secondary"><ShoppingBag aria-hidden="true" />Buy something</Link>
+              <Link href="/find" className="n-btn n-btn-secondary"><ShoppingBag aria-hidden="true" />Find something</Link>
               <Link href="/check" className="n-btn n-btn-secondary"><ScanSearch aria-hidden="true" />Check a deal</Link>
               <Link href="/rules/new" className="n-btn n-btn-secondary"><FilePlus2 aria-hidden="true" />Add a rule</Link>
             </div>
@@ -132,10 +132,6 @@ export function Home() {
             </div>
           )}
         </section>
-        {!step && (
-          <p className="n-note n-note-quiet"><CircleCheck aria-hidden="true" /><span>North has not had to stop or slow down a buy yet.</span></p>
-        )}
-        <Link href="/rules" className="n-link"><ListChecks aria-hidden="true" size={18} style={{ marginRight: 8 }} />See my spending rules</Link>
       </div>
     </div>
   );

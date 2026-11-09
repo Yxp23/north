@@ -12,7 +12,7 @@ body { margin: 0; background: #f9f3f3; }
 }
 .north-app *, .north-app *::before, .north-app *::after { box-sizing: border-box; }
 .north-app :where(a, button, input, select, textarea, summary) { font-family: inherit; letter-spacing: inherit; }
-.ng-content { flex: 1; display: flex; flex-direction: column; padding: 28px 40px 24px; }
+.ng-content { --ng-px: 40px; flex: 1; display: flex; flex-direction: column; padding: 0 var(--ng-px) 24px; }
 .ng-skip { position: absolute; left: 12px; top: 8px; transform: translateY(-200%); background: var(--n-content); color: var(--n-ink); padding: 12px 18px; border-radius: 14px; border: 2px solid var(--n-ink); z-index: 100; font-size: 17px; text-decoration: underline; }
 .ng-skip:focus { transform: none; }
 .ng-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
@@ -47,7 +47,14 @@ body { margin: 0; background: #f9f3f3; }
 @media (prefers-reduced-motion: reduce) { .north-app *, .north-app *::after, .north-app *::before { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 
 /* ---- top bar ---- */
-.ng-top { display: grid; grid-template-columns: minmax(130px, 1fr) auto minmax(130px, 1fr); align-items: center; gap: 20px; margin: 0 0 56px; }
+.ng-top {
+  display: grid; grid-template-columns: minmax(130px, 1fr) auto minmax(130px, 1fr); align-items: center; gap: 20px;
+  /* The header stays at the top while you scroll. Its own band keeps the text under it from showing through. */
+  position: sticky; top: 0; z-index: 40; margin: 0 calc(-1 * var(--ng-px)) 44px; padding: 16px var(--ng-px) 14px;
+  background: color-mix(in srgb, var(--n-paper) 93%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
+  border-bottom: 1px solid transparent;
+}
+.north-app.ng-solid .ng-top { background: var(--n-paper); -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom-color: var(--n-line); }
 .ng-brand { display: flex; gap: 7px; align-items: center; letter-spacing: -1.2px; font-size: 29px; font-weight: 500; color: var(--n-ink); text-decoration: none; border-radius: 12px; min-height: 44px; }
 .ng-brand-star { font-size: 31px; font-weight: 400; line-height: 1; }
 .ng-top-actions { display: flex; align-items: center; gap: 9px; justify-self: end; flex-wrap: wrap; justify-content: flex-end; }
@@ -274,22 +281,22 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
 /* ---- Tablet / phone ---- */
 /* The menu moves to its own row when there is not room for it beside the buttons (and when Behind the scenes takes the right side). */
 @media (max-width: 1279px) {
-  .ng-top { grid-template-columns: 1fr auto; margin-bottom: 42px; gap: 19px 10px; }
+  .ng-top { grid-template-columns: 1fr auto; margin-bottom: 36px; gap: 12px 10px; }
   .ng-nav { grid-column: 1 / -1; grid-row: 2; width: 540px; max-width: 100%; }
   .ng-top-actions { grid-row: 1; grid-column: 2; }
 }
 @media (min-width: 1280px) {
-  .ng-has-bts .ng-top { grid-template-columns: 1fr auto; margin-bottom: 42px; gap: 19px 10px; }
+  .ng-has-bts .ng-top { grid-template-columns: 1fr auto; margin-bottom: 36px; gap: 12px 10px; }
   .ng-has-bts .ng-nav { grid-column: 1 / -1; grid-row: 2; width: 540px; max-width: 100%; }
   .ng-has-bts .ng-top-actions { grid-row: 1; grid-column: 2; }
 }
 @media (max-width: 870px) {
-  .ng-content { padding: 25px 29px; }
+  .ng-content { --ng-px: 29px; }
   .ng-home { column-gap: 30px; }
 }
 @media (max-width: 650px) {
-  .ng-content { padding: 23px 21px calc(118px + env(safe-area-inset-bottom)); }
-  .ng-top { margin-bottom: 33px; }
+  .ng-content { --ng-px: 21px; padding-bottom: calc(118px + env(safe-area-inset-bottom)); }
+  .ng-top { margin-bottom: 26px; padding-top: 12px; padding-bottom: 10px; }
   .ng-brand { font-size: 26px; }
   .ng-top-actions { gap: 6px; }
   .ng-top-help { padding: 10px 12px; }
@@ -316,7 +323,7 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
   .ng-sheet h2 { font-size: 28px; }
 }
 @media (max-width: 380px) {
-  .ng-content { padding-left: 14px; padding-right: 14px; }
+  .ng-content { --ng-px: 14px; }
   .ng-top-help { padding: 10px; }
   .n-main h1 { font-size: 30px; }
   .ng-amount { font-size: 42px; }
@@ -404,3 +411,13 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
   .ng-buy-split .ng-b-actions { order: 3; } .ng-buy-split .ng-b-stores { order: 4; }
 }
 .ng-quick .n-btn { white-space: nowrap; padding-left: 14px; padding-right: 14px; gap: 8px; flex: 1 1 auto; }
+
+/* The skip link and the first thing under the sticky header need room when jumped to. */
+.n-main { scroll-margin-top: 90px; }
+html { scroll-padding-top: 96px; }
+@media (max-width: 650px) { .ng-top-help .ng-help-word { display: inline; } }
+
+/* A blur on the header would turn it into the "page" for the phone's fixed tab bar (the bar would stick to the header). No blur on phones. */
+@media (max-width: 650px) {
+  .ng-top { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--n-paper); }
+}

@@ -36,11 +36,11 @@ export function CheckoutDialog({
 
   if (phase.name === "working") {
     return (
-      <Dialog label="Checking with the Money Guardian" onClose={onClose} dismissable={false} wide>
+      <Dialog label="Checking your rules" onClose={onClose} dismissable={false} wide>
         <p className="gd-badge n-chip-quiet"><Clock aria-hidden="true" />Checking</p>
-        <h2 tabIndex={-1} data-autofocus style={{ outline: "none" }}>Checking with the Money Guardian</h2>
-        <p role="status">I am checking {product.name} against your rules. Nothing is charged until the Guardian says yes.</p>
-        <ActivityPanel events={phase.events} title="What the Money Guardian is doing" agents={GUARDIAN} />
+        <h2 tabIndex={-1} data-autofocus style={{ outline: "none" }}>Checking your rules</h2>
+        <p role="status">I am checking {product.name} against your rules. Nothing is charged until the check says yes.</p>
+        <ActivityPanel events={phase.events} title="What I am checking" agents={GUARDIAN} />
       </Dialog>
     );
   }
@@ -84,7 +84,7 @@ export function CheckoutDialog({
           </Disclosure>
         )}
         <Link href="/money" className="n-btn n-btn-primary">See my money</Link>
-        <Link href="/find" className="n-btn n-btn-secondary">Keep looking</Link>
+        <Link href="/find" className="n-btn n-btn-quiet">Keep looking</Link>
         {panel}
       </DecisionDialog>
     );
@@ -113,9 +113,8 @@ export function CheckoutDialog({
         {undone === "failed" && <p role="alert" className="n-note n-note-stop" style={{ margin: "0 0 14px" }}><span>That did not work. It is still saved. Try again.</span></p>}
         {undone !== "done" && <Link href="/saved" className="n-btn n-btn-primary">See my saved items</Link>}
         {undone !== "done" && (
-          <button type="button" className="n-btn n-btn-secondary" disabled={undoing} onClick={() => undoSave(o.item.id)}>Undo. Don&apos;t save it.</button>
+          <button type="button" className="n-btn n-btn-quiet" disabled={undoing} onClick={() => undoSave(o.item.id)}>Undo. Don&apos;t save it.</button>
         )}
-        {close}
         {panel}
       </DecisionDialog>
     );
@@ -125,9 +124,9 @@ export function CheckoutDialog({
     return (
       <DecisionDialog view={view} onClose={onClose} hear={`${view.word}. ${view.title}. ${o.result.reason}`}>
         <p className="n-note n-note-stop" style={{ margin: "0 0 14px" }}><Hand aria-hidden="true" /><span>Nothing was charged. {view.variant === "scam" ? "I will not pay this seller, whatever anyone says." : "No one can get past this, not even a Buy now."}</span></p>
-        {view.variant === "scam" && <Link href={`/check?product=${encodeURIComponent(product.id)}`} className="n-btn n-btn-secondary">See why I think it is a scam</Link>}
-        {o.result.code === "locked_rule" && <Link href="/rules" className="n-btn n-btn-secondary">See my rules</Link>}
-        {(o.result.code === "over_budget" || o.result.code === "protected_money") && <Link href="/money" className="n-btn n-btn-secondary">See my money</Link>}
+        {view.variant === "scam" && <Link href={`/check?product=${encodeURIComponent(product.id)}`} className="n-btn n-btn-quiet">See why I think it is a scam</Link>}
+        {o.result.code === "locked_rule" && <Link href="/rules" className="n-btn n-btn-quiet">See my rules</Link>}
+        {(o.result.code === "over_budget" || o.result.code === "protected_money") && <Link href="/money" className="n-btn n-btn-quiet">See my money</Link>}
         <Link href="/find" className="n-btn n-btn-primary">Back to Find</Link>
         {panel}
       </DecisionDialog>

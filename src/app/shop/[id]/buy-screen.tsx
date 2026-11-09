@@ -102,7 +102,7 @@ export function BuyScreen({ product, demoMode }: { product: StoreProduct; demoMo
         <div className="n-stack" style={{ gap: 18 }}>
           <div className="ng-b-stores"><StoreComparison offers={product.offers} live={product.live} /></div>
           <div className="n-stack ng-b-actions" style={{ gap: 18 }}>
-          <p className="n-note n-note-quiet"><ShieldCheck aria-hidden="true" /><span>You pay with your saved PayPal. The Money Guardian checks your rules first.</span></p>
+          <p className="n-note n-note-quiet"><ShieldCheck aria-hidden="true" /><span>You pay with your saved PayPal. North checks your rules first.</span></p>
           <button type="button" className={btnPrimary} onClick={() => setScreen({ name: "buy" })}>Buy this</button>
           <button type="button" className={btnSecondary} onClick={() => askHelper(false)}><Bot aria-hidden="true" />Ask the helper about this</button>
           <Link href={`/check?product=${encodeURIComponent(product.id)}`} className={btnSecondary}>Is this deal real?</Link>

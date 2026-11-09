@@ -121,7 +121,7 @@ function AppearancePanel({ open, onClose, triggerRef }: { open: boolean; onClose
 }
 
 const HELP_TEXT =
-  "North helps you shop. You set the rules, and North follows them. Before any payment, the Money Guardian checks the item, the seller and the total against your rules. Making a rule stricter starts right away. Making it weaker takes one day.";
+  "North helps you shop. You set the rules, and North follows them. Before any payment, North checks the item, the seller and the total against your rules. Making a rule stricter starts right away. Making it weaker takes one day.";
 
 // Each new thing that appears on a screen eases in once, one after another, with the approved spring. Nothing loops. Off with reduced motion.
 const REVEAL = ".ng-hero, .ng-page-title, .ng-askbox, .ng-quick, .n-card, .ng-money, .ng-saved, .ng-trust, .n-note, .ng-section, .n-reveal";
@@ -192,7 +192,7 @@ function SettingsMenu({ open, onClose, onAppearance, onHelp, triggerRef, demo, o
     <div ref={ref} id="ng-menu" className="ng-menu" role="group" aria-label="Settings and help">
       <ul>
         <li><button type="button" onClick={onAppearance}><Palette aria-hidden="true" />Appearance</button></li>
-        <li><Link href="/assistants" onClick={onClose}><Bot aria-hidden="true" />Assistants<small>Advanced</small></Link></li>
+        <li><Link href="/assistants" onClick={onClose}><Bot aria-hidden="true" />AI assistants<small>Advanced</small></Link></li>
         <li className="ng-bts-only"><button type="button" aria-pressed={a.behind} onClick={() => { a.setBehind(!a.behind); onClose(); }}><Eye aria-hidden="true" />Behind the scenes<small>{a.behind ? "On" : "Off"}</small></button></li>
         <li><button type="button" onClick={onHelp}><CircleHelp aria-hidden="true" />Help</button></li>
         <li><Link href="/how-it-works" onClick={onClose}><Route aria-hidden="true" />How North works</Link></li>
@@ -259,12 +259,17 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Palette aria-hidden="true" />Appearance
               </button>
             ) : (
+              <>
+              <button type="button" className="ng-top-help ng-glass" onClick={() => { setMenuOpen(false); setHelp(true); }}>
+                <CircleHelp aria-hidden="true" /><span className="ng-help-word">Help</span>
+              </button>
               <button
                 ref={menuBtn} type="button" className="ng-top-help ng-glass" aria-expanded={menuOpen} aria-controls="ng-menu" aria-haspopup="true"
                 onClick={() => setMenuOpen((v) => !v)}
               >
                 <span className="ng-avatar" aria-hidden="true"><UserRound /></span>Menu
               </button>
+              </>
             )}
           </div>
         </header>
@@ -301,7 +306,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Dialog label="Help" onClose={() => setHelp(false)}>
           <h2>Help, when you need it.</h2>
           <p>North helps you shop. You set the rules, and North follows them.</p>
-          <p>Before any payment, the Money Guardian checks the item, the seller and the total against your rules.</p>
+          <p>Before any payment, North checks the item, the seller and the total against your rules.</p>
           <p>Making a rule stricter starts right away. Making it weaker takes one day, so you can change your mind.</p>
           <div style={{ margin: "0 0 14px" }}><SpeakButton text={HELP_TEXT} /></div>
           <Link href="/how-it-works" className="n-btn n-btn-secondary">See how North works</Link>

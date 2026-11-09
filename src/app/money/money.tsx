@@ -101,7 +101,7 @@ export function MoneyPage() {
         <RulesGlance />
         <section aria-labelledby="pp-h" className="n-stack">
           <h2 id="pp-h">My saved PayPal</h2>
-          <p>{data.paypalSaved ? "This is how North pays, after the Money Guardian says yes. North never shows your PayPal details." : "You need to save a PayPal before North can pay for anything."}</p>
+          <p>{data.paypalSaved ? "This is how North pays, after your rules say yes. North never shows your PayPal details." : "You need to save a PayPal before North can pay for anything."}</p>
           <Link href="/connect" className="n-btn n-btn-secondary">{data.paypalSaved ? "See my saved PayPal" : "Connect PayPal"}</Link>
         </section>
         {setup !== "done" && (

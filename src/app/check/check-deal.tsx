@@ -187,7 +187,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
           </div>
           {rest.length > 0 && <ul className="list-disc space-y-1 pl-6 text-lg">{rest.map((r) => <li key={r}>{r}</li>)}</ul>}
           {flagged === "yes" && payload.sellerDomain && (
-            <p role="status" className="n-note n-note-stop"><Hand aria-hidden="true" /><span><strong>I will not let you pay {payload.sellerDomain}.</strong> The Money Guardian will say no.</span></p>
+            <p role="status" className="n-note n-note-stop"><Hand aria-hidden="true" /><span><strong>I will not let you pay {payload.sellerDomain}.</strong> North will say no when you try to pay them.</span></p>
           )}
           {flagged === "no_seller" && <p role="status" className="n-note n-note-wait"><span>I don&apos;t know who the seller is, so I couldn&apos;t block them.</span></p>}
           {flagged === "not_saved" && <p role="alert" className="n-note n-note-wait"><span>I couldn&apos;t save a warning about this seller. Please be careful.</span></p>}
@@ -220,7 +220,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
               <ul className="list-disc space-y-1 pl-6" style={{ margin: "0 0 14px", color: "var(--n-ink)" }}>
                 {payload.verdict.evidence.map((e) => <li key={e}>{e}</li>)}
               </ul>
-              {flagged === "yes" && <p className="n-note n-note-stop" style={{ margin: "0 0 14px" }}><Hand aria-hidden="true" /><span>I saved a warning about this seller. The Money Guardian will refuse to pay them.</span></p>}
+              {flagged === "yes" && <p className="n-note n-note-stop" style={{ margin: "0 0 14px" }}><Hand aria-hidden="true" /><span>I saved a warning about this seller. North will refuse to pay them.</span></p>}
               <HowDecided title="Checking a deal" data={{ agents: [...SCAM_CHECKER, { name: "Money Guardian", ai: false, did: "Refuses to pay a seller that was flagged as a scam." }], guardian: flagged === "yes" ? { decision: "refuse", code: "scam_seller", reason: "This seller looks like a scam. I won't pay them." } : undefined, events: stage.events }} />
               <button type="button" className="n-btn n-btn-primary" data-autofocus onClick={() => setShowScam(false)}>Okay, I understand</button>
             </DecisionDialog>

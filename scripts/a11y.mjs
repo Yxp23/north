@@ -23,7 +23,7 @@ const browser = await launch();
 const found = [];
 const ctx = await loggedInContext(browser, { width: 1440, height: 900 }, { reducedMotion: "reduce" });
 const page = await ctx.newPage();
-await page.goto(`${BASE}/find`, { waitUntil: "load" });
+await page.goto(`${BASE}/find`, { waitUntil: "domcontentloaded", timeout: 90000 });
 const productHref = await page.locator('a[href^="/shop/"]').first().getAttribute("href");
 const pages = [...PAGES, productHref];
 let runs = 0;
@@ -32,7 +32,7 @@ for (const theme of THEMES) {
   for (const solid of [false, true]) {
     await page.evaluate(([t, s]) => localStorage.setItem("north-appearance", JSON.stringify({ theme: t, reduce: true, solid: s, behind: false })), [theme, solid]);
     for (const path of pages) {
-      await page.goto(BASE + path, { waitUntil: "load" });
+      await page.goto(BASE + path, { waitUntil: "domcontentloaded", timeout: 90000 });
       await page.waitForSelector("main h1, main h2", { timeout: 20000 }).catch(() => {});
       await page.waitForTimeout(500);
       await scan(page, `${theme}${solid ? "+solid" : ""} ${path}`, found);
@@ -40,7 +40,7 @@ for (const theme of THEMES) {
     }
     // Overlays: Help, Ask North, Appearance, Behind the scenes (with real steps), the review dialog and a decision.
     const tag = `${theme}${solid ? "+solid" : ""}`;
-    await page.goto(BASE + "/saved", { waitUntil: "load" });
+    await page.goto(BASE + "/saved", { waitUntil: "domcontentloaded", timeout: 90000 });
     await page.waitForSelector("main h1", { timeout: 20000 });
     await page.getByRole("button", { name: "Menu" }).click();
     await scan(page, `${tag} panel:Menu`, found);
@@ -56,7 +56,7 @@ for (const theme of THEMES) {
     await page.getByRole("button", { name: "Appearance" }).click();
     await scan(page, `${tag} panel:Appearance`, found);
     await page.keyboard.press("Escape");
-    await page.goto(BASE + productHref, { waitUntil: "load" });
+    await page.goto(BASE + productHref, { waitUntil: "domcontentloaded", timeout: 90000 });
     await page.getByRole("button", { name: "Buy this", exact: true }).click();
     await page.waitForSelector("text=Check before you pay");
     await scan(page, `${tag} dialog:Review`, found);
@@ -65,7 +65,7 @@ for (const theme of THEMES) {
     await scan(page, `${tag} dialog:Decision`, found);
     await page.keyboard.press("Escape");
     await page.evaluate(([t, s]) => localStorage.setItem("north-appearance", JSON.stringify({ theme: t, reduce: true, solid: s, behind: true })), [theme, solid]);
-    await page.reload({ waitUntil: "load" });
+    await page.reload({ waitUntil: "domcontentloaded", timeout: 90000 });
     await page.waitForSelector(".ng-bts");
     await scan(page, `${tag} panel:Behind the scenes`, found);
     runs += 6;
@@ -76,9 +76,9 @@ for (const theme of THEMES) {
 const anon = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 const lp = await anon.newPage();
 for (const theme of THEMES) for (const solid of [false, true]) {
-  await lp.goto(`${BASE}/login`, { waitUntil: "load" });
+  await lp.goto(`${BASE}/login`, { waitUntil: "domcontentloaded", timeout: 90000 });
   await lp.evaluate(([t, s]) => localStorage.setItem("north-appearance", JSON.stringify({ theme: t, reduce: true, solid: s, behind: false })), [theme, solid]);
-  await lp.reload({ waitUntil: "load" });
+  await lp.reload({ waitUntil: "domcontentloaded", timeout: 90000 });
   await lp.waitForSelector("main h1");
   await scan(lp, `${theme}${solid ? "+solid" : ""} /login`, found);
   runs++;

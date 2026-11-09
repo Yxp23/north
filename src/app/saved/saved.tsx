@@ -32,7 +32,7 @@ export function SavedPage() {
   return page(
     <>
       <section aria-labelledby="waiting-h" className="n-stack">
-        <h2 id="waiting-h">Waiting list</h2>
+        <h2 id="waiting-h">Saved for later</h2>
         {shown.length === 0 && removed.length === 0 ? (
           <Empty action={<Link href="/find" className={`${btnPrimary} n-btn-auto`}>Find something</Link>}>
             Nothing is saved yet. When you wait on something, it shows here, and I will remind you.

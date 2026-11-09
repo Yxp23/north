@@ -108,6 +108,8 @@ The whole frontend is restyled in the handoff's system. Tokens and background ge
 - Cognitive accessibility: text 16px minimum (`node scripts/text-size.mjs`), tap-to-hear (`components/shell/speak.tsx`), money in real things (`lib/ui/real-things.ts`), plain loading/empty/error states (`components/states.tsx`), no timers.
 - Checks: `node scripts/a11y.mjs` (axe, all pages x 5 themes x normal/solid + dialogs), `node scripts/contrast-tokens.mjs` (token contrast, incl. glass), `node scripts/ui-lib.mjs` helpers for screenshots. They need a running dev server (`SUPABASE_URL= SUPABASE_SECRET_KEY= PAYMENTS_MODE=simulated DEMO_MODE=1 npx next dev -p 3200`).
 
+- Header (brand, tabs, Help, Menu) is sticky; Home is simplified (one Ask box + Find something / Check a deal / Add a rule, money, last step-in, saved); decision dialogs have one primary button; user-facing words say "North checks your rules" in the main flow (the name Money Guardian stays on How it works, Behind the scenes and demo pages).
+
 ## Stack
 Next.js (whatever `create-next-app@latest` installs) + TypeScript (App Router, `src/`), Supabase Postgres (users, rules, budgets, receipts, audit log), and Claude through the Anthropic API with tool use for the agents (key: `ANTHROPIC_API_KEY`). PayPal Agent Toolkit (`@paypal/agent-toolkit`) lets the Concierge agent create orders and check order status. Check its current docs before using it, and if it can't use a saved-account token, keep the saved-account charge in our own checkout code. Unit tests for the Guardian; an eval script for scam/injection detection; GitHub Actions; MIT license.
 

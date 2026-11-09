@@ -71,7 +71,7 @@ export function BuyFlow({ item, onClose }: { item: BuyItem; onClose(): void }) {
         {left !== null && <Row label="You would still have">{formatMoney(Math.max(0, left - item.priceCents))} this week</Row>}
       </div>
       <RealThingsLine cents={item.priceCents} className="gd-reason" />
-      <p>The Money Guardian checks this against your rules first. If it says yes, your PayPal is charged. If not, nothing is charged.</p>
+      <p>North checks this against your rules first. If your rules say yes, your PayPal is charged. If not, nothing is charged.</p>
       <div style={{ margin: "0 0 14px" }}><SpeakButton text={`Check before you pay. ${shownName}. Total ${formatMoney(item.priceCents)}. Pay with your saved PayPal.`} /></div>
       <button type="button" className={btnPrimary} onClick={() => buy(false)}><Wallet aria-hidden="true" />Pay with your saved PayPal</button>
       <button type="button" className="n-btn n-btn-quiet" onClick={onClose}>Not now</button>

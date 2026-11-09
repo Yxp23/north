@@ -7,7 +7,7 @@ import { shrinkPicture } from "@/lib/image-client";
 
 export type Picture = { name: string; base64: string };
 
-export function PicturePicker({ id, label, picture, onChange }: { id: string; label: string; picture: Picture | null; onChange: (p: Picture | null) => void }) {
+export function PicturePicker({ id, label, picture, onChange, compact = false }: { id: string; label: string; picture: Picture | null; onChange: (p: Picture | null) => void; /** A smaller button, with the label read only by a screen reader. */ compact?: boolean }) {
   const [error, setError] = useState("");
   async function choose(file: File | undefined) {
     setError("");
@@ -21,13 +21,13 @@ export function PicturePicker({ id, label, picture, onChange }: { id: string; la
   }
   return (
     <div className="n-stack" style={{ gap: 10 }}>
-      <span className="n-label" style={{ marginBottom: 0 }} id={`${id}-label`}>{label}</span>
+      <span className={compact ? "ng-vh" : "n-label"} style={{ marginBottom: 0 }} id={`${id}-label`}>{label}</span>
       <div className="n-pic">
         {/* The real file input stays in the page (for keyboards and screen readers); the label is what you see. */}
         <input id={id} className="n-pic-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" aria-describedby={`${id}-label`} onChange={(e) => { void choose(e.target.files?.[0]); e.target.value = ""; }} />
         <label htmlFor={id} className="n-btn n-btn-secondary n-pic-btn">
           <Camera aria-hidden="true" />
-          {picture ? "Choose a different picture" : "Take or choose a picture"}
+          {picture ? "Choose a different picture" : compact ? "Add a photo" : "Take or choose a picture"}
         </label>
         {picture && (
           <div className="n-pic-preview">
