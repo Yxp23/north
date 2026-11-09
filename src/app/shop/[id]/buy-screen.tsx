@@ -78,20 +78,20 @@ export function BuyScreen({ product, demoMode }: { product: StoreProduct; demoMo
 
   return (
     <>
-      <div className="ng-split" style={{ gridTemplateColumns: "1fr 1fr", gap: 40 }}>
+      <div className="ng-split ng-buy-split" style={{ gridTemplateColumns: "1fr 1fr", gap: 40 }}>
         <div className="n-stack" style={{ gap: 18 }}>
-          <div>
+          <div className="ng-b-title">
             <div className="ng-eyebrow">Find</div>
             <h1>{shownName}</h1>
           </div>
           {pretendHour !== null && (
             <p role="note" className="n-note n-note-wait"><TriangleAlert aria-hidden="true" /><span>Demo clock: pretending it is {pretendHour % 12 === 0 ? 12 : pretendHour % 12}:00 {pretendHour >= 12 ? "PM" : "AM"}.</span></p>
           )}
-          <div className={`${card} n-stack`} style={{ justifyItems: "center" }}>
+          <div className={`${card} n-stack ng-b-photo`} style={{ justifyItems: "center" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={product.imageUrl} alt={shownName} style={{ height: 260, width: "100%", objectFit: "contain", background: "#fff", borderRadius: 16 }} />
           </div>
-          <div className="ng-money" style={{ minHeight: 0 }}>
+          <div className="ng-money ng-b-price" style={{ minHeight: 0 }}>
             <div className="ng-money-top"><span>Price</span><Wallet aria-hidden="true" /></div>
             <BigMoney cents={product.priceCents} label="Price" />
             <RealThingsLine cents={product.priceCents} />
@@ -100,12 +100,14 @@ export function BuyScreen({ product, demoMode }: { product: StoreProduct; demoMo
         </div>
 
         <div className="n-stack" style={{ gap: 18 }}>
-          <StoreComparison offers={product.offers} live={product.live} />
+          <div className="ng-b-stores"><StoreComparison offers={product.offers} live={product.live} /></div>
+          <div className="n-stack ng-b-actions" style={{ gap: 18 }}>
           <p className="n-note n-note-quiet"><ShieldCheck aria-hidden="true" /><span>You pay with your saved PayPal. The Money Guardian checks your rules first.</span></p>
           <button type="button" className={btnPrimary} onClick={() => setScreen({ name: "buy" })}>Buy this</button>
           <button type="button" className={btnSecondary} onClick={() => askHelper(false)}><Bot aria-hidden="true" />Ask the helper about this</button>
           <Link href={`/check?product=${encodeURIComponent(product.id)}`} className={btnSecondary}>Is this deal real?</Link>
           <Link href="/find" className="n-btn n-btn-quiet">Back to Find</Link>
+          </div>
         </div>
       </div>
 

@@ -9,8 +9,11 @@ async function Inner({ searchParams }: { searchParams: Promise<{ said?: string }
 
 export default function NewRulePage({ searchParams }: { searchParams: Promise<{ said?: string }> }) {
   return (
-    <Suspense fallback={<p role="status" className="text-xl">Loading…</p>}>
-      <Inner searchParams={searchParams} />
+    <Suspense fallback={<p role="status" className="n-note n-note-quiet">One moment.</p>}>
+      <>
+        <div className="ng-eyebrow">Money · New rule</div>
+        <Inner searchParams={searchParams} />
+      </>
     </Suspense>
   );
 }

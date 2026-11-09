@@ -38,26 +38,26 @@ export function BreakIt() {
   const view = out ? decisionFromAnswer({ decision: out.decision, code: out.code, reason: out.reason }) : null;
 
   return (
-    <div className="n-col">
-      <div className={`${card} space-y-2`}>
-        <h2 className="text-xl font-semibold">Quick tricks</h2>
-        <div className="flex flex-wrap gap-2">
+    <div className="n-col" style={{ maxWidth: "none" }}>
+      <div className={`${card} n-stack`}>
+        <h2>Quick tricks</h2>
+        <div className="ng-quick">
           {TRICKS.map((t) => (
-            <button key={t.name} type="button" className={btnSecondary} disabled={busy} onClick={() => { setProduct(t.product); setQuantity(t.quantity); setReason(t.reason); setWeb(!!t.web); go(t); }}>{t.name}</button>
+            <button key={t.name} type="button" className={`${btnSecondary} n-btn-auto`} disabled={busy} onClick={() => { setProduct(t.product); setQuantity(t.quantity); setReason(t.reason); setWeb(!!t.web); go(t); }}>{t.name}</button>
           ))}
         </div>
       </div>
-      <form className={`${card} space-y-3`} onSubmit={(e) => { e.preventDefault(); go(); }}>
-        <label className="block space-y-1"><span className="text-lg font-semibold">Product (an id, or words)</span>
+      <form className={`${card} n-stack`} onSubmit={(e) => { e.preventDefault(); go(); }}>
+        <label className="block"><span className="n-label">Product (an id, or words)</span>
           <input className={field} value={product} onChange={(e) => setProduct(e.target.value)} maxLength={120} /></label>
-        <label className="block space-y-1"><span className="text-lg font-semibold">How many</span>
+        <label className="block"><span className="n-label">How many</span>
           <input className={field} type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} /></label>
-        <label className="block space-y-1"><span className="text-lg font-semibold">What the assistant says (its reason)</span>
+        <label className="block"><span className="n-label">What the assistant says (its reason)</span>
           <textarea className={field} rows={3} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={600} /></label>
-        <label className="flex min-h-12 items-center gap-3 text-lg"><input type="checkbox" className="h-6 w-6" checked={web} onChange={(e) => setWeb(e.target.checked)} /> It got the idea from text on a web page</label>
+        <label className="n-checkrow"><input type="checkbox" checked={web} onChange={(e) => setWeb(e.target.checked)} /> It got the idea from text on a web page</label>
         <button type="submit" className={btnPrimary} disabled={busy}>{busy ? "Asking the Guardian…" : "Ask North"}</button>
       </form>
-      {err && <p role="alert" className="text-lg font-semibold">{err}</p>}
+      {err && <p role="alert" className="n-note n-note-stop"><span>{err}</span></p>}
       {out && view && (
         <div role="status" className={`${card} n-stack`}>
           <StatusBadge view={view} />

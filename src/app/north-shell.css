@@ -381,3 +381,26 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
 .ng-quick .n-btn { width: auto; flex: 1 1 170px; min-height: 52px; }
 
 .ng-sheet .n-stack + .n-btn, .ng-sheet .n-btn + .n-stack { margin-top: 12px; }
+
+/* A heading that gets focus so a screen reader reads it is not a control: no ring around it. */
+.north-app :is(h1, h2, h3)[tabindex="-1"]:focus, .north-app :is(h1, h2, h3)[tabindex="-1"]:focus-visible { outline: none; box-shadow: none; }
+.n-stack > .n-btn-auto { justify-self: start; }
+.ng-home > .ng-hero { padding-bottom: 6px; }
+
+/* Inside a dialog the plain-paragraph colour must not wash out status chips and notes. */
+.ng-sheet .n-chip-good, .ng-sheet .n-note-good { color: var(--n-success); }
+.ng-sheet .n-chip-wait, .ng-sheet .n-note-wait { color: var(--n-state); }
+.ng-sheet .n-chip-stop, .ng-sheet .n-note-stop { color: var(--n-stop); }
+.ng-sheet .n-chip-quiet, .ng-sheet .n-note-quiet { color: var(--n-ink); }
+.ng-sheet .n-disc { margin: 14px 0; }
+.ng-sheet .ng-quick { margin-bottom: 4px; }
+
+.ng-review-row > :first-child { flex-shrink: 0; }
+@media (max-width: 650px) {
+  /* on a phone, Buy comes right after the price: the store list follows */
+  .ng-buy-split { display: flex !important; flex-direction: column; gap: 18px !important; }
+  .ng-buy-split > div { display: contents !important; }
+  .ng-buy-split .ng-b-title { order: 0; } .ng-buy-split .ng-b-photo { order: 1; } .ng-buy-split .ng-b-price { order: 2; }
+  .ng-buy-split .ng-b-actions { order: 3; } .ng-buy-split .ng-b-stores { order: 4; }
+}
+.ng-quick .n-btn { white-space: nowrap; padding-left: 14px; padding-right: 14px; gap: 8px; flex: 1 1 auto; }

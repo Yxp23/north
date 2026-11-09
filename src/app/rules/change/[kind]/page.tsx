@@ -11,8 +11,11 @@ async function Inner({ params }: { params: Promise<{ kind: string }> }) {
 
 export default function ChangeRulePage({ params }: { params: Promise<{ kind: string }> }) {
   return (
-    <Suspense fallback={<p role="status" className="text-xl">Loading…</p>}>
-      <Inner params={params} />
+    <Suspense fallback={<p role="status" className="n-note n-note-quiet">One moment.</p>}>
+      <>
+        <div className="ng-eyebrow">Money · Change a rule</div>
+        <Inner params={params} />
+      </>
     </Suspense>
   );
 }

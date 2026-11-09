@@ -273,7 +273,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <main id="main" className="n-main" tabIndex={-1}>{children}</main>
         </div>
 
-        {!onLogin && path !== "/" && (
+        {!onLogin && !["/", "/find", "/check", "/welcome"].includes(path) && (
           <button type="button" className="ng-ask ng-glass" onClick={() => { setMenuOpen(false); setAsk(true); }}>
             <span aria-hidden="true">✦</span>
             <span>Ask North a question</span>

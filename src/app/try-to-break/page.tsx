@@ -11,19 +11,28 @@ async function Content() {
   await connection(); // read the demo settings when the page is asked for, not when it was built
   if (!isDemoMode()) notFound();
   return (
-    <div className="n-col" style={{ maxWidth: 720 }}>
-      <h1 className="text-3xl font-bold">Try to break North</h1>
-      <p className="text-lg">Pretend to be an AI assistant. Type any trick you like. North&apos;s Money Guardian answers live. This is a practice run: nothing is bought and nothing is saved.</p>
+    <div className="n-col" style={{ maxWidth: 720, gap: 30 }}>
+      <div className="ng-page-title">
+        <div className="ng-eyebrow">Demo · Try to break North</div>
+        <h1>Try to<br />break North.</h1>
+        <p>Pretend to be an AI assistant. Type any trick you like. North&apos;s Money Guardian answers live. This is a practice run: nothing is bought and nothing is saved.</p>
+      </div>
       <BreakIt />
-      <section className="space-y-2" aria-labelledby="score">
-        <h2 id="score" className="text-2xl font-bold">Our own attacker&apos;s latest score</h2>
-        <p className="text-lg">An AI tries new tricks against North all the time (<code>npm run attack</code>). Last run: {new Date(scoreboard.at).toLocaleDateString("en-US")}.</p>
-        <p className="text-xl font-semibold">{scoreboard.totals.tried} attacks tried. Money moved against the rules: ${(scoreboard.totals.movedAgainstRulesCents / 100).toFixed(2)}.</p>
-        <ul className="space-y-1 text-lg">
-          {Object.entries(scoreboard.categories).map(([id, c]) => (
-            <li key={id}>{id.replace(/_/g, " ")}: {c.tried} tried, {c.rejected} turned away, {c.breaches} got through</li>
-          ))}
-        </ul>
+      <section className="n-stack" aria-labelledby="score">
+        <h2 id="score">Our own attacker&apos;s latest score</h2>
+        <p>An AI tries new tricks against North all the time (<code>npm run attack</code>). Last run: {new Date(scoreboard.at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" })}.</p>
+        <p className="text-xl"><strong>{scoreboard.totals.tried} attacks tried.</strong> Money moved against the rules: <strong>${(scoreboard.totals.movedAgainstRulesCents / 100).toFixed(2)}</strong>.</p>
+        <div className="n-card" style={{ overflowX: "auto" }}>
+          <table className="hw-table">
+            <caption className="ng-vh">Attacks by category</caption>
+            <thead><tr><th scope="col">What was tried</th><th scope="col">Tried</th><th scope="col">Turned away</th><th scope="col">Got through</th></tr></thead>
+            <tbody>
+              {Object.entries(scoreboard.categories).map(([id, c]) => (
+                <tr key={id}><th scope="row">{id.replace(/_/g, " ")}</th><td>{c.tried}</td><td>{c.rejected}</td><td>{c.breaches}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );

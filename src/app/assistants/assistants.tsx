@@ -77,8 +77,7 @@ export function Assistants() {
   const connected = view.agents.length > 0;
   return (
     <section aria-labelledby="assistants-h" className="n-stack">
-      <h2 id="assistants-h">{connected ? "Connected assistants" : "Connect an assistant"}</h2>
-      <p>An AI assistant you use can ask North to buy things for you. North checks every ask against your rules. It never gets your PayPal. This is an advanced setting.</p>
+      <h2 id="assistants-h" className={connected ? undefined : "ng-vh"}>{connected ? "Connected assistants" : "Connect an assistant"}</h2>
 
       {created && (
         <div role="status" className="space-y-2 rounded-2xl border-2 border-good-ink bg-good-bg p-4 text-good-ink">

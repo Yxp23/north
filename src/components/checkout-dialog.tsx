@@ -1,7 +1,7 @@
 "use client";
 // What the Money Guardian said about a buy, shown over the screen you bought from. Used after "Pay" on a product and after "Buy this again".
 // While the Guardian works, the real steps stream in. Then the answer takes its place: one of the six looks.
-import { Check, Clock, Hand, Wallet } from "lucide-react";
+import { Check, Clock, Hand } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
@@ -70,7 +70,7 @@ export function CheckoutDialog({
         <div className="ng-review" role="group" aria-label="Your receipt">
           <Row label="Item">{p.name}</Row>
           <Row label="Total">{formatMoney(p.amountCents)}</Row>
-          <Row label="Paid with"><Wallet aria-hidden="true" size={16} style={{ display: "inline", verticalAlign: "-2px" }} /> PayPal, your saved account</Row>
+          <Row label="Paid with">PayPal (saved)</Row>
           <Row label="PayPal order">{trace.paypal.status ? trace.paypal.status.charAt(0) + trace.paypal.status.slice(1).toLowerCase() : "Completed"}</Row>
           <Row label="Left this week">{formatMoney(o.leftCents)}</Row>
         </div>

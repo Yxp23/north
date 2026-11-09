@@ -38,7 +38,7 @@ const HELPERS: Record<string, { name: string; ai: boolean; did: string }> = {
 };
 const CONCIERGE = { name: "Concierge", ai: true, did: "Read what you wrote and chose the right helper. It cannot move money." };
 
-export function AskNorth({ variant = "dialog" }: { variant?: "dialog" | "home" }) {
+export function AskNorth({ variant = "dialog", below }: { variant?: "dialog" | "home"; /** Shown right under the form, above any answer (Home puts its quick buttons here). */ below?: React.ReactNode }) {
   const home = variant === "home";
   const [text, setText] = useState("");
   const [picture, setPicture] = useState<Picture | null>(null);
@@ -79,6 +79,7 @@ export function AskNorth({ variant = "dialog" }: { variant?: "dialog" | "home" }
         <PicturePicker id={home ? "ask-picture-home" : "ask-picture"} label="Add a photo (optional)" picture={picture} onChange={setPicture} />
         <button type="submit" className={btnPrimary} disabled={busy || (!text.trim() && !picture)}>{busy ? "One moment…" : "Ask North"}</button>
       </form>
+      {below}
       {error && <p role="alert" className="n-note n-note-stop"><span>{error}</span></p>}
       {(busy || events.length > 0) && <ActivityPanel events={events} agents={answer ? [CONCIERGE, ...(HELPERS[answer.route] ? [HELPERS[answer.route]] : [])] : [CONCIERGE]} />}
       {answer && <AskResult a={answer} price={price} setPrice={setPrice} again={(route, extra) => ask({ route, extra })} />}

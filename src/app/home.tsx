@@ -1,10 +1,11 @@
 "use client";
 // Home: a greeting, ONE large Ask North box with three quick buttons, then this week's money, the last time North stepped in, and a small
 // peek at what is saved. Anything that needs the person (an assistant's one-tap card, price news) comes first. Every number comes from the server.
-import { Bookmark, CircleCheck, FilePlus2, Hand, ListChecks, ScanSearch, ShieldCheck, ShoppingBag, Sparkles, Wallet } from "lucide-react";
+import { Bookmark, CircleCheck, FilePlus2, ListChecks, ScanSearch, ShieldCheck, ShoppingBag, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { card } from "@/components/classes";
+import { StatusBadge } from "@/components/decision-dialog";
 import { BigMoney, RealThingsLine } from "@/components/money";
 import { useMask } from "@/components/shell/mask";
 import { SpeakButton } from "@/components/shell/speak";
@@ -75,14 +76,19 @@ export function Home() {
           <h1>What do you<br />need today?</h1>
           <p className="ng-intro">Tell North what you want. It finds it, checks the deal, or makes a rule, and your money stays under your rules.</p>
         </div>
-        <AskNorth variant="home" />
-        <div className="ng-quick" role="group" aria-label="Quick actions">
-          <Link href="/find" className="n-btn n-btn-secondary"><ShoppingBag aria-hidden="true" />Buy something</Link>
-          <Link href="/check" className="n-btn n-btn-secondary"><ScanSearch aria-hidden="true" />Check a deal</Link>
-          <Link href="/rules/new" className="n-btn n-btn-secondary"><FilePlus2 aria-hidden="true" />Add a rule</Link>
-        </div>
+        <AskNorth
+          variant="home"
+          below={
+            <div className="ng-quick" role="group" aria-label="Quick actions">
+              <Link href="/find" className="n-btn n-btn-secondary"><ShoppingBag aria-hidden="true" />Buy something</Link>
+              <Link href="/check" className="n-btn n-btn-secondary"><ScanSearch aria-hidden="true" />Check a deal</Link>
+              <Link href="/rules/new" className="n-btn n-btn-secondary"><FilePlus2 aria-hidden="true" />Add a rule</Link>
+            </div>
+          }
+        />
       </div>
 
+      <div className="n-stack" style={{ minWidth: 0, gap: 30 }}>
       <section className="ng-money" aria-labelledby="left-h">
         <div className="ng-money-top"><span id="left-h">Left to spend this week</span><Wallet aria-hidden="true" /></div>
         <BigMoney cents={data.leftCents} label="Left to spend this week" />
@@ -94,14 +100,11 @@ export function Home() {
         {data.buyNowThisWeek > 0 && <p className="ng-real" style={{ margin: "12px 0 0" }}>You chose Buy now {data.buyNowThisWeek} {data.buyNowThisWeek === 1 ? "time" : "times"} this week.</p>}
       </section>
 
-      <div className="n-stack" style={{ minWidth: 0, gap: 28 }}>
         {step && stepView && (
           <section aria-labelledby="step-h" className="n-stack" style={{ gap: 10 }}>
             <div className="ng-section"><h2 id="step-h" style={{ fontSize: "inherit" }}>Last time North stepped in</h2></div>
             <div className={`${card} n-stack`} style={{ gap: 10 }}>
-              <p className={`n-chip n-chip-${stepView.tone}`} style={{ justifySelf: "start" }}>
-                {stepView.tone === "stop" ? <Hand aria-hidden="true" /> : <Sparkles aria-hidden="true" />}{stepView.word}
-              </p>
+              <div><StatusBadge view={stepView} /></div>
               <p className="text-lg"><strong>{m.item(step.name)}</strong>, {formatMoney(step.amountCents)}. {STEP_LINE[step.decision]}</p>
               <p style={{ color: "var(--n-muted)" }}>{new Date(step.at).toLocaleString("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" })}</p>
             </div>

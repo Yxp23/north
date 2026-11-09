@@ -58,7 +58,7 @@ export function RulesList() {
   const page = (body: React.ReactNode) => (
     <div className="n-col" style={{ maxWidth: 720 }}>
       <div className="ng-page-title">
-        <div className="ng-eyebrow">My money · My rules</div>
+        <div className="ng-eyebrow">Money · My rules</div>
         <h1>Your rules,<br />your call.</h1>
         <p>You set them. You can change or remove any of them.</p>
       </div>
@@ -115,7 +115,7 @@ export function RulesList() {
         </ul>
       </section>
 
-      <Link href="/assistants" className="n-link">What can my assistants do on their own?</Link>
+      <Link href="/assistants" className="n-link">Assistants (advanced)</Link>
     </>,
   );
 }
