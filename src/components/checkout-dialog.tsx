@@ -5,6 +5,8 @@ import { Check, Clock, Hand, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
+import { Disclosure } from "@/components/disclosure";
+import { HowDecided } from "@/components/trace-view";
 import { Dialog } from "@/components/shell/dialog";
 import { RealThingsLine } from "@/components/money";
 import { WatchButton } from "@/components/watch-button";
@@ -45,7 +47,7 @@ export function CheckoutDialog({
 
   const { outcome: o, events } = phase;
   const trace = traceFromCheckout(o, events);
-  const panel = <ActivityPanel events={events} title="What happened" agents={GUARDIAN} checkout={trace} />;
+  const panel = <HowDecided title={`Buying ${product.name}`} data={{ agents: GUARDIAN, checkout: trace, events }} />;
   const view = decisionFromOutcome(o);
   const close = <button type="button" className="n-btn n-btn-quiet" onClick={onClose}>Back</button>;
 
@@ -74,16 +76,15 @@ export function CheckoutDialog({
         </div>
         <RealThingsLine cents={p.amountCents} className="gd-reason" />
         {trace.paypal.orderId && (
-          <details className="gd-how" style={{ marginTop: 0, marginBottom: 14 }}>
-            <summary>PayPal receipt numbers</summary>
-            <div className="ng-review" style={{ marginTop: 8 }}>
+          <Disclosure summary="PayPal receipt numbers" className="gd-receipt">
+            <div className="ng-review" style={{ margin: 0 }}>
               <Row label="Order" mono>{trace.paypal.orderId}</Row>
               {trace.paypal.captureId && <Row label="Capture" mono>{trace.paypal.captureId}</Row>}
             </div>
-          </details>
+          </Disclosure>
         )}
         <Link href="/money" className="n-btn n-btn-primary">See my money</Link>
-        <Link href="/shop" className="n-btn n-btn-secondary">Keep shopping</Link>
+        <Link href="/find" className="n-btn n-btn-secondary">Keep looking</Link>
         {panel}
       </DecisionDialog>
     );
@@ -127,7 +128,7 @@ export function CheckoutDialog({
         {view.variant === "scam" && <Link href={`/check?product=${encodeURIComponent(product.id)}`} className="n-btn n-btn-secondary">See why I think it is a scam</Link>}
         {o.result.code === "locked_rule" && <Link href="/rules" className="n-btn n-btn-secondary">See my rules</Link>}
         {(o.result.code === "over_budget" || o.result.code === "protected_money") && <Link href="/money" className="n-btn n-btn-secondary">See my money</Link>}
-        <Link href="/shop" className="n-btn n-btn-primary">Back to the shop</Link>
+        <Link href="/find" className="n-btn n-btn-primary">Back to Find</Link>
         {panel}
       </DecisionDialog>
     );
@@ -154,6 +155,6 @@ export function CheckoutDialog({
     case "in_progress":
       return notice("Almost done", "Almost done", "Your buy is still going. Check My money in a moment.", "wait", <Link href="/money" className="n-btn n-btn-primary">See my money</Link>);
     default:
-      return notice("Not found", "I could not find that", "It may be sold out now. Nothing was charged.", "stop", <Link href="/shop" className="n-btn n-btn-primary">Back to the shop</Link>);
+      return notice("Not found", "I could not find that", "It may be sold out now. Nothing was charged.", "stop", <Link href="/find" className="n-btn n-btn-primary">Back to Find</Link>);
   }
 }

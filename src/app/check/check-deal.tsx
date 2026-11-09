@@ -11,6 +11,7 @@ import { btnPrimary, btnSecondary, card } from "@/components/classes";
 import { DecisionDialog, Row } from "@/components/decision-dialog";
 import { PicturePicker, type Picture } from "@/components/picture-picker";
 import { ErrorNote } from "@/components/states";
+import { HowDecided } from "@/components/trace-view";
 import type { StepEvent } from "@/lib/agents/loop";
 import type { DealPayload } from "@/lib/agents/scam-checker/scam-checker";
 import { formatMoney } from "@/lib/format";
@@ -99,7 +100,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
 
   const head = (title: string, intro?: string) => (
     <div className="ng-page-title">
-      <div className="ng-eyebrow">Shop · Check a deal</div>
+      <div className="ng-eyebrow">Find · Check a deal</div>
       <h1 ref={headingRef} tabIndex={-1} style={{ outline: "none" }}>{title}</h1>
       {intro && <p>{intro}</p>}
     </div>
@@ -128,7 +129,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
             <input type="number" inputMode="decimal" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="n-field" placeholder="27" />
           </label>
           <button type="submit" className={btnPrimary} disabled={!text.trim() && !picture}>Check this deal</button>
-          <Link href="/shop" className={btnSecondary}>Back to the shop</Link>
+          <Link href="/find" className={btnSecondary}>Back to Find</Link>
         </form>
       );
       break;
@@ -164,7 +165,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
           {head("I couldn't check that")}
           <ErrorNote what="that deal" touched="Nothing was bought." onRetry={() => setStage({ name: "ask" })} />
           <p role="alert" className="n-note n-note-stop"><span>{stage.message}</span></p>
-          <Link href="/shop" className={btnSecondary}>Back to the shop</Link>
+          <Link href="/find" className={btnSecondary}>Back to Find</Link>
         </div>
       );
       break;
@@ -203,7 +204,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
           <ActivityPanel events={stage.events} agents={SCAM_CHECKER} guardian={scam && flagged === "yes" ? { decision: "refuse", code: "scam_seller", reason: "This seller looks like a scam. I won't pay them." } : undefined} />
           {payload.claimSource === "picture" && <button type="button" className={btnSecondary} onClick={() => setStage({ name: "ask" })}>Type the price myself</button>}
           <button type="button" className={btnPrimary} onClick={startOver}>Check another deal</button>
-          <Link href="/shop" className={btnSecondary}>Back to the shop</Link>
+          <Link href="/find" className={btnSecondary}>Back to Find</Link>
           {scam && showScam && (
             <DecisionDialog
               view={{ tone: "stop", icon: "shield-alert", word: "Scam stopped", title: "I will not pay this seller", reason: main }}
@@ -220,6 +221,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
                 {payload.verdict.evidence.map((e) => <li key={e}>{e}</li>)}
               </ul>
               {flagged === "yes" && <p className="n-note n-note-stop" style={{ margin: "0 0 14px" }}><Hand aria-hidden="true" /><span>I saved a warning about this seller. The Money Guardian will refuse to pay them.</span></p>}
+              <HowDecided title="Checking a deal" data={{ agents: [...SCAM_CHECKER, { name: "Money Guardian", ai: false, did: "Refuses to pay a seller that was flagged as a scam." }], guardian: flagged === "yes" ? { decision: "refuse", code: "scam_seller", reason: "This seller looks like a scam. I won't pay them." } : undefined, events: stage.events }} />
               <button type="button" className="n-btn n-btn-primary" data-autofocus onClick={() => setShowScam(false)}>Okay, I understand</button>
             </DecisionDialog>
           )}

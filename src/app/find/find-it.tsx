@@ -1,102 +1,106 @@
 "use client";
-// "Find something": words or a photo -> products. The Finder only finds; to buy, open a product (that goes through the Guardian).
+// Find: one place for words or a photo. The Concierge reads what you wrote and decides between a search, "help me choose" (3 picks that fit this
+// week's money) and the other helpers. A photo with no words is read as "buy this again": the top matches, each with a one-tap Buy that goes
+// through the same review and the same Money Guardian. Finding never buys anything.
+import { Search, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
+import { BuyFlow, type BuyItem } from "@/components/buy-flow";
 import { btnPrimary, btnSecondary } from "@/components/classes";
 import { PicturePicker, type Picture } from "@/components/picture-picker";
 import { ProductCard } from "@/components/product-card";
+import { ErrorNote, Loading } from "@/components/states";
 import type { StepEvent } from "@/lib/agents/loop";
 import type { FinderOutcome } from "@/lib/agents/finder/finder";
 import { postAgent } from "@/lib/ndjson-client";
+import { AskResult, type Answer } from "../ask-north";
+
+const CONCIERGE = { name: "Concierge", ai: true, did: "Read what you wrote and chose the right helper. It cannot move money." };
+const FINDER = { name: "Finder", ai: true, did: "Searched the stores. It can only find, never buy." };
 
 type Stage =
   | { name: "ask" }
   | { name: "thinking"; events: StepEvent[] }
-  | { name: "results"; outcome: Extract<FinderOutcome, { kind: "found" }>; events: StepEvent[] }
-  | { name: "none"; events: StepEvent[] }
+  | { name: "answer"; answer: Answer; events: StepEvent[] }
+  | { name: "again"; items: Extract<FinderOutcome, { kind: "found" }>["items"]; events: StepEvent[] }
   | { name: "error"; message: string; events: StepEvent[] };
-
-const h1 = "text-3xl font-bold outline-none";
-const field = "n-field";
 
 export function FindIt() {
   const [stage, setStage] = useState<Stage>({ name: "ask" });
   const [text, setText] = useState("");
+  const [price, setPrice] = useState("");
   const [picture, setPicture] = useState<Picture | null>(null);
-  const headingRef = useRef<HTMLHeadingElement>(null);
+  const [buying, setBuying] = useState<BuyItem | null>(null);
+  const resultsRef = useRef<HTMLHeadingElement>(null);
+  const done = stage.name === "answer" || stage.name === "again";
   useEffect(() => {
-    headingRef.current?.focus();
-  }, [stage.name]);
+    if (done) resultsRef.current?.focus();
+  }, [done]);
 
-  async function find() {
+  async function find(extra?: { route: string; extra: Record<string, unknown> }) {
+    if (!text.trim() && !picture) return;
     setStage({ name: "thinking", events: [] });
-    const r = await postAgent<FinderOutcome>("/api/find", { text, imageBase64: picture?.base64 }, (events) => setStage({ name: "thinking", events }));
-    const p = r.payload;
-    if (!p) setStage({ name: "error", message: r.error ?? "Something went wrong. Please try again.", events: r.events });
-    else if (p.kind === "error") setStage({ name: "error", message: p.message, events: r.events });
-    else if (p.kind === "none") setStage({ name: "none", events: r.events });
-    else setStage({ name: "results", outcome: p, events: r.events });
+    // A photo and no words: "buy this again". Otherwise the Concierge decides.
+    if (!extra && picture && !text.trim()) {
+      const r = await postAgent<FinderOutcome>("/api/find", { mode: "reorder", imageBase64: picture.base64 }, (events) => setStage({ name: "thinking", events }));
+      const p = r.payload;
+      if (!p) setStage({ name: "error", message: r.error ?? "That did not work. Nothing was bought. Try again.", events: r.events });
+      else if (p.kind === "error") setStage({ name: "error", message: p.message, events: r.events });
+      else if (p.kind === "none") setStage({ name: "answer", answer: { route: "none", payload: { message: "I did not find it. Try a clearer picture, with the label showing." } }, events: r.events });
+      else setStage({ name: "again", items: p.items, events: r.events });
+      return;
+    }
+    const r = await postAgent<Answer["payload"]>("/api/ask", { text, imageBase64: picture?.base64, ...(extra ?? {}) }, (events) => setStage({ name: "thinking", events }));
+    if (!r.payload || !r.line) return setStage({ name: "error", message: r.error ?? "That did not work. Nothing was bought. Try again.", events: r.events });
+    setStage({ name: "answer", answer: { route: r.line.route, payload: r.payload } as Answer, events: r.events });
   }
 
-  if (stage.name === "ask") {
-    return (
-      <form className="n-col" onSubmit={(e) => { e.preventDefault(); if (text.trim() || picture) find(); }}>
-        <h1 ref={headingRef} tabIndex={-1} className={h1}>Find something</h1>
-        <p className="text-xl">Tell me what you are looking for, or show me a picture.</p>
-        <label className="block space-y-2">
-          <span className="block text-xl font-semibold">What are you looking for?</span>
-          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={500} className={field} placeholder="running shoes, size 8" />
-        </label>
-        <PicturePicker id="find-picture" label="Or add a picture of it" picture={picture} onChange={setPicture} />
-        <button type="submit" className={btnPrimary} disabled={!text.trim() && !picture}>Find it</button>
-        <Link href="/shop" className={btnSecondary}>Back to the shop</Link>
-      </form>
-    );
-  }
+  const events = stage.name === "ask" ? [] : stage.events;
+  const agents = stage.name === "again" ? [FINDER] : stage.name === "answer" ? [CONCIERGE] : [CONCIERGE];
 
-  if (stage.name === "thinking") {
-    return (
-      <div className="n-col">
-        <h1 ref={headingRef} tabIndex={-1} className={h1}>Looking</h1>
-        <p role="status" className="text-xl">This takes a few seconds.</p>
-        <ActivityPanel events={stage.events} />
-      </div>
-    );
-  }
-
-  if (stage.name === "error" || stage.name === "none") {
-    return (
-      <div className="n-col">
-        <h1 ref={headingRef} tabIndex={-1} className={h1}>{stage.name === "none" ? "I did not find it" : "I couldn't look that up"}</h1>
-        <p role={stage.name === "error" ? "alert" : "status"} className="text-xl">
-          {stage.name === "error" ? stage.message : "I could not find a good match. Try different words, or a clearer picture."}
-        </p>
-        <ActivityPanel events={stage.events} />
-        <button type="button" className={btnPrimary} onClick={() => setStage({ name: "ask" })}>Try again</button>
-        <Link href="/shop" className={btnSecondary}>Back to the shop</Link>
-      </div>
-    );
-  }
-
-  const { outcome } = stage;
   return (
-    <div className="n-col">
-      <h1 ref={headingRef} tabIndex={-1} className={h1}>{outcome.items.length === 1 ? "I found this" : "I found these"}</h1>
-      {outcome.unsure && <p role="status" className="rounded-xl bg-warn-bg p-3 text-lg text-warn-ink">I am not sure these are right. Look at the pictures and pick the one that matches.</p>}
-      <ul className="space-y-4">
-        {outcome.items.map(({ item, size }) => (
-          <li key={item.id}>
-            <ProductCard item={item}>
-              {outcome.size && size === "yes" && <p className="rounded-xl bg-good-bg p-2 text-lg text-good-ink">It comes in size {outcome.size}.</p>}
-              {outcome.size && size === "unknown" && <p className="rounded-xl bg-warn-bg p-2 text-lg text-warn-ink">I could not check the size. Look before you buy.</p>}
-              <Link href={`/shop/${item.id}`} className={btnPrimary}>Look at this one</Link>
-            </ProductCard>
-          </li>
-        ))}
-      </ul>
-      <ActivityPanel events={stage.events} />
-      <button type="button" className={btnSecondary} onClick={() => setStage({ name: "ask" })}>Look for something else</button>
+    <div className="n-col" style={{ maxWidth: 760 }}>
+      <div className="ng-page-title">
+        <div className="ng-eyebrow">Find</div>
+        <h1>What are you<br />looking for?</h1>
+        <p>Type what you want, or add a photo. North finds it, and shows every store&apos;s price.</p>
+      </div>
+
+      <form className="n-stack" style={{ gap: 18 }} onSubmit={(e) => { e.preventDefault(); void find(); }}>
+        <p className="ng-vh">A photo with no words finds the same thing so you can buy it again.</p>
+        <label className="block">
+          <span className="n-label">What do you need?</span>
+          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={500} className="n-field" placeholder="Running shoes, size 8. Or: something warm for my feet, not too expensive." />
+        </label>
+        <PicturePicker id="find-picture" label="Or add a photo of it" picture={picture} onChange={setPicture} />
+        <button type="submit" className={btnPrimary} disabled={stage.name === "thinking" || (!text.trim() && !picture)}><Search aria-hidden="true" />{stage.name === "thinking" ? "Looking…" : "Find it"}</button>
+      </form>
+
+      {stage.name === "thinking" && <Loading what="your results" />}
+      {stage.name === "error" && <ErrorNote what="that" touched="Nothing was bought." onRetry={() => void find()} />}
+
+      {done && (
+        <section aria-labelledby="results-h" className="n-stack">
+          <h2 id="results-h" ref={resultsRef} tabIndex={-1} style={{ outline: "none" }}>{stage.name === "again" ? "Which one is it?" : "What I found"}</h2>
+          {stage.name === "again" ? (
+            <ul className="n-stack" style={{ gap: 18 }}>
+              {stage.items.map(({ item }, i) => (
+                <li key={item.id}>
+                  <ProductCard item={item} openCompare={i === 0}>
+                    <button type="button" className={btnSecondary} onClick={() => setBuying({ id: item.id, name: item.name, imageUrl: item.imageUrl, priceCents: item.priceCents, seller: item.domain, category: item.category })}><Wallet aria-hidden="true" />Buy this one</button>
+                    <Link href={`/shop/${item.id}`} className="n-btn n-btn-quiet">Look at this one</Link>
+                  </ProductCard>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <AskResult a={stage.answer} price={price} setPrice={setPrice} again={(route, extra) => void find({ route, extra })} />
+          )}
+        </section>
+      )}
+      {events.length > 0 && stage.name !== "thinking" && <ActivityPanel events={events} agents={agents} title="What I did" />}
+      {buying && <BuyFlow item={buying} onClose={() => setBuying(null)} />}
     </div>
   );
 }

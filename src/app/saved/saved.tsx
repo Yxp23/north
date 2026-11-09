@@ -34,12 +34,12 @@ export function SavedPage() {
       <section aria-labelledby="waiting-h" className="n-stack">
         <h2 id="waiting-h">Waiting list</h2>
         {shown.length === 0 && removed.length === 0 ? (
-          <Empty action={<Link href="/shop" className={`${btnPrimary} n-btn-auto`}>Go to the shop</Link>}>
+          <Empty action={<Link href="/find" className={`${btnPrimary} n-btn-auto`}>Find something</Link>}>
             Nothing is saved yet. When you wait on something, it shows here, and I will remind you.
           </Empty>
         ) : (
           <ul className="n-stack">
-            {shown.map((w) => <WaitingRow key={w.id} w={w} onRemove={(x) => { setRemoved((r) => [...r, x]); load(); }} />)}
+            {shown.map((w) => <WaitingRow key={w.id} w={w} primary={w.id === shown.find((x) => x.ready)?.id} onRemove={(x) => { setRemoved((r) => [...r, x]); load(); }} />)}
             {removed.map((w) => <RemovedRow key={w.id} w={w} onUndone={(x) => { setRemoved((r) => r.filter((y) => y.id !== x.id)); load(); }} />)}
           </ul>
         )}

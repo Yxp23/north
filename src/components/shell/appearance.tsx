@@ -14,8 +14,8 @@ export const THEMES = [
 export type ThemeId = (typeof THEMES)[number]["id"];
 export const DEFAULT_THEME: ThemeId = "bloom";
 
-type Prefs = { theme: ThemeId; reduce: boolean; solid: boolean | null; behind: boolean };
-const DEFAULTS: Prefs = { theme: DEFAULT_THEME, reduce: false, solid: null, behind: false };
+type Prefs = { theme: ThemeId; reduce: boolean; solid: boolean | null; behind: boolean; videoSafe: boolean };
+const DEFAULTS: Prefs = { theme: DEFAULT_THEME, reduce: false, solid: null, behind: false, videoSafe: false };
 const KEY = "north-appearance";
 
 export function parsePrefs(raw: string | null): Prefs {
@@ -27,6 +27,7 @@ export function parsePrefs(raw: string | null): Prefs {
       reduce: j.reduce === true,
       solid: typeof j.solid === "boolean" ? j.solid : null,
       behind: j.behind === true,
+      videoSafe: j.videoSafe === true,
     };
   } catch {
     return DEFAULTS;
@@ -94,6 +95,9 @@ export type Appearance = {
   setSolid(v: boolean): void;
   behind: boolean;
   setBehind(v: boolean): void;
+  /** Real prices stay; store and product names are hidden and photos blurred. For recording the demo. */
+  videoSafe: boolean;
+  setVideoSafe(v: boolean): void;
 };
 const Ctx = createContext<Appearance | null>(null);
 
@@ -104,7 +108,8 @@ export function useAppearance(): Appearance {
 }
 
 /** The root of every screen: carries the theme and the display choices as plain attributes and classes. */
-export function AppearanceProvider({ children }: { children: ReactNode }) {
+/** `forceVideoSafe`: the deployment switched video-safe mode on for a recording (VIDEO_SAFE=1). Read by the server layout, never exposed as a public variable. */
+export function AppearanceProvider({ children, forceVideoSafe = false }: { children: ReactNode; forceVideoSafe?: boolean }) {
   const prefs = useSyncExternalStore(subscribe, snapshot, () => DEFAULTS);
   const osReduced = useMedia("(prefers-reduced-motion: reduce)");
   const osSolid = useMedia("(prefers-reduced-transparency: reduce)");
@@ -115,17 +120,19 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   const setReduce = useCallback((reduce: boolean) => write({ ...snapshot(), reduce }), []);
   const setSolid = useCallback((s: boolean) => write({ ...snapshot(), solid: s }), []);
   const setBehind = useCallback((behind: boolean) => write({ ...snapshot(), behind }), []);
+  const setVideoSafe = useCallback((videoSafe: boolean) => write({ ...snapshot(), videoSafe }), []);
+  const videoSafe = prefs.videoSafe || forceVideoSafe;
 
   const value = useMemo<Appearance>(
-    () => ({ theme: prefs.theme, setTheme, reduced, osReduced, setReduce, solid, setSolid, behind: prefs.behind, setBehind }),
-    [prefs.theme, prefs.behind, reduced, osReduced, solid, setTheme, setReduce, setSolid, setBehind],
+    () => ({ theme: prefs.theme, setTheme, reduced, osReduced, setReduce, solid, setSolid, behind: prefs.behind, setBehind, videoSafe, setVideoSafe }),
+    [prefs.theme, prefs.behind, reduced, osReduced, solid, videoSafe, setTheme, setReduce, setSolid, setBehind, setVideoSafe],
   );
 
   const themeName = THEMES.find((t) => t.id === prefs.theme)?.name ?? "Bloom";
   return (
     <Ctx.Provider value={value}>
       <div
-        className={`north-app${solid ? " ng-solid" : ""}${reduced ? " ng-reduced" : ""}${prefs.behind ? " ng-has-bts" : ""}`}
+        className={`north-app${solid ? " ng-solid" : ""}${reduced ? " ng-reduced" : ""}${prefs.behind ? " ng-has-bts" : ""}${videoSafe ? " ng-videosafe" : ""}`}
         data-theme={prefs.theme}
         data-theme-name={themeName}
       >

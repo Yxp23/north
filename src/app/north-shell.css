@@ -11,7 +11,7 @@ body { margin: 0; background: #f9f3f3; }
   -webkit-text-size-adjust: 100%;
 }
 .north-app *, .north-app *::before, .north-app *::after { box-sizing: border-box; }
-.north-app button, .north-app input, .north-app select, .north-app textarea { font-family: inherit; }
+.north-app :where(a, button, input, select, textarea, summary) { font-family: inherit; letter-spacing: inherit; }
 .ng-content { flex: 1; display: flex; flex-direction: column; padding: 28px 40px 24px; }
 .ng-skip { position: absolute; left: 12px; top: 8px; transform: translateY(-200%); background: var(--n-content); color: var(--n-ink); padding: 12px 18px; border-radius: 14px; border: 2px solid var(--n-ink); z-index: 100; font-size: 17px; text-decoration: underline; }
 .ng-skip:focus { transform: none; }
@@ -47,7 +47,7 @@ body { margin: 0; background: #f9f3f3; }
 @media (prefers-reduced-motion: reduce) { .north-app *, .north-app *::after, .north-app *::before { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 
 /* ---- top bar ---- */
-.ng-top { display: grid; grid-template-columns: 130px minmax(300px, 1fr) auto; align-items: center; gap: 20px; margin: 0 0 56px; }
+.ng-top { display: grid; grid-template-columns: minmax(130px, 1fr) auto minmax(130px, 1fr); align-items: center; gap: 20px; margin: 0 0 56px; }
 .ng-brand { display: flex; gap: 7px; align-items: center; letter-spacing: -1.2px; font-size: 29px; font-weight: 500; color: var(--n-ink); text-decoration: none; border-radius: 12px; min-height: 44px; }
 .ng-brand-star { font-size: 31px; font-weight: 400; line-height: 1; }
 .ng-top-actions { display: flex; align-items: center; gap: 9px; justify-self: end; flex-wrap: wrap; justify-content: flex-end; }
@@ -59,7 +59,7 @@ body { margin: 0; background: #f9f3f3; }
 .ng-top-help[aria-pressed="true"] { background: var(--n-milk); border-color: var(--n-accent); }
 
 /* ---- navigation: a glass capsule on top (laptop), a tab bar at the bottom (phone) ---- */
-.ng-nav { margin: 0 auto; width: min(100%, 540px); border-radius: 29px; padding: 5px; display: flex; gap: 0; }
+.ng-nav { margin: 0 auto; width: 540px; max-width: 100%; border-radius: 29px; padding: 5px; display: flex; gap: 0; }
 .ng-nav-selector {
   position: absolute; left: 5px; top: 5px; bottom: 5px; width: calc((100% - 10px) / 4); border-radius: 24px; background: #ffffffe0; border: 1px solid #fffffff0;
   box-shadow: inset 0 1px 2px #fff, 0 2px 7px var(--n-glass-shade); z-index: 0; pointer-events: none; transform-origin: center;
@@ -192,7 +192,6 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
 .ng-ask > span:nth-child(2) { flex: 1; }
 .ng-ask svg { width: 19px; height: 19px; }
 .ng-laptop-foot { max-width: 1080px; width: 100%; margin: 24px auto 0; display: flex; align-items: center; justify-content: space-between; gap: 15px; color: var(--n-ink); font-size: 16px; flex-wrap: wrap; }
-.ng-laptop-foot a, .ng-laptop-foot button { color: var(--n-ink); text-decoration: underline; text-underline-offset: 4px; min-height: 44px; display: inline-flex; align-items: center; background: transparent; border: 0; font-size: 16px; cursor: pointer; padding: 0; }
 .ng-foot-links { display: flex; gap: 22px; flex-wrap: wrap; }
 
 /* ---- Appearance popover ---- */
@@ -324,3 +323,61 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
 }
 
 .n-stack > .n-speak, .n-stack > .n-chip { justify-self: start; }
+
+/* picture control */
+.n-pic { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; position: relative; }
+.n-pic-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.n-pic-btn { width: auto; flex: 0 1 auto; }
+.n-pic-input:focus-visible + .n-pic-btn { outline: 3px solid var(--n-focus); outline-offset: 3px; box-shadow: 0 0 0 6px #ffffffd0; }
+.n-pic-preview { position: relative; width: 96px; height: 96px; border-radius: 16px; border: 1px solid var(--n-line); background: #fff; overflow: visible; }
+.n-pic-preview img { width: 100%; height: 100%; object-fit: cover; border-radius: 15px; }
+.n-pic-remove { position: absolute; top: -10px; right: -10px; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--n-content); color: var(--n-ink); border: 1px solid var(--n-muted); cursor: pointer; }
+.n-pic-remove svg { width: 18px; height: 18px; }
+
+/* disclosure */
+.n-disc { border: 1px solid var(--n-line); border-radius: 16px; background: var(--n-paper); }
+.n-disc-flush { border: 0; background: transparent; border-radius: 0; }
+.n-disc-btn { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 10px 16px; background: transparent; border: 0; color: var(--n-ink); font-size: 17px; font-weight: 500; text-align: left; cursor: pointer; border-radius: 16px; }
+.n-disc-flush .n-disc-btn { padding-left: 0; padding-right: 0; }
+.n-disc-chev { width: 20px; height: 20px; flex-shrink: 0; }
+.n-disc-body { overflow: hidden; padding: 0 16px 16px; }
+.n-disc-flush .n-disc-body { padding: 0 0 16px; }
+.n-disc-body[hidden] { display: none; }
+
+/* video-safe mode: real prices stay, photos are blurred so no brand shows */
+.ng-videosafe .n-main img, .ng-videosafe .ng-sheet img { filter: blur(9px); }
+
+/* settings menu */
+.ng-avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--n-accent); color: var(--n-action); flex-shrink: 0; }
+.ng-avatar svg { width: 18px; height: 18px; }
+.ng-menu {
+  position: fixed; right: 27px; top: 88px; width: 320px; max-width: calc(100% - 30px); z-index: 50; background: var(--n-content); color: var(--n-ink); padding: 8px;
+  border-radius: 23px; border: 1px solid var(--n-line); box-shadow: 0 15px 45px var(--n-skin-shadow); max-height: calc(100dvh - 110px); overflow: auto;
+}
+.ng-menu ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.ng-menu :is(a, button) {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 10px 14px; border-radius: 15px; background: transparent; border: 0; color: var(--n-ink);
+  font-size: 17px; line-height: 1.3; text-align: left; text-decoration: none; cursor: pointer;
+}
+.ng-menu :is(a, button):hover { background: var(--n-quiet); }
+.ng-menu svg { width: 20px; height: 20px; flex-shrink: 0; }
+.ng-menu small { margin-left: auto; font-size: 16px; color: var(--n-muted); }
+@media (max-width: 650px) { .ng-menu { right: 15px; top: 80px; } }
+
+/* footer links: one style for links and buttons */
+.ng-laptop-foot, .ng-laptop-foot .ng-foot-link { font-size: 16px; line-height: 1.4; font-weight: 400; letter-spacing: 0; font-family: inherit; }
+.ng-laptop-foot .ng-foot-link { color: var(--n-ink); text-decoration: underline; text-underline-offset: 4px; min-height: 44px; display: inline-flex; align-items: center; background: transparent; border: 0; padding: 0; cursor: pointer; }
+.bts-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.gd-how .n-disc-body { padding-top: 4px; }
+.gd-how h3 { font-size: 17px; font-weight: 500; margin: 14px 0 6px; }
+.gd-how p { margin: 0 0 8px; font-size: 16px; color: var(--n-ink); }
+.gd-how .bts-row { background: var(--n-content); }
+.gd-how .bts-muted { color: var(--n-muted); }
+
+/* Ask North on Home: the one large box */
+.ng-askbox { background: var(--n-content); border: 1px solid var(--n-line); border-radius: 26px; padding: 22px; box-shadow: 0 3px 12px #00000003; }
+.ng-askbox-field { font-size: 19px !important; min-height: 110px !important; line-height: 1.45; }
+.ng-quick { display: flex; flex-wrap: wrap; gap: 12px; }
+.ng-quick .n-btn { width: auto; flex: 1 1 170px; min-height: 52px; }
+
+.ng-sheet .n-stack + .n-btn, .ng-sheet .n-btn + .n-stack { margin-top: 12px; }

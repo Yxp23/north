@@ -1,7 +1,7 @@
 // Ledger rules: pure functions over LedgerData (no files, no network).
 import type { ParsedWebhook } from "../paypal-webhook";
 import type { Rules, UserState } from "../guardian";
-import type { AgentCheckpointData, AuditEntry, HomeSummary, LedgerData, PurchaseRecord, StoredChangeable, StoredRules, WaitingItem, WaitingView } from "./types";
+import type { AgentCheckpointData, AuditEntry, HomeSummary, LastStepIn, LedgerData, PurchaseRecord, StoredChangeable, StoredRules, WaitingItem, WaitingView } from "./types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- upgradeLedgerData reads old, loosely shaped data */
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -142,6 +142,20 @@ export function restoreWaiting(data: LedgerData, id: string): boolean {
   return true;
 }
 
+const DECISION_LINE = /^(.*) \$([0-9,]+(?:\.[0-9]{2})?): (wait|waitlist|refuse) \(([a-z_]+)\)$/;
+
+/** The newest Guardian decision that was not an approval, read from the audit log (written by checkout in this exact shape). */
+export function lastStepIn(data: LedgerData): LastStepIn | null {
+  for (let i = data.audit.length - 1; i >= 0; i--) {
+    const a = data.audit[i];
+    if (a.type !== "decision") continue;
+    const m = DECISION_LINE.exec(a.detail);
+    if (!m) continue;
+    return { at: a.at, name: m[1], amountCents: Math.round(Number(m[2].replace(/,/g, "")) * 100), decision: m[3] as LastStepIn["decision"], code: m[4] };
+  }
+  return null;
+}
+
 export function summarize(data: LedgerData, now: Date): HomeSummary {
   const spent = spentThisWeekCents(data, now);
   const spendable = balanceCents(data) - data.protectedCents;
@@ -165,6 +179,7 @@ export function summarize(data: LedgerData, now: Date): HomeSummary {
     buyNowThisWeek: buyNowThisWeek(data, now),
     priceNotices: data.priceWatch.notices.filter((n) => !n.dismissed).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5),
     watching: data.priceWatch.watches.filter((w) => w.active).map((w) => ({ productId: w.productId, name: w.name, imageUrl: w.imageUrl })),
+    lastStepIn: lastStepIn(data),
     assistantAsks: data.agentCheckpoint.requests
       .filter((r) => r.status === "pending" && now.getTime() - new Date(r.createdAt).getTime() < REQUEST_LIFETIME_MS)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))

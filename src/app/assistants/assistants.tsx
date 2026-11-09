@@ -20,6 +20,7 @@ export function Assistants() {
   const [created, setCreated] = useState<{ name: string; key: string; mcpUrl: string } | null>(null);
   const [message, setMessage] = useState("");
   const [dollars, setDollars] = useState("15");
+  const [choice, setChoice] = useState<"ask" | "under">("ask");
   const [confirming, setConfirming] = useState<string | null>(null);
   const [mayBuy, setMayBuy] = useState(true);
   const [maySeeRules, setMaySeeRules] = useState(true);
@@ -73,25 +74,11 @@ export function Assistants() {
   if (error) return <p role="status" className="text-lg">I can&apos;t load your assistants right now.</p>;
   if (!view) return <p role="status" className="text-lg">Loading your assistants…</p>;
 
+  const connected = view.agents.length > 0;
   return (
-    <section aria-labelledby="assistants-h" className="space-y-4">
-      <h2 id="assistants-h" className="text-2xl font-bold">Connected assistants</h2>
-      <p className="text-lg">An AI assistant you use can ask North to buy things for you. North checks every ask against your rules. It never gets your PayPal.</p>
-
-      <div className={`${card} space-y-3`}>
-        <h3 className="text-xl font-semibold">What can my assistant do on its own?</h3>
-        <p className="text-lg">{view.permission.words}</p>
-        {view.permission.pending && (
-          <p className="rounded-xl bg-warn-bg p-3 text-lg text-warn-ink">A change is waiting. It starts {day(view.permission.pending.startsAt)}. Until then, the setting above stays.</p>
-        )}
-        <label className="block space-y-2">
-          <span className="block text-lg font-semibold">Let it buy must-have things under (dollars)</span>
-          <input type="number" inputMode="decimal" min={1} max={100} step="1" value={dollars} onChange={(e) => setDollars(e.target.value)} className={field} />
-        </label>
-        <button type="button" className={btnSecondary} disabled={!(Number(dollars) >= 1)} onClick={() => savePermission(Number(dollars))}>Save this. It starts in one day.</button>
-        <button type="button" className={btnPrimary} onClick={() => savePermission(null)}>Ask me every time</button>
-        {message && <p role="status" className="text-lg font-semibold">{message}</p>}
-      </div>
+    <section aria-labelledby="assistants-h" className="n-stack">
+      <h2 id="assistants-h">{connected ? "Connected assistants" : "Connect an assistant"}</h2>
+      <p>An AI assistant you use can ask North to buy things for you. North checks every ask against your rules. It never gets your PayPal. This is an advanced setting.</p>
 
       {created && (
         <div role="status" className="space-y-2 rounded-2xl border-2 border-good-ink bg-good-bg p-4 text-good-ink">
@@ -105,6 +92,8 @@ export function Assistants() {
         </div>
       )}
 
+      {connected && (
+        <>
       {view.agents.length === 0 ? (
         <p className="text-lg">No assistant is connected.</p>
       ) : (
@@ -128,8 +117,11 @@ export function Assistants() {
         </ul>
       )}
 
-      <form onSubmit={connect} className={`${card} space-y-3`}>
-        <h3 className="text-xl font-semibold">Connect an assistant</h3>
+        </>
+      )}
+      {!connected && <p className="n-note n-note-quiet"><span>No assistant is connected yet. Connect one first. Then you can choose what it may do on its own.</span></p>}
+      <form onSubmit={connect} className={`${card} n-stack`}>
+        <h3>{connected ? "Connect another assistant" : "Connect an assistant"}</h3>
         <label className="block space-y-2">
           <span className="block text-lg font-semibold">What do you call it?</span>
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} className={field} placeholder="My assistant" />
@@ -142,6 +134,35 @@ export function Assistants() {
         </fieldset>
         <button type="submit" className={btnPrimary} disabled={!name.trim() || !(mayBuy || maySeeRules || maySeeMoney)}>Connect it</button>
       </form>
+
+      {connected && (
+        <div className={`${card} n-stack`}>
+          <h3>What may an assistant do on its own?</h3>
+          <p>{view.permission.words}</p>
+          {view.permission.pending && (
+            <p className="n-note n-note-wait">A change is waiting. It starts {day(view.permission.pending.startsAt)}. Until then, the setting above stays.</p>
+          )}
+          <fieldset className="n-stack" style={{ gap: 6, border: 0, padding: 0, margin: 0 }}>
+            <legend className="ng-vh">Choose one</legend>
+            <label className="n-checkrow">
+              <input type="radio" name="perm" checked={choice === "ask"} onChange={() => setChoice("ask")} />
+              <span>Ask me every time</span>
+            </label>
+            <label className="n-checkrow">
+              <input type="radio" name="perm" checked={choice === "under"} onChange={() => setChoice("under")} />
+              <span>Let it buy must-have things under a limit, without asking</span>
+            </label>
+            {choice === "under" && (
+              <label className="block" style={{ marginLeft: 36 }}>
+                <span className="n-label">The limit (dollars). It starts in one day.</span>
+                <input type="number" inputMode="decimal" min={1} max={100} step="1" value={dollars} onChange={(e) => setDollars(e.target.value)} className={field} />
+              </label>
+            )}
+          </fieldset>
+          <button type="button" className={btnSecondary} disabled={choice === "under" && !(Number(dollars) >= 1)} onClick={() => savePermission(choice === "under" ? Number(dollars) : null)}>Save my choice</button>
+          {message && <p role="status" className="text-lg font-semibold">{message}</p>}
+        </div>
+      )}
 
       {view.requests.length > 0 && (
         <div className="space-y-3">

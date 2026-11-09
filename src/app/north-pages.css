@@ -53,3 +53,10 @@
   .hw-fill { transform-origin: center top; }
   .hw-node { margin: 0; }
 }
+
+/* first-run steps */
+.wl-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 16px; }
+.wl-steps li { display: flex; align-items: center; gap: 8px; color: var(--n-ink); }
+.wl-steps .wl-on { font-weight: 500; }
+.wl-dot { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--n-quiet); border: 1px solid var(--n-muted); font-size: 16px; }
+.wl-on .wl-dot { background: var(--n-accent); color: var(--n-action); border-color: var(--n-accent); }

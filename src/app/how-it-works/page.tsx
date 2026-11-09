@@ -6,6 +6,7 @@ import proof from "../../content/proof.json";
 import { RuleSchema } from "@/lib/rules/save-schema";
 import { describeRule } from "@/lib/rules/describe";
 import { CHECKS } from "@/lib/ui/guardian-trace";
+import { Disclosure } from "@/components/disclosure";
 import { Pipeline } from "./pipeline";
 
 export const metadata = { title: "How North works" };
@@ -111,10 +112,11 @@ export default function HowItWorks() {
             </li>
           ))}
         </ol>
-        <details className="n-card">
-          <summary>The {CHECKS.length} individual checks</summary>
-          <ol className="list-decimal pl-6" style={{ marginTop: 8 }}>{CHECKS.map((c) => <li key={c}>{c}</li>)}</ol>
-        </details>
+        <div className="n-card">
+          <Disclosure flush summary={`The ${CHECKS.length} individual checks`}>
+            <ol className="list-decimal pl-6">{CHECKS.map((c) => <li key={c}>{c}</li>)}</ol>
+          </Disclosure>
+        </div>
       </section>
 
       <section aria-labelledby="rule-h" className="n-stack">

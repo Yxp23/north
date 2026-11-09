@@ -17,7 +17,7 @@ import { formatMoney } from "@/lib/format";
 import { postAgent } from "@/lib/ndjson-client";
 
 type Wrapped<T> = { payload: T; flagged?: string };
-type Answer =
+export type Answer =
   | { route: "scam_checker"; payload: Wrapped<DealPayload> }
   | { route: "finder"; payload: Wrapped<FinderOutcome> }
   | { route: "help_me_choose"; payload: Wrapped<ChooseOutcome> }
@@ -38,7 +38,8 @@ const HELPERS: Record<string, { name: string; ai: boolean; did: string }> = {
 };
 const CONCIERGE = { name: "Concierge", ai: true, did: "Read what you wrote and chose the right helper. It cannot move money." };
 
-export function AskNorth() {
+export function AskNorth({ variant = "dialog" }: { variant?: "dialog" | "home" }) {
+  const home = variant === "home";
   const [text, setText] = useState("");
   const [picture, setPicture] = useState<Picture | null>(null);
   const [busy, setBusy] = useState(false);
@@ -61,15 +62,21 @@ export function AskNorth() {
   }
 
   return (
-    <section aria-labelledby="ask-h" className="n-stack" style={{ gap: 16 }}>
-      <h2 id="ask-h" tabIndex={-1} data-autofocus style={{ outline: "none", fontSize: 30, letterSpacing: -0.8 }}>Ask North</h2>
-      <p style={{ color: "var(--n-muted)" }}>Type what you need, or add a picture. I will find the right helper.</p>
+    <section aria-labelledby="ask-h" className={`n-stack${home ? " ng-askbox" : ""}`} style={{ gap: 16 }}>
+      {home ? (
+        <h2 id="ask-h" className="ng-vh">Ask North</h2>
+      ) : (
+        <>
+          <h2 id="ask-h" tabIndex={-1} data-autofocus style={{ outline: "none", fontSize: 30, letterSpacing: -0.8 }}>Ask North</h2>
+          <p style={{ color: "var(--n-muted)" }}>Type what you need, paste a deal, or add a photo. I will find the right helper.</p>
+        </>
+      )}
       <form onSubmit={(e) => { e.preventDefault(); ask(); }} className="n-stack">
         <label className="block">
-          <span className="n-label">What do you need?</span>
-          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} maxLength={500} className={field} placeholder="Is this deal real? Find me warm socks. Did my order go through?" />
+          <span className="n-label">{home ? "Ask North" : "What do you need?"}</span>
+          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={home ? 3 : 2} maxLength={500} className={`${field}${home ? " ng-askbox-field" : ""}`} placeholder="Tell North what you need, paste a deal, or add a photo" />
         </label>
-        <PicturePicker id="ask-picture" label="Or add a picture" picture={picture} onChange={setPicture} />
+        <PicturePicker id={home ? "ask-picture-home" : "ask-picture"} label="Add a photo (optional)" picture={picture} onChange={setPicture} />
         <button type="submit" className={btnPrimary} disabled={busy || (!text.trim() && !picture)}>{busy ? "One moment…" : "Ask North"}</button>
       </form>
       {error && <p role="alert" className="n-note n-note-stop"><span>{error}</span></p>}
@@ -79,13 +86,13 @@ export function AskNorth() {
   );
 }
 
-function AskResult({ a, price, setPrice, again }: { a: Answer; price: string; setPrice: (s: string) => void; again: (route: string, extra: Record<string, unknown>) => void }) {
+export function AskResult({ a, price, setPrice, again }: { a: Answer; price: string; setPrice: (s: string) => void; again: (route: string, extra: Record<string, unknown>) => void }) {
   if (a.route === "none" || a.route === "error") return <p role="status" className="n-note n-note-quiet"><span>{a.payload.message}</span></p>;
   if (a.route === "new_rule") return <Link href={a.payload.href} className={btnPrimary}>Open the rule helper</Link>;
 
   if (a.route === "scam_checker") {
     const p = a.payload.payload;
-    if (p.kind === "error") return <p role="alert" className="text-lg">{p.message}</p>;
+    if (p.kind === "error") return <p role="alert" className="n-note n-note-stop"><span>{p.message}</span></p>;
     if (p.kind === "needs_price") {
       return (
         <div className="space-y-2">
@@ -111,13 +118,13 @@ function AskResult({ a, price, setPrice, again }: { a: Answer; price: string; se
 
   if (a.route === "finder") {
     const p = a.payload.payload;
-    if (p.kind === "error") return <p role="alert" className="text-lg">{p.message}</p>;
+    if (p.kind === "error") return <p role="alert" className="n-note n-note-stop"><span>{p.message}</span></p>;
     if (p.kind === "none") return <p role="status" className="text-lg">I did not find it. Try different words, or a clearer picture.</p>;
     return (
       <ul className="space-y-3">
-        {p.items.map(({ item }) => (
+        {p.items.map(({ item }, i) => (
           <li key={item.id}>
-            <ProductCard item={item}><Link href={`/shop/${item.id}`} className={btnPrimary}>Look at this one</Link></ProductCard>
+            <ProductCard item={item} openCompare={i === 0}><Link href={`/shop/${item.id}`} className={btnSecondary}>Look at this one</Link></ProductCard>
           </li>
         ))}
       </ul>
@@ -126,7 +133,7 @@ function AskResult({ a, price, setPrice, again }: { a: Answer; price: string; se
 
   if (a.route === "help_me_choose") {
     const p = a.payload.payload;
-    if (p.kind === "error") return <p role="alert" className="text-lg">{p.message}</p>;
+    if (p.kind === "error") return <p role="alert" className="n-note n-note-stop"><span>{p.message}</span></p>;
     if (p.kind === "question") {
       return (
         <div className="space-y-2">
@@ -151,11 +158,11 @@ function AskResult({ a, price, setPrice, again }: { a: Answer; price: string; se
       <div className="space-y-2">
         <p className="n-note n-note-good"><span>You have {formatMoney(p.leftCents)} left this week. These all fit.</span></p>
         <ul className="space-y-3">
-          {p.picks.map((pk) => (
+          {p.picks.map((pk, i) => (
             <li key={pk.item.id}>
-              <ProductCard item={pk.item}>
+              <ProductCard item={pk.item} openCompare={i === 0}>
                 <p className="text-lg">{pk.reason}</p>
-                <Link href={`/shop/${pk.item.id}`} className={btnPrimary}>Look at this one</Link>
+                <Link href={`/shop/${pk.item.id}`} className={btnSecondary}>Look at this one</Link>
               </ProductCard>
             </li>
           ))}
@@ -179,7 +186,7 @@ function AskResult({ a, price, setPrice, again }: { a: Answer; price: string; se
           </li>
         ))}
       </ul>
-      <Link href="/payments" className={btnSecondary}>Open My payments</Link>
+      <Link href="/money" className={btnSecondary}>Open Money</Link>
     </div>
   );
 }

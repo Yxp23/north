@@ -117,7 +117,7 @@ describe("demo tools can't be reached unless demo mode is on", () => {
 
   it("pages only use the coarse switch to decide whether to SHOW a demo screen (the routes behind them decide per person)", () => {
     const uses = all.filter((s) => /isDemoMode\(\)/.test(s.text) && s.file !== "lib/demo/mode.ts").map((s) => s.file).sort();
-    expect(uses).toEqual(["app/assistant-demo/page.tsx", "app/shop/[id]/page.tsx", "app/try-to-break/page.tsx"]);
+    expect(uses).toEqual(["app/assistant-demo/page.tsx", "app/demo/page.tsx", "app/shop/[id]/page.tsx", "app/try-to-break/page.tsx"]);
   });
 
   it("the pretend hour reaches the Guardian only as `hourOverride`, never as the time", () => {

@@ -4,15 +4,12 @@
 import { Bell, CircleCheck, CircleX, Clock, Hourglass, Undo2, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityPanel } from "@/components/activity-panel";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
+import { Disclosure } from "@/components/disclosure";
+import { useMask } from "@/components/shell/mask";
 import { SpeakButton } from "@/components/shell/speak";
-import type { StepEvent } from "@/lib/agents/loop";
-import { setDemoHour, useDemoHour } from "@/lib/demo-hour";
 import { formatMoney } from "@/lib/format";
 import type { AssistantAskView, HomeSummary, PriceNotice, PurchaseStatus, PurchaseView, WaitingView } from "@/lib/ledger/types";
-import { postAgent } from "@/lib/ndjson-client";
-import type { WatchRunResult } from "@/lib/watcher/run";
 
 export type Summary = HomeSummary & { paypalSaved: boolean; demoMode: boolean; demoDeployment?: boolean };
 
@@ -57,6 +54,7 @@ const STATUS: Record<PurchaseStatus, { label: string; cls: string; Icon: typeof 
 
 // A one-tap card: "Your assistant wants to buy Warm Socks, $11. Yes / No". Yes still goes through the Money Guardian.
 export function AskRow({ a, onChange, onAnswered }: { a: AssistantAskView; onChange: () => void; onAnswered: (message: string) => void }) {
+  const m = useMask();
   const [working, setWorking] = useState(false);
 
   async function answer(yes: boolean) {
@@ -71,7 +69,7 @@ export function AskRow({ a, onChange, onAnswered }: { a: AssistantAskView; onCha
     setWorking(false);
     onChange();
   }
-  const sentence = `${a.agentName} wants to buy ${a.name}, ${formatMoney(a.amountCents)}.`;
+  const sentence = `${a.agentName} wants to buy ${m.item(a.name)}, ${formatMoney(a.amountCents)}.`;
 
   return (
     <li className={`${card} n-card-accent n-stack`}>
@@ -94,6 +92,7 @@ export function AskRow({ a, onChange, onAnswered }: { a: AssistantAskView; onCha
 
 // One piece of price news. It only tells you: "Look at it" opens the product, and a buy still goes through the Money Guardian.
 export function NoticeRow({ n, onChange }: { n: PriceNotice; onChange: () => void }) {
+  const m = useMask();
   async function dismiss() {
     await fetch("/api/watch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dismiss", id: n.id }) }).catch(() => undefined);
     onChange();
@@ -103,7 +102,7 @@ export function NoticeRow({ n, onChange }: { n: PriceNotice; onChange: () => voi
       <div className="n-rowitem">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={n.imageUrl} alt="" className="n-thumb" />
-        <p className="text-lg font-semibold">{n.message}</p>
+        <p className="text-lg font-semibold">{m.sentence(n.message, n.name)}</p>
       </div>
       {n.kind !== "sold_out" && <Link href={`/shop/${n.productId}`} className={btnPrimary}>Look at it</Link>}
       <button type="button" className={btnSecondary} onClick={dismiss}>Not now</button>
@@ -113,7 +112,8 @@ export function NoticeRow({ n, onChange }: { n: PriceNotice; onChange: () => voi
 
 // One saved buy. Waiting until the wait is over; then it can be bought like any other buy. "Take it off my list" has an Undo that
 // brings back the very same saved item, with its own timer unchanged.
-export function WaitingRow({ w, onRemove }: { w: WaitingView; onRemove: (w: WaitingView) => void }) {
+export function WaitingRow({ w, onRemove, primary = false }: { w: WaitingView; onRemove: (w: WaitingView) => void; primary?: boolean }) {
+  const m = useMask();
   const [working, setWorking] = useState(false);
   const [failed, setFailed] = useState(false);
   async function remove() {
@@ -134,7 +134,7 @@ export function WaitingRow({ w, onRemove }: { w: WaitingView; onRemove: (w: Wait
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={w.imageUrl} alt="" className="n-thumb" />
         <div>
-          <p className="text-lg font-semibold">{w.name}</p>
+          <p className="text-lg font-semibold">{m.item(w.name)}</p>
           <p className="text-lg">{formatMoney(w.amountCents)}</p>
           <p className={`n-chip ${w.ready ? "n-chip-good" : "n-chip-wait"}`} style={{ marginTop: 6 }}>
             {w.ready ? <CircleCheck aria-hidden="true" /> : <Clock aria-hidden="true" />}
@@ -142,7 +142,7 @@ export function WaitingRow({ w, onRemove }: { w: WaitingView; onRemove: (w: Wait
           </p>
         </div>
       </div>
-      {w.ready && <Link href={`/shop/${w.productId}`} className={btnPrimary}>Look at it again</Link>}
+      {w.ready && <Link href={`/shop/${w.productId}`} className={primary ? btnPrimary : btnSecondary}>Look at it again</Link>}
       <button type="button" className={btnSecondary} onClick={remove} disabled={working}>Take it off my list</button>
       {failed && <p role="alert" className="n-note n-note-stop">That did not work. Your list is the same. Try again.</p>}
     </li>
@@ -150,6 +150,7 @@ export function WaitingRow({ w, onRemove }: { w: WaitingView; onRemove: (w: Wait
 }
 
 export function RemovedRow({ w, onUndone }: { w: WaitingView; onUndone: (w: WaitingView) => void }) {
+  const m = useMask();
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState("");
   async function undo() {
@@ -167,7 +168,7 @@ export function RemovedRow({ w, onUndone }: { w: WaitingView; onUndone: (w: Wait
     <li className="n-note n-note-quiet" style={{ flexWrap: "wrap" }}>
       <Undo2 aria-hidden="true" />
       <div className="n-stack" style={{ gap: 10 }}>
-        <p>{w.name} is off your list.</p>
+        <p>{m.item(w.name)} is off your list.</p>
         <button type="button" className="n-btn n-btn-secondary n-btn-auto" onClick={undo} disabled={working}>Undo</button>
         {message && <p role="alert">{message}</p>}
       </div>
@@ -177,6 +178,7 @@ export function RemovedRow({ w, onUndone }: { w: WaitingView; onUndone: (w: Wait
 
 // One buy in the list. A paid buy has a "Get my money back" button, with one question first.
 export function PurchaseRow({ p, onChange }: { p: PurchaseView; onChange: () => void }) {
+  const m = useMask();
   const st = STATUS[p.status];
   const [step, setStep] = useState<"idle" | "asking" | "working">("idle");
   const [message, setMessage] = useState("");
@@ -205,92 +207,32 @@ export function PurchaseRow({ p, onChange }: { p: PurchaseView; onChange: () => 
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={p.imageUrl} alt="" className="n-thumb" />
         <div>
-          <p className="text-lg font-semibold">{p.name}</p>
+          <p className="text-lg font-semibold">{m.item(p.name)}</p>
           <p className="text-lg">{formatMoney(p.amountCents)}</p>
           <p className={`n-chip ${st.cls}`} style={{ marginTop: 6 }}><st.Icon aria-hidden="true" />{st.label}</p>
         </div>
       </div>
       {(p.paypalOrderId || p.paypalCaptureId) && (
-        <details className="gd-how" style={{ marginTop: 0 }}>
-          <summary><Wallet aria-hidden="true" size={18} />PayPal receipt</summary>
-          <dl className="ng-review" style={{ margin: "8px 0 0" }}>
+        <Disclosure summary={<><Wallet aria-hidden="true" size={18} style={{ display: "inline", verticalAlign: "-3px", marginRight: 8 }} />PayPal receipt</>}>
+          <dl className="ng-review" style={{ margin: "0" }}>
             <div className="ng-review-row"><dt>Status</dt><dd style={{ margin: 0 }}><strong>{p.status === "paid" ? "Completed" : p.status === "refunded" ? "Refunded" : p.status === "pending" ? "Waiting" : "Did not go through"}</strong></dd></div>
             {p.paypalOrderId && <div className="ng-review-row"><dt>Order</dt><dd className="bts-id" style={{ margin: 0 }}>{p.paypalOrderId}</dd></div>}
             {p.paypalCaptureId && <div className="ng-review-row"><dt>Capture</dt><dd className="bts-id" style={{ margin: 0 }}>{p.paypalCaptureId}</dd></div>}
           </dl>
-        </details>
+        </Disclosure>
       )}
       {message && <p role="status" className="text-lg font-semibold">{message}</p>}
       {p.status === "paid" && step === "idle" && (
         <button type="button" className={btnSecondary} onClick={() => setStep("asking")}>Get my money back</button>
       )}
       {step === "asking" && (
-        <div role="group" aria-label={`Refund ${p.name}?`} className="n-stack">
-          <p className="text-lg font-semibold">Refund {p.name}? You will get {formatMoney(p.amountCents)} back.</p>
+        <div role="group" aria-label={`Refund ${m.item(p.name)}?`} className="n-stack">
+          <p className="text-lg font-semibold">Refund {m.item(p.name)}? You will get {formatMoney(p.amountCents)} back.</p>
           <button type="button" className={btnPrimary} onClick={refund}>Yes, refund it</button>
           <button type="button" className={btnSecondary} onClick={() => setStep("idle")}>No, keep it</button>
         </div>
       )}
       {step === "working" && <p role="status" className="text-lg">Asking PayPal. One moment.</p>}
     </li>
-  );
-}
-
-// Demo only: lets us show a late-night buy at any time of day, and start over.
-export function DemoTools({ onChange, deployed }: { onChange: () => void; deployed: boolean }) {
-  const hour = useDemoHour();
-  const [busy, setBusy] = useState(false);
-  const [check, setCheck] = useState<{ events: StepEvent[]; result?: WatchRunResult; error?: string; working: boolean } | null>(null);
-
-  // The Price Watcher: look at the prices of what you are waiting on, now (normally a schedule does this).
-  async function checkPrices(pretendDropPercent?: number) {
-    setCheck({ events: [], working: true });
-    const r = await postAgent<WatchRunResult>("/api/watch/run", { pretendDropPercent }, (events) => setCheck({ events, working: true }));
-    setCheck({ events: r.events, result: r.payload ?? undefined, error: r.error ?? r.payload?.error, working: false });
-    onChange();
-  }
-
-  async function reset() {
-    setBusy(true);
-    await fetch("/api/demo/reset", { method: "POST" });
-    setBusy(false);
-    onChange();
-  }
-
-  return (
-    <details className={card}>
-      <summary className="cursor-pointer rounded-lg py-2 text-lg font-semibold">Demo tools{deployed ? " (practice version)" : ""}</summary>
-      <div className="mt-3 n-stack">
-        <p role="note" className="n-note n-note-wait">
-          <span>
-            {deployed ? "This is a practice version of North with practice money. " : "These tools are for practice. "}
-            They never change how long a rule takes to change: the pretend time only changes what time of day the late-night rule sees.
-          </span>
-        </p>
-        <label className="block">
-          <span className="n-label">Pretend it is</span>
-          <select value={hour} onChange={(e) => setDemoHour(e.target.value)} className="n-field">
-            <option value="">The real time</option>
-            <option value="23">11:00 PM (late at night)</option>
-            <option value="12">12:00 PM (noon)</option>
-          </select>
-        </label>
-        <Link href="/try-to-break" className={btnSecondary}>Try to break North</Link>
-        <Link href="/assistant-demo" className={btnSecondary}>Try an outside assistant</Link>
-        <button type="button" onClick={() => checkPrices()} disabled={check?.working} className={btnSecondary}>Check prices now</button>
-        <button type="button" onClick={() => checkPrices(20)} disabled={check?.working} className={btnSecondary}>Check prices now (pretend they dropped 20%)</button>
-        {check && (
-          <div className="n-stack">
-            {!check.working && (
-              <p role="status" className="text-lg font-semibold">
-                {check.error ? check.error : check.result && check.result.checked === 0 ? "Nothing to watch yet. Wait on something first." : `Checked ${check.result?.checked ?? 0}. ${check.result?.notices.length ? `${check.result.notices.length} piece${check.result.notices.length === 1 ? "" : "s"} of news on the home screen.` : "No news."}`}
-              </p>
-            )}
-            <ActivityPanel events={check.events} title="What the Price Watcher did" agents={[{ name: "Price Watcher", ai: true, did: "Looked at the prices of what you are waiting on. It can only tell you." }]} />
-          </div>
-        )}
-        <button type="button" onClick={reset} disabled={busy} className={btnSecondary}>{busy ? "Starting over…" : "Start over (clear buys)"}</button>
-      </div>
-    </details>
   );
 }

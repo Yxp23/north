@@ -1,7 +1,7 @@
 "use client";
 // What the last action really did, for the "Behind the scenes" panel. Screens publish the real steps they already stream (the
 // activity panel's events) and the real outcome of a buy. Nothing here is made up, and nothing is published unless something happened.
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { StepEvent } from "@/lib/agents/loop";
 import type { CheckoutTrace } from "@/lib/ui/guardian-trace";
 
@@ -34,3 +34,12 @@ export function TraceProvider({ children }: { children: ReactNode }) {
 
 export const usePublishTrace = () => useContext(PublishCtx);
 export const useTrace = () => useContext(TraceCtx);
+
+/** Gives a decision's real story to the Behind the scenes panel. Draws nothing. */
+export function TracePublisher({ title, agents, events, checkout, guardian }: Omit<Trace, "at">) {
+  const publish = usePublishTrace();
+  useEffect(() => {
+    if (events.length > 0 || checkout || guardian) publish?.({ title, agents, events, checkout, guardian });
+  }, [publish, title, agents, events, checkout, guardian]);
+  return null;
+}

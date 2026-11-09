@@ -1,7 +1,7 @@
 // Finds visible text smaller than 16px (the project's minimum for anything read or tapped; 14px is the absolute floor) on every screen,
 // at laptop and phone widths. Needs a running North in practice mode.
 import { BASE, launch, loggedInContext } from "./ui-lib.mjs";
-const PAGES = ["/", "/shop", "/saved", "/money", "/rules", "/rules/new", "/rules/change/big_buy", "/assistants", "/payments", "/connect", "/check", "/find", "/choose", "/reorder", "/how-it-works", "/try-to-break", "/assistant-demo"];
+const PAGES = ["/", "/find", "/saved", "/money", "/rules", "/rules/new", "/rules/change/big_buy", "/assistants", "/connect", "/check", "/welcome", "/demo", "/how-it-works", "/try-to-break", "/assistant-demo"];
 const browser = await launch();
 const bad = new Map();
 for (const width of [1440, 390]) {

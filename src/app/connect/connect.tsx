@@ -28,7 +28,7 @@ function loadSdk(): Promise<void> {
   });
 }
 
-export function Connect() {
+export function Connect({ embedded = false }: { embedded?: boolean }) {
   const [state, setState] = useState<State>("loading");
   const [session, setSession] = useState<any>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -96,21 +96,30 @@ export function Connect() {
 
   const h1 = "text-3xl font-bold outline-none";
 
+  if (state === "connected" && embedded) {
+    return <p role="status" className="n-note n-note-good"><span><strong>PayPal is connected.</strong> No money was taken.</span></p>;
+  }
   if (state === "connected") {
     return (
       <div className="n-col">
         <h1 ref={headingRef} tabIndex={-1} className={h1}>PayPal is connected</h1>
         <p className="text-xl">You can buy things now. No money was taken.</p>
-        <Link href="/shop" className={btnPrimary}>Shop for something</Link>
-        <Link href="/" className={btnSecondary}>See my money</Link>
+        <Link href="/find" className={btnPrimary}>Find something</Link>
+        <Link href="/money" className={btnSecondary}>See my money</Link>
       </div>
     );
   }
 
   return (
-    <div className="n-col">
-      <h1 ref={headingRef} tabIndex={-1} className={h1}>Connect PayPal</h1>
-      <p className="text-xl">This saves your PayPal so you can buy things. It does not buy anything. No money moves.</p>
+    <div className={embedded ? "n-stack" : "n-col"}>
+      {embedded ? (
+        <p>This saves your PayPal so you can buy things. It does not buy anything. No money moves.</p>
+      ) : (
+        <>
+          <h1 ref={headingRef} tabIndex={-1} className={h1}>Connect PayPal</h1>
+          <p className="text-xl">This saves your PayPal so you can buy things. It does not buy anything. No money moves.</p>
+        </>
+      )}
 
       {state === "loading" && <p role="status" className="text-lg">Getting PayPal ready…</p>}
       {state === "connecting" && <p role="status" className="text-lg">Working with PayPal…</p>}
@@ -128,7 +137,7 @@ export function Connect() {
       >
         Connect PayPal
       </button>
-      <Link href="/" className={btnSecondary}>Back to my money</Link>
+      {!embedded && <Link href="/money" className={btnSecondary}>Back to my money</Link>}
     </div>
   );
 }

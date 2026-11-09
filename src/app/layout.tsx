@@ -16,7 +16,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en">
       <body>
         <CsrfFetch />
-        <AppearanceProvider>
+        <AppearanceProvider forceVideoSafe={process.env.VIDEO_SAFE === "1"}>
           <TraceProvider>
             {/* The shell reads the current address (to mark the tab and the login page), which Next only knows per request. */}
             <Suspense fallback={null}>

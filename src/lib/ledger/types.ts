@@ -242,6 +242,9 @@ export type WaitingView = {
   ready: boolean;
 };
 
+/** The most recent time the Guardian did not simply approve: a wait, a saved-for-later, or a refusal. From the audit log. */
+export type LastStepIn = { at: string; name: string; amountCents: number; decision: "wait" | "waitlist" | "refuse"; code: string };
+
 export type HomeSummary = {
   weeklyBudgetCents: number;
   spentThisWeekCents: number;
@@ -259,6 +262,8 @@ export type HomeSummary = {
   watching: { productId: string; name: string; imageUrl: string }[];
   /** What the person's assistants are asking to buy, waiting for a Yes or No. */
   assistantAsks: AssistantAskView[];
+  /** The most recent Guardian decision that was not an approval, or null. */
+  lastStepIn: LastStepIn | null;
 };
 
 /** A one-tap card: "Your assistant wants to buy Warm Socks, $11." */

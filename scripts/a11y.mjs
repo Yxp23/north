@@ -10,7 +10,7 @@ const require = createRequire(import.meta.url);
 const axeSource = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
 const THEMES = process.argv[2] === "quick" ? ["bloom", "opal"] : ["tide", "dune", "grove", "opal", "bloom"];
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
-const PAGES = ["/", "/shop", "/saved", "/money", "/rules", "/rules/new", "/rules/change/big_buy", "/assistants", "/payments", "/connect", "/check", "/find", "/choose", "/reorder", "/how-it-works", "/try-to-break", "/assistant-demo"];
+const PAGES = ["/", "/find", "/saved", "/money", "/rules", "/rules/new", "/rules/change/big_buy", "/assistants", "/connect", "/check", "/welcome", "/demo", "/how-it-works", "/try-to-break", "/assistant-demo"];
 
 async function scan(page, label, found) {
   await page.evaluate(axeSource);
@@ -23,7 +23,7 @@ const browser = await launch();
 const found = [];
 const ctx = await loggedInContext(browser, { width: 1440, height: 900 }, { reducedMotion: "reduce" });
 const page = await ctx.newPage();
-await page.goto(`${BASE}/shop`, { waitUntil: "load" });
+await page.goto(`${BASE}/find`, { waitUntil: "load" });
 const productHref = await page.locator('a[href^="/shop/"]').first().getAttribute("href");
 const pages = [...PAGES, productHref];
 let runs = 0;
@@ -40,8 +40,10 @@ for (const theme of THEMES) {
     }
     // Overlays: Help, Ask North, Appearance, Behind the scenes (with real steps), the review dialog and a decision.
     const tag = `${theme}${solid ? "+solid" : ""}`;
-    await page.goto(BASE + "/", { waitUntil: "load" });
+    await page.goto(BASE + "/saved", { waitUntil: "load" });
     await page.waitForSelector("main h1", { timeout: 20000 });
+    await page.getByRole("button", { name: "Menu" }).click();
+    await scan(page, `${tag} panel:Menu`, found);
     await page.getByRole("button", { name: "Help", exact: true }).first().click();
     await page.waitForSelector("[role=dialog]");
     await scan(page, `${tag} dialog:Help`, found);
@@ -50,6 +52,7 @@ for (const theme of THEMES) {
     await page.waitForSelector("[role=dialog]");
     await scan(page, `${tag} dialog:Ask North`, found);
     await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Menu" }).click();
     await page.getByRole("button", { name: "Appearance" }).click();
     await scan(page, `${tag} panel:Appearance`, found);
     await page.keyboard.press("Escape");
