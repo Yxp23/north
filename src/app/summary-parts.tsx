@@ -4,6 +4,7 @@
 import { Bell, CircleCheck, CircleX, Clock, Hourglass, Undo2, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { Photo } from "@/components/photo";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
 import { Disclosure } from "@/components/disclosure";
 import { useMask } from "@/components/shell/mask";
@@ -74,8 +75,7 @@ export function AskRow({ a, onChange, onAnswered }: { a: AssistantAskView; onCha
   return (
     <li className={`${card} n-card-accent n-stack`}>
       <div className="n-rowitem">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={a.imageUrl} alt="" className="n-thumb" />
+        <Photo src={a.imageUrl} className="n-thumb" />
         <div>
           <p className="n-chip n-chip-quiet" style={{ marginBottom: 6 }}><Bell aria-hidden="true" />Your assistant is asking</p>
           <p className="text-lg font-semibold">{sentence}</p>
@@ -100,8 +100,7 @@ export function NoticeRow({ n, onChange }: { n: PriceNotice; onChange: () => voi
   return (
     <li className={`${card} n-stack`}>
       <div className="n-rowitem">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={n.imageUrl} alt="" className="n-thumb" />
+        <Photo src={n.imageUrl} className="n-thumb" />
         <p className="text-lg font-semibold">{m.sentence(n.message, n.name)}</p>
       </div>
       {n.kind !== "sold_out" && <Link href={`/shop/${n.productId}`} className={btnPrimary}>Look at it</Link>}
@@ -131,8 +130,7 @@ export function WaitingRow({ w, onRemove, primary = false }: { w: WaitingView; o
   return (
     <li className={`${card} n-stack`}>
       <div className="n-rowitem">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={w.imageUrl} alt="" className="n-thumb" />
+        <Photo src={w.imageUrl} className="n-thumb" />
         <div>
           <p className="text-lg font-semibold">{m.item(w.name)}</p>
           <p className="text-lg">{formatMoney(w.amountCents)}</p>
@@ -204,8 +202,7 @@ export function PurchaseRow({ p, onChange }: { p: PurchaseView; onChange: () => 
   return (
     <li className={`${card} n-stack`}>
       <div className="n-rowitem">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={p.imageUrl} alt="" className="n-thumb" />
+        <Photo src={p.imageUrl} className="n-thumb" />
         <div>
           <p className="text-lg font-semibold">{m.item(p.name)}</p>
           <p className="text-lg">{formatMoney(p.amountCents)}</p>

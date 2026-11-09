@@ -60,3 +60,19 @@
 .wl-steps .wl-on { font-weight: 500; }
 .wl-dot { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--n-quiet); border: 1px solid var(--n-muted); font-size: 16px; }
 .wl-on .wl-dot { background: var(--n-accent); color: var(--n-action); border-color: var(--n-accent); }
+
+/* choosing a rule's strength */
+.rs-list { display: grid; gap: 12px; }
+.rs-opt { display: flex; gap: 14px; align-items: flex-start; border: 2px solid var(--n-line); border-radius: 20px; padding: 16px; background: var(--n-content); cursor: pointer; min-height: 64px; }
+.rs-opt:hover { border-color: var(--n-muted); }
+.rs-opt.rs-on { border-color: var(--n-accent); background: var(--n-light); }
+.rs-opt.rs-off { opacity: .6; cursor: not-allowed; }
+.rs-opt input { width: 26px; height: 26px; margin-top: 2px; flex-shrink: 0; accent-color: var(--n-accent); }
+.rs-opt:has(input:focus-visible) { outline: 3px solid var(--n-focus); outline-offset: 3px; }
+.rs-body { display: grid; gap: 8px; min-width: 0; }
+.rs-body .n-chip { justify-self: start; }
+.rs-line { font-size: 19px; line-height: 1.35; color: var(--n-ink); }
+.rs-ex { font-size: 17px; color: var(--n-ink); line-height: 1.45; }
+.rs-ex b { font-weight: 500; }
+.rs-note { font-size: 16px; color: var(--n-ink); }
+.rs-delay { display: flex; gap: 12px; align-items: flex-start; }

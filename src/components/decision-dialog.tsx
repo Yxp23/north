@@ -50,10 +50,13 @@ export function DecisionDialog({
   const r = reason ?? view.reason;
   return (
     <Dialog label={`${view.word}. ${t}`} onClose={onClose} dismissable={dismissable} wide={wide}>
-      <StatusBadge view={view} />
-      <h2 ref={heading} tabIndex={-1} style={{ outline: "none" }}>{t}</h2>
-      {r && <p className="gd-reason">{r}</p>}
-      <div className="gd-hear"><SpeakButton text={hear ?? `${view.word}. ${t}. ${r ?? ""}`} /></div>
+      {/* The answer stays pinned at the top while the rest of the dialog scrolls, so it is never lost behind "How North decided". */}
+      <div className="gd-pin">
+        <StatusBadge view={view} />
+        <h2 ref={heading} tabIndex={-1} style={{ outline: "none" }}>{t}</h2>
+        {r && <p className="gd-reason">{r}</p>}
+        <div className="gd-hear"><SpeakButton text={hear ?? `${view.word}. ${t}. ${r ?? ""}`} /></div>
+      </div>
       {children}
     </Dialog>
   );

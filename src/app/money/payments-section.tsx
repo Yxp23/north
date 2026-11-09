@@ -1,6 +1,7 @@
 "use client";
 // Payment history, inside Money: ask about your orders. The helper asks PayPal (through the PayPal Agent Toolkit) and tells you in plain words.
 // It can only look. Every amount comes from North's record or PayPal, never from the AI's words.
+import { Photo } from "@/components/photo";
 import { CircleCheck, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
@@ -78,8 +79,7 @@ export function PaymentsSection() {
             {stage.answer.rows.map((r, i) => (
               <li key={i} className={`${card} n-stack`} style={{ gap: 10 }}>
                 <div className="n-rowitem">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={r.imageUrl} alt="" className="n-thumb" />
+                  <Photo src={r.imageUrl} className="n-thumb" />
                   <div>
                     <p className="text-lg font-semibold">{m.item(r.name)}</p>
                     <p className="text-xl">{formatMoney(r.amountCents)} <span className="text-base">on {day(r.at)}</span></p>

@@ -121,7 +121,7 @@ function AppearancePanel({ open, onClose, triggerRef }: { open: boolean; onClose
 }
 
 const HELP_TEXT =
-  "North helps you shop. You set the rules, and North follows them. Before any payment, North checks the item, the seller and the total against your rules. Making a rule stricter starts right away. Making it weaker takes one day.";
+  "North helps you shop. You set the rules, and North follows them. Before any payment, North checks the item, the seller and the total against your rules. Making a rule stricter starts right away. Making it weaker starts tomorrow.";
 
 // Each new thing that appears on a screen eases in once, one after another, with the approved spring. Nothing loops. Off with reduced motion.
 const REVEAL = ".ng-hero, .ng-page-title, .ng-askbox, .ng-quick, .n-card, .ng-money, .ng-saved, .ng-trust, .n-note, .ng-section, .n-reveal";
@@ -307,7 +307,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <h2>Help, when you need it.</h2>
           <p>North helps you shop. You set the rules, and North follows them.</p>
           <p>Before any payment, North checks the item, the seller and the total against your rules.</p>
-          <p>Making a rule stricter starts right away. Making it weaker takes one day, so you can change your mind.</p>
+          <p>Making a rule stricter starts right away. Making it weaker starts tomorrow, so you can change your mind.</p>
           <div style={{ margin: "0 0 14px" }}><SpeakButton text={HELP_TEXT} /></div>
           <Link href="/how-it-works" className="n-btn n-btn-secondary">See how North works</Link>
           <button type="button" className="n-btn n-btn-primary" data-autofocus onClick={() => setHelp(false)}>Back to North</button>

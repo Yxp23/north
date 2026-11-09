@@ -74,7 +74,7 @@ export function DemoTools() {
 
       <section className={`${card} n-stack`} aria-labelledby="vs-h">
         <h2 id="vs-h">Video-safe mode</h2>
-        <p>Keeps real prices and real comparisons. Stores show as Store A, B, C, product names are hidden, and photos are blurred, so no brand shows in a recording.</p>
+        <p>Keeps real prices and real comparisons. Stores show as Store A, B, C, product names are generic, and photos from live stores are hidden (the demo shop&apos;s own pictures stay), so no brand shows in a recording.</p>
         <label className="n-checkrow">
           <input type="checkbox" checked={a.videoSafe} onChange={(e) => a.setVideoSafe(e.target.checked)} />
           <span><EyeOff aria-hidden="true" size={18} style={{ display: "inline", verticalAlign: "-3px", marginRight: 6 }} />Video-safe mode</span>

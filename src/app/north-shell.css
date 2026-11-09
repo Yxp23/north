@@ -351,8 +351,8 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
 .n-disc-flush .n-disc-body { padding: 0 0 16px; }
 .n-disc-body[hidden] { display: none; }
 
-/* video-safe mode: real prices stay, photos are blurred so no brand shows */
-.ng-videosafe .n-main img, .ng-videosafe .ng-sheet img { filter: blur(9px); }
+/* video-safe mode: real prices stay; photos from live stores become a plain tile (see components/photo.tsx) */
+
 
 /* settings menu */
 .ng-avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--n-accent); color: var(--n-action); flex-shrink: 0; }
@@ -421,3 +421,15 @@ html { scroll-padding-top: 96px; }
 @media (max-width: 650px) {
   .ng-top { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--n-paper); }
 }
+
+/* the decision stays pinned inside a scrolling dialog */
+.ng-sheet .gd-pin { position: sticky; top: -16px; z-index: 3; background: var(--n-content); margin: -8px -4px 12px; padding: 8px 4px 4px; border-bottom: 1px solid var(--n-line); }
+.ng-sheet .gd-pin h2 { margin-bottom: 8px; font-size: 26px; }
+.ng-sheet .gd-pin .gd-reason { margin-bottom: 10px; }
+.ng-sheet .gd-pin .gd-hear { margin-bottom: 10px; }
+.ng-sheet .gd-pin .gd-badge { margin-bottom: 8px; }
+
+.n-photo-hidden { display: grid; place-items: center; align-content: center; gap: 6px; background: var(--n-quiet) !important; color: var(--n-ink); font-size: 16px; text-align: center; min-height: 80px; }
+.n-photo-hidden svg { width: 28px; height: 28px; }
+.n-thumb.n-photo-hidden span { display: none; }
+.ng-product-image .n-photo-hidden span { display: none; }

@@ -7,7 +7,6 @@ for (const m of css.matchAll(/\.north-app\[data-theme="(\w+)"\] \{([^}]*)\}/g)) 
   themes[m[1]] = Object.fromEntries([...m[2].matchAll(/--n-([\w-]+):\s*(#[0-9a-f]{3,8})/gi)].map((x) => [x[1], x[2]]));
 }
 const rgb = (h) => { h = h.slice(1); if (h.length === 3) h = [...h].map((c) => c + c).join(""); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); };
-const alpha = (h) => (h.length === 9 ? parseInt(h.slice(7, 9), 16) / 255 : 1);
 const mix = (top, a, bottom) => top.map((c, i) => c * a + bottom[i] * (1 - a));
 const lum = ([r, g, b]) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
 const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };

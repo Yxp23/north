@@ -5,6 +5,7 @@ import { Bell, Clock, Lock, Undo2, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
+import { whenPlain } from "./strength-copy";
 import { SpeakButton } from "@/components/shell/speak";
 import { Empty, ErrorNote, Loading } from "@/components/states";
 import type { Strength } from "@/lib/guardian";
@@ -15,8 +16,6 @@ const STRENGTH: Record<Strength, { label: string; cls: string; Icon: LucideIcon;
   firm: { label: "Firm", cls: "n-chip-wait", Icon: Clock, what: "I save it for later. No Buy now." },
   locked: { label: "Locked", cls: "n-chip-stop", Icon: Lock, what: "Never, while this rule is on." },
 };
-
-export const whenLabel = (iso: string) => new Date(iso).toLocaleString("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" });
 
 export function RulesList() {
   const [data, setData] = useState<{ rules: RuleLine[]; always: string[] } | null>(null);
@@ -88,7 +87,7 @@ export function RulesList() {
                   <div className="n-note n-note-wait">
                     <Clock aria-hidden="true" />
                     <div className="n-stack" style={{ gap: 8 }}>
-                      <p>A change is waiting. It starts {whenLabel(r.pending.startsAt)}. Until then, the rule above stays.</p>
+                      <p>A change is waiting. It starts {whenPlain(r.pending.startsAt)}. Until then, the rule above stays.</p>
                       <p><strong>New: {r.pending.text}</strong></p>
                       <button type="button" className="n-btn n-btn-secondary n-btn-auto" onClick={() => undo(r.kind)}><Undo2 aria-hidden="true" />Undo this change</button>
                     </div>

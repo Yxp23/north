@@ -2,6 +2,7 @@
 // "Ask North": type or upload whatever you need. The Concierge routes it to the right helper (Scam checker, Finder, Help me choose,
 // the rule helper, or the Payments helper) and the activity panel shows the handoff. The pages for each helper stay as shortcuts.
 // Routing can't move money: every helper here only reads or notifies, and buying is always a separate tap through the Money Guardian.
+import { Photo } from "@/components/photo";
 import Link from "next/link";
 import { useState } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
@@ -143,8 +144,7 @@ export function AskResult({ a, price, setPrice, again }: { a: Answer; price: str
             {p.choices.map((c) => (
               <li key={c.label}>
                 <button type="button" onClick={() => again("help_me_choose", { answer: c.label })} className={`${card} flex h-full w-full flex-col items-center gap-2 text-center hover:border-accent`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={c.imageUrl} alt="" className="h-24 w-full rounded-xl bg-white object-contain" />
+                  <Photo src={c.imageUrl} className="h-24 w-full rounded-xl bg-white object-contain" />
                   <span className="text-lg font-semibold">{c.label}</span>
                 </button>
               </li>

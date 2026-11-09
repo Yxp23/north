@@ -10,10 +10,11 @@ import { btnPrimary, btnSecondary, card } from "@/components/classes";
 import type { ConciergePayload, ProposalItem } from "@/lib/agents/concierge/concierge";
 import type { StepEvent } from "@/lib/agents/loop";
 import type { Strength } from "@/lib/guardian";
-import { dollarsLabel, strengthOneLiner, windowLabel } from "@/lib/rules/describe";
+import { dollarsLabel, windowLabel } from "@/lib/rules/describe";
 import type { SaveResult } from "@/lib/rules/save";
 import type { SaveRule } from "@/lib/rules/types";
-import { STRENGTHS, TITLE, WAITS } from "../choices";
+import { STRENGTHS, WAITS } from "../choices";
+import { StrengthChoice } from "../strength-choice";
 
 type Proposal = Extract<ConciergePayload, { kind: "proposal" }>;
 type Choice = { strength?: Strength; waitHours: number };
@@ -212,29 +213,13 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
       return (
         <form className="n-col" onSubmit={(e) => { e.preventDefault(); if (ready) save(items, choices); }}>
           <h1 ref={headingRef} tabIndex={-1} className={h1}>How strong should it be?</h1>
+          <p className="text-lg">Pick one. Each one says what I will do.</p>
           {items.map((i) => {
             const c = choices[i.id];
-            const min = i.minStrength ? STRENGTHS.indexOf(i.minStrength) : 0;
-            return (
-              <fieldset key={i.id} className={`${card} space-y-3`}>
+                        return (
+              <fieldset key={i.id} className={`${card} n-stack`}>
                 <legend className="px-1 text-xl font-semibold">{itemTitle(i)}</legend>
-                {STRENGTHS.map((s, idx) => {
-                  const disabled = idx < min;
-                  const checked = c.strength === s;
-                  return (
-                    <label
-                      key={s}
-                      className={`flex min-h-14 cursor-pointer items-start gap-3 rounded-2xl border-2 p-3 ${checked ? "border-accent bg-blue-50" : "border-line"} ${disabled ? "opacity-50" : ""}`}
-                    >
-                      <input type="radio" name={`strength-${i.id}`} className="mt-1 h-6 w-6" checked={checked} disabled={disabled} onChange={() => set(i.id, { strength: s })} />
-                      <span>
-                        <span className="block text-xl font-semibold">{TITLE[s]}{i.rule.suggested === s ? " (matches your words)" : ""}</span>
-                        <span className="block text-lg">{strengthOneLiner(s)}</span>
-                        {disabled && <span className="block text-base text-muted">That would be weaker than your rule now.</span>}
-                      </span>
-                    </label>
-                  );
-                })}
+                <StrengthChoice name={`strength-${i.id}`} kind={i.rule.kind} value={c.strength} onChange={(st) => set(i.id, { strength: st })} minStrength={i.minStrength ?? undefined} suggested={i.rule.suggested ?? undefined} />
                 {c.strength === "firm" && (
                   <label className="block space-y-1">
                     <span className="block text-lg font-semibold">How long should I wait?</span>
@@ -246,7 +231,7 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
               </fieldset>
             );
           })}
-          <p className="text-lg">A stricter rule starts right away.</p>
+          <p className="text-lg">A new rule starts right away.</p>
           <button type="submit" className={btnPrimary} disabled={!ready}>{items.length > 1 ? "Save my rules" : "Save my rule"}</button>
           <button type="button" className={btnSecondary} onClick={startAgain}>Start again</button>
         </form>

@@ -1,6 +1,7 @@
 "use client";
 // Home: a greeting, ONE large Ask North box with three quick buttons, then this week's money, the last time North stepped in, and a small
 // peek at what is saved. Anything that needs the person (an assistant's one-tap card, price news) comes first. Every number comes from the server.
+import { Photo } from "@/components/photo";
 import { Bookmark, FilePlus2, ScanSearch, ShieldCheck, ShoppingBag, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -116,8 +117,7 @@ export function Home() {
           {first ? (
             <Link href="/saved" className="ng-saved" style={{ minHeight: 0, padding: 14, gap: 16 }}>
               <span className="ng-product-image" style={{ width: 72, height: 80 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={first.imageUrl} alt="" />
+                <Photo src={first.imageUrl} />
               </span>
               <span className="ng-product-copy" style={{ gap: 2 }}>
                 {m.item(first.name)}

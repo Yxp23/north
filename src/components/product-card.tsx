@@ -1,6 +1,7 @@
 "use client";
 // A product with its picture, name and price, for lists of finds, picks and matches. The price is the store's own number.
 // "Compare stores" opens the same store comparison as the product page (every in-stock store, cheapest first). It is read from the store when opened.
+import { Photo } from "./photo";
 import { useEffect, useState, type ReactNode } from "react";
 import { Disclosure } from "@/components/disclosure";
 import { RealThingsLine } from "@/components/money";
@@ -31,8 +32,7 @@ export function ProductCard({ item, children, openCompare = false, compare = tru
   const name = m.item(item.name, item.category);
   return (
     <div className={`${card} n-stack`}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={item.imageUrl} alt={name} className="h-40 w-full rounded-xl bg-white object-contain" />
+      <Photo src={item.imageUrl} alt={name} className="h-40 w-full rounded-xl bg-white object-contain" />
       <p className="text-xl">{name}</p>
       <p style={{ fontSize: 30, fontVariantNumeric: "tabular-nums", letterSpacing: -1 }}>{formatMoney(item.priceCents)}</p>
       <RealThingsLine cents={item.priceCents} className="ng-real" />

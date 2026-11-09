@@ -10,11 +10,11 @@ import { hourLabel } from "@/lib/guardian/rules";
 import type { BigBuyRule, LateNightRule, Strength } from "@/lib/guardian";
 import type { ChangeResult } from "@/lib/rules/change";
 import { bigBuyTiming, lateNightTiming } from "@/lib/rules/compare";
-import { strengthOneLiner } from "@/lib/rules/describe";
 import type { RuleLine } from "@/lib/rules/summary";
 import type { RuleKind } from "@/lib/rules/types";
-import { STRENGTHS, TITLE, WAITS } from "../../choices";
-import { whenLabel } from "../../rules-list";
+import { WAITS } from "../../choices";
+import { StrengthChoice } from "../../strength-choice";
+import { whenPlain } from "../../strength-copy";
 
 type Rule = BigBuyRule | LateNightRule;
 type Stage =
@@ -168,17 +168,9 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
             </>
           )}
 
-          <fieldset className={`${card} space-y-3`}>
+          <fieldset className={`${card} n-stack`}>
             <legend className="px-1 text-xl font-semibold">How strong should it be?</legend>
-            {STRENGTHS.map((s) => (
-              <label key={s} className={`flex min-h-14 cursor-pointer items-start gap-3 rounded-2xl border-2 p-3 ${strength === s ? "border-accent bg-blue-50" : "border-line"}`}>
-                <input type="radio" name="strength" className="mt-1 h-6 w-6" checked={strength === s} onChange={() => setStrength(s)} />
-                <span>
-                  <span className="block text-xl font-semibold">{TITLE[s]}</span>
-                  <span className="block text-lg">{strengthOneLiner(s)}</span>
-                </span>
-              </label>
-            ))}
+            <StrengthChoice name="strength" kind={kind} value={strength} onChange={setStrength} />
             {strength === "firm" && (
               <label className="block space-y-1">
                 <span className="block text-lg font-semibold">How long should I wait?</span>
@@ -193,7 +185,7 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
           {timing === "now" && <p role="status" className="rounded-xl bg-good-bg p-3 text-lg text-good-ink">This is as strong as your rule now, or stronger. It starts right away.</p>}
           {timing === "in_a_day" && (
             <p role="status" className="rounded-xl bg-warn-bg p-3 text-lg text-warn-ink">
-              This makes your rule weaker. It starts in one day. Until then, your old rule stays.
+              This makes your rule weaker, so it starts tomorrow. Until then, your old rule stays.
             </p>
           )}
           <button type="submit" className={btnPrimary} disabled={!next}>Save this change</button>
@@ -210,9 +202,9 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
             <p className="text-xl">{stage.line.text}</p>
           </div>
           <p className="rounded-xl bg-warn-bg p-3 text-lg text-warn-ink">
-            I will turn it off in one day. Until then, it stays.
+            I will turn it off tomorrow. Until then, it stays.
           </p>
-          <button type="button" className={btnPrimary} onClick={() => send({ action: "remove", kind })}>Yes, remove it in one day</button>
+          <button type="button" className={btnPrimary} onClick={() => send({ action: "remove", kind })}>Yes, turn it off tomorrow</button>
           <button type="button" className={btnSecondary} onClick={() => setStage({ name: "menu", line: stage.line })}>No, keep it</button>
         </div>
       );
@@ -224,8 +216,8 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
           <h1 ref={headingRef} tabIndex={-1} className={h1}>{r.changed ? "Done" : "Nothing changed"}</h1>
           <div className={`${card} space-y-1`}>
             {r.text && <p className="text-xl">{r.text}</p>}
-            <p className="text-lg">{r.message}</p>
-            {r.changed && !r.startsNow && <p className="text-lg font-semibold">It starts {whenLabel(r.startsAt)}.</p>}
+            <p className="text-lg">{r.changed && !r.startsNow ? (r.removed ? "Done. This rule turns off tomorrow. Until then, it stays." : "Saved. This makes the rule weaker, so it starts tomorrow. Until then, your old rule stays.") : r.message}</p>
+            {r.changed && !r.startsNow && <p className="text-lg font-semibold">It starts {whenPlain(r.startsAt)}.</p>}
           </div>
           <Link href="/rules" className={btnPrimary}>See my rules</Link>
         </div>

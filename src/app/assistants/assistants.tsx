@@ -153,7 +153,7 @@ export function Assistants() {
             </label>
             {choice === "under" && (
               <label className="block" style={{ marginLeft: 36 }}>
-                <span className="n-label">The limit (dollars). It starts in one day.</span>
+                <span className="n-label">The limit (dollars). It starts tomorrow.</span>
                 <input type="number" inputMode="decimal" min={1} max={100} step="1" value={dollars} onChange={(e) => setDollars(e.target.value)} className={field} />
               </label>
             )}

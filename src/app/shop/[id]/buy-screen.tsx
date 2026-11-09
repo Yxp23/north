@@ -1,6 +1,7 @@
 "use client";
 // One decision per screen: look, Buy this, review the item, seller and total, then the Guardian's answer (paid / wait / saved / stopped).
 // The price on screen comes from the store. The reason text comes from the Guardian. Every action shows its steps, in plain words.
+import { Photo } from "@/components/photo";
 import { Bot, ShieldCheck, TriangleAlert, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -88,8 +89,7 @@ export function BuyScreen({ product, demoMode }: { product: StoreProduct; demoMo
             <p role="note" className="n-note n-note-wait"><TriangleAlert aria-hidden="true" /><span>Demo clock: pretending it is {pretendHour % 12 === 0 ? 12 : pretendHour % 12}:00 {pretendHour >= 12 ? "PM" : "AM"}.</span></p>
           )}
           <div className={`${card} n-stack ng-b-photo`} style={{ justifyItems: "center" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={product.imageUrl} alt={shownName} style={{ height: 260, width: "100%", objectFit: "contain", background: "#fff", borderRadius: 16 }} />
+            <Photo src={product.imageUrl} alt={shownName} style={{ height: 260, width: "100%", objectFit: "contain", background: "#fff", borderRadius: 16 }} />
           </div>
           <div className="ng-money ng-b-price" style={{ minHeight: 0 }}>
             <div className="ng-money-top"><span>Price</span><Wallet aria-hidden="true" /></div>
