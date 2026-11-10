@@ -83,19 +83,23 @@ export default function HowItWorks() {
         <h2 id="actors-h">What each one can and can&apos;t do</h2>
         <ul className="hw-actors">
           {ACTORS.map((a) => (
-            <li key={a.name} className={`${card} n-stack`} style={{ gap: 10 }}>
+            <li key={a.name} className={`${card} n-stack`}>
               <div>
-                <h3 style={{ display: "flex", gap: 8, alignItems: "center" }}>{a.kind === "Plain code, no AI" ? <ShieldCheck aria-hidden="true" size={22} /> : <Bot aria-hidden="true" size={22} />}{a.name}</h3>
-                <p className="n-chip n-chip-quiet" style={{ marginTop: 6 }}>{a.kind}</p>
+                <h3 className="hw-actor-name">{a.kind === "Plain code, no AI" ? <ShieldCheck aria-hidden="true" size={22} /> : <Bot aria-hidden="true" size={22} />}{a.name}</h3>
+                <p className="n-chip n-chip-quiet n-mt-1">{a.kind}</p>
               </div>
-              <div>
-                <p className="n-chip n-chip-good">Can</p>
-                <ul className="n-list">{a.can.map((c) => <li key={c}>{c}</li>)}</ul>
-              </div>
-              <div>
-                <p className="n-chip n-chip-stop">Can&apos;t</p>
-                <ul className="n-list">{a.cannot.map((c) => <li key={c}>{c}</li>)}</ul>
-              </div>
+              <Disclosure flush summary="What it can and can't do">
+                <div className="n-stack">
+                  <div>
+                    <p className="n-chip n-chip-good">Can</p>
+                    <ul className="n-list">{a.can.map((c) => <li key={c}>{c}</li>)}</ul>
+                  </div>
+                  <div>
+                    <p className="n-chip n-chip-stop">Can&apos;t</p>
+                    <ul className="n-list">{a.cannot.map((c) => <li key={c}>{c}</li>)}</ul>
+                  </div>
+                </div>
+              </Disclosure>
             </li>
           ))}
         </ul>
@@ -139,7 +143,7 @@ export default function HowItWorks() {
           </li>
           <li className={card}>
             <p className="n-chip n-chip-good"><BadgeCheck aria-hidden="true" />4 · The Guardian follows it</p>
-            <p>A stricter rule starts right away. A weaker rule, or turning one off, takes one day, and you can undo it before it starts.</p>
+            <p>A stricter rule starts right away. A weaker rule, or turning one off, starts tomorrow, and you can undo it before it starts.</p>
           </li>
         </ol>
       </section>
@@ -154,32 +158,41 @@ export default function HowItWorks() {
           <li className={card}><strong>1</strong><span>serious hole found by an independent AI review. It is fixed and has a test.</span></li>
         </ul>
 
-        <div className={`${card} n-stack`}>
-          <h3>The attack scoreboard</h3>
-          <p>Run on {day(scoreboard.at)}. The attacker was {proof.attacker.model}: the bigger models often refuse that job. A separate judge reads the ledger to see whether any money moved against the rules.</p>
-          <div style={{ overflowX: "auto" }}>
-            <table className="hw-table">
-              <caption className="ng-vh">Attacks by category</caption>
-              <thead><tr><th scope="col">What was tried</th><th scope="col">Tried</th><th scope="col">Turned away</th><th scope="col">Got through</th></tr></thead>
-              <tbody>
-                {Object.entries(scoreboard.categories).map(([id, c]) => (
-                  <tr key={id}><th scope="row">{id.replace(/_/g, " ")}</th><td>{c.tried}</td><td>{c.rejected}</td><td>{c.breaches}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p>&ldquo;Turned away&rdquo; means the request was refused or stopped before it could do anything. The rest were asks that were inside the rules, answered normally. Zero got through.</p>
+        <div className={card}>
+          <Disclosure flush summary="The attack scoreboard">
+            <div className="n-stack">
+            <p>Run on {day(scoreboard.at)}. The attacker was {proof.attacker.model}: the bigger models often refuse that job. A separate judge reads the ledger to see whether any money moved against the rules.</p>
+            <div style={{ overflowX: "auto" }}>
+              <table className="hw-table">
+                <caption className="ng-vh">Attacks by category</caption>
+                <thead><tr><th scope="col">What was tried</th><th scope="col">Tried</th><th scope="col">Turned away</th><th scope="col">Got through</th></tr></thead>
+                <tbody>
+                  {Object.entries(scoreboard.categories).map(([id, c]) => (
+                    <tr key={id}><th scope="row">{id.replace(/_/g, " ")}</th><td>{c.tried}</td><td>{c.rejected}</td><td>{c.breaches}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p>&ldquo;Turned away&rdquo; means the request was refused or stopped before it could do anything. The rest were asks that were inside the rules, answered normally. Zero got through.</p>
+            </div>
+          </Disclosure>
         </div>
 
-        <div className={`${card} n-stack`}>
-          <h3>The red-team finding</h3>
-          <p><span className="n-chip n-chip-stop">Serious</span> An AI reviewer that had not seen the work looked for a way to move money without the Guardian. It found one: an assistant could buy with no yes from you once a saved item&apos;s wait was over. It is fixed, a regression test guards it, and the same pass found 2 low problems and 1 note, also fixed or written down.</p>
-          <p>Honest limit: the fixes were checked by tests, not by a second independent review.</p>
+        <div className={card}>
+          <Disclosure flush summary="The red-team finding">
+            <div className="n-stack">
+            <p><span className="n-chip n-chip-stop">Serious</span> An AI reviewer that had not seen the work looked for a way to move money without the Guardian. It found one: an assistant could buy with no yes from you once a saved item&apos;s wait was over. It is fixed, a regression test guards it, and the same pass found 2 low problems and 1 note, also fixed or written down.</p>
+            <p>Honest limit: the fixes were checked by tests, not by a second independent review.</p>
+            </div>
+          </Disclosure>
         </div>
 
-        <div className={`${card} n-stack`}>
-          <h3>The evals</h3>
-          <p>{proof.evals.dealCases} deal-check cases and {proof.evals.injectionListings} listings with hidden instructions, plus {proof.evals.conciergeRuleCases} rule-writing cases. The developer wrote them with Claude&apos;s help, so they are a smoke test, not proof. On the last recorded run, the real Sonnet 5.5 followed none of the {proof.evals.injectionListings} hidden instructions. If it had, the Guardian would still refuse: a buy that listing text started is a hard wall. Run <span className="bts-id">npm run eval:scam</span> to repeat it. That run uses the live AI and store.</p>
+        <div className={card}>
+          <Disclosure flush summary="The evals">
+            <div className="n-stack">
+            <p>{proof.evals.dealCases} deal-check cases and {proof.evals.injectionListings} listings with hidden instructions, plus {proof.evals.conciergeRuleCases} rule-writing cases. The developer wrote them with Claude&apos;s help, so they are a smoke test, not proof. On the last recorded run, the real Sonnet 5.5 followed none of the {proof.evals.injectionListings} hidden instructions. If it had, the Guardian would still refuse: a buy that listing text started is a hard wall. Run <span className="bts-id">npm run eval:scam</span> to repeat it. That run uses the live AI and store.</p>
+            </div>
+          </Disclosure>
         </div>
 
         <div className={`${card} n-stack`}>

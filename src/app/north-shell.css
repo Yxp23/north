@@ -128,7 +128,7 @@ body { margin: 0; background: #f9f3f3; }
 .n-btn-secondary { color: var(--n-ink); background: var(--n-content); border: 1px solid var(--n-muted); box-shadow: 0 2px 6px var(--n-glass-shade); }
 .n-btn-quiet { color: var(--n-ink); background: transparent; border: 0; text-decoration: underline; text-underline-offset: 4px; min-height: 48px; font-weight: 400; font-size: 17px; padding: 12px 10px; }
 .n-btn-auto { width: auto; }
-.n-link { color: var(--n-ink); text-decoration: underline; text-underline-offset: 4px; min-height: 44px; display: inline-flex; align-items: center; background: transparent; border: 0; padding: 8px 0; font-size: 16px; cursor: pointer; }
+.n-link { color: var(--n-ink); text-decoration: underline; text-underline-offset: 4px; min-height: 48px; display: inline-flex; align-items: center; background: transparent; border: 0; padding: 8px 0; font-size: 16px; cursor: pointer; }
 
 /* content surfaces */
 .n-card { background: var(--n-content); border: 1px solid var(--n-line); border-radius: 23px; padding: 21px; box-shadow: 0 3px 12px #00000003; }
@@ -218,7 +218,7 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
 .ng-check { display: flex; align-items: center; gap: 11px; font-size: 16px; min-height: 48px; cursor: pointer; }
 .ng-check input { height: 22px; width: 22px; accent-color: var(--n-accent); flex-shrink: 0; }
 .ng-pref-note { font-size: 16px; color: var(--n-muted); margin: 2px 0 8px 33px; line-height: 1.4; }
-.ng-appearance-close { position: absolute; top: 13px; right: 13px; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; border: 0; background: var(--n-quiet); color: var(--n-ink); cursor: pointer; }
+.ng-appearance-close { position: absolute; top: 13px; right: 13px; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; border: 0; background: var(--n-quiet); color: var(--n-ink); cursor: pointer; }
 .ng-appearance-close svg { width: 18px; height: 18px; }
 
 /* ---- Dialog: a bottom sheet on phones, a centred dialog on laptops ---- */
@@ -229,9 +229,9 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
   border-radius: 28px; padding: 16px 28px 25px; overscroll-behavior: contain;
 }
 .ng-sheet.ng-sheet-wide { width: 680px; }
-.ng-sheet-top { display: flex; align-items: center; justify-content: flex-end; margin-bottom: 8px; min-height: 44px; }
+.ng-sheet-top { display: flex; align-items: center; justify-content: flex-end; margin-bottom: 8px; min-height: 48px; }
 .ng-handle { display: none; height: 4px; width: 38px; border-radius: 4px; background: var(--n-line); margin: 0 auto; position: absolute; left: calc(50% - 19px); top: 10px; }
-.ng-sheet-close { border-radius: 50%; width: 44px; height: 44px; display: grid; place-items: center; color: var(--n-ink); cursor: pointer; }
+.ng-sheet-close { border-radius: 50%; width: 48px; height: 48px; display: grid; place-items: center; color: var(--n-ink); cursor: pointer; }
 .ng-sheet-close svg { width: 18px; height: 18px; }
 .ng-sheet h2 { font-size: 30px; line-height: 1.2; font-weight: 500; letter-spacing: -.8px; margin: 0 0 14px; }
 .ng-sheet p { font-size: 17px; line-height: 1.5; color: var(--n-muted); margin: 0 0 16px; }
@@ -251,10 +251,10 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
 .gd-evidence .ng-review-row:last-child { border-bottom: 0; }
 .gd-hear { margin: 0 0 14px; }
 .gd-how { margin-top: 18px; }
-.gd-how > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 8px; font-size: 16px; color: var(--n-ink); text-decoration: underline; text-underline-offset: 4px; }
+.gd-how > summary { cursor: pointer; min-height: 48px; display: flex; align-items: center; gap: 8px; font-size: 16px; color: var(--n-ink); text-decoration: underline; text-underline-offset: 4px; }
 
 /* tap to hear */
-.n-speak { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--n-muted); background: var(--n-content); color: var(--n-ink); font-size: 16px; cursor: pointer; touch-action: manipulation; }
+.n-speak { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--n-muted); background: var(--n-content); color: var(--n-ink); font-size: 16px; cursor: pointer; touch-action: manipulation; }
 .n-speak svg { width: 18px; height: 18px; }
 .n-speak[aria-pressed="true"] { background: var(--n-quiet); border-color: var(--n-accent); }
 
@@ -336,7 +336,7 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
 .n-pic-input:focus-visible + .n-pic-btn { outline: 3px solid var(--n-focus); outline-offset: 3px; box-shadow: 0 0 0 6px #ffffffd0; }
 .n-pic-preview { position: relative; width: 96px; height: 96px; border-radius: 16px; border: 1px solid var(--n-line); background: #fff; overflow: visible; }
 .n-pic-preview img { width: 100%; height: 100%; object-fit: cover; border-radius: 15px; }
-.n-pic-remove { position: absolute; top: -10px; right: -10px; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--n-content); color: var(--n-ink); border: 1px solid var(--n-muted); cursor: pointer; }
+.n-pic-remove { position: absolute; top: -12px; right: -12px; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--n-content); color: var(--n-ink); border: 1px solid var(--n-muted); cursor: pointer; }
 .n-pic-remove svg { width: 18px; height: 18px; }
 
 /* disclosure */
@@ -371,7 +371,7 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
 
 /* footer links: one style for links and buttons */
 .ng-laptop-foot, .ng-laptop-foot .ng-foot-link { font-size: 16px; line-height: 1.4; font-weight: 400; letter-spacing: 0; font-family: inherit; }
-.ng-laptop-foot .ng-foot-link { color: var(--n-ink); text-decoration: underline; text-underline-offset: 4px; min-height: 44px; display: inline-flex; align-items: center; background: transparent; border: 0; padding: 0; cursor: pointer; }
+.ng-laptop-foot .ng-foot-link { color: var(--n-ink); text-decoration: underline; text-underline-offset: 4px; min-height: 48px; display: inline-flex; align-items: center; background: transparent; border: 0; padding: 0; cursor: pointer; }
 .bts-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .gd-how .n-disc-body { padding-top: 4px; }
 .gd-how h3 { font-size: 17px; font-weight: 500; margin: 14px 0 6px; }
@@ -431,3 +431,29 @@ html { scroll-padding-top: 96px; }
 .n-photo-hidden svg { width: 28px; height: 28px; }
 .n-thumb.n-photo-hidden span { display: none; }
 .ng-product-image .n-photo-hidden span { display: none; }
+
+/* ---- Breathing room (Nov 10): one idea per block, more space between blocks, every tap target at least 48px ---- */
+.ng-sheet { display: grid; gap: 20px; align-content: start; padding-top: 14px; }
+.ng-sheet > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+.ng-sheet > .ng-sheet-top { margin-bottom: -8px !important; }
+.ng-sheet > .n-btn + .n-btn, .ng-sheet > .n-stack + .n-btn { margin-top: -6px !important; }
+.ng-sheet > .n-btn + .n-btn-quiet { margin-top: -10px !important; }
+.ng-sheet h2 { margin: 0; }
+.ng-sheet .ng-review { margin: 0; padding: 18px; }
+.ng-sheet .ng-review-row { padding: 8px 0; }
+.ng-sheet .gd-pin { margin: 0; padding: 4px 0 14px; }
+.ng-sheet .gd-pin .gd-badge { margin-bottom: 12px; }
+.ng-sheet .gd-pin h2 { margin-bottom: 10px; }
+.ng-sheet .gd-pin .gd-reason { margin-bottom: 12px; }
+.ng-sheet .n-note { margin: 0 !important; }
+.ng-sheet .n-disc { margin: 0; }
+.n-col { gap: 28px; }
+.n-card.n-stack, .n-card.n-box { gap: 16px; }
+.n-stack { gap: 16px; }
+.n-stack.n-gap-1 { gap: 8px; } .n-stack.n-gap-2 { gap: 12px; }
+.n-checkrow, .ng-check { min-height: 48px; }
+.n-btn-quiet, .n-link, .n-speak { min-height: 48px; }
+@media (max-width: 650px) {
+  .n-btn, .n-btn-auto, .ng-quick .n-btn { width: 100%; }
+  .ng-sheet { gap: 22px; }
+}
