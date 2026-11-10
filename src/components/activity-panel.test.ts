@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collapseSteps } from "./activity-panel";
+import { collapseSteps, shortSteps } from "./activity-panel";
 
 const w = (label: string) => ({ label, state: "working" as const });
 const d = (label: string) => ({ label, state: "done" as const });
@@ -42,5 +42,17 @@ describe("activity panel lines", () => {
       { label: "Reading the listing…", done: true, detail: "read_listing({}) → page" },
       { label: "Found hidden instructions.", done: true, warn: true },
     ]);
+  });
+});
+
+describe("shortSteps", () => {
+  const L = (label: string, done = true) => ({ label, done });
+  it("shows each step once, with Done last", () => {
+    const out = shortSteps([L("Asking the Finder…"), L("Done."), L("Asking the Finder…"), L("Done.")]);
+    expect(out.map((l) => l.label)).toEqual(["Asking the Finder…", "Done."]);
+  });
+  it("keeps at most four, newest last", () => {
+    const out = shortSteps(["a", "b", "c", "d", "e", "Done."].map((x) => L(x)));
+    expect(out.map((l) => l.label)).toEqual(["c", "d", "e", "Done."]);
   });
 });

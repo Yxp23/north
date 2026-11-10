@@ -39,12 +39,15 @@ export function yourRuleSentence(triggered: RuleId[], rules: RuleFact[] | null |
   return parts.some((p) => p.firm) ? `You asked me to wait ${durationLabel(hours)} on ${joined}.` : `You asked me to wait on ${joined}.`;
 }
 
+/** What the green "Approved" dialog says once the money has really moved. The item and the details are in the receipt below it. */
+export const paidSentence = (cents: number): string => `Your rules said yes. PayPal paid ${formatMoney(cents)}.`;
+
 /** The subtitle for an outcome, or null to keep the Guardian's own sentence (when we do not know enough to say it better). */
 export function decisionSubtitle(o: CheckoutOutcome, f: SubtitleFacts): string | null {
   const price = formatMoney(f.priceCents);
   switch (o.kind) {
     case "paid":
-      return `${f.name} for ${formatMoney(o.purchase.amountCents)}.`;
+      return paidSentence(o.purchase.amountCents);
     case "wait": {
       const rule = yourRuleSentence(o.result.triggered, f.rules, "wait");
       return rule ? `${rule} This is ${price}.` : null;

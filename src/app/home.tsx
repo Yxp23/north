@@ -12,7 +12,7 @@ import { useMask } from "@/components/shell/mask";
 import { SpeakButton } from "@/components/shell/speak";
 import { ErrorNote, Loading } from "@/components/states";
 import { formatMoney } from "@/lib/format";
-import { decisionFromAnswer } from "@/lib/ui/decision-view";
+import { decisionFromAnswer, stepSentence } from "@/lib/ui/decision-view";
 import { AskNorth } from "./ask-north";
 import { AskRow, NoticeRow, useSummary, when } from "./summary-parts";
 import { SetupBanner } from "./welcome/setup-banner";
@@ -20,12 +20,6 @@ import { SetupBanner } from "./welcome/setup-banner";
 const hello = () => {
   const h = new Date().getHours();
   return h < 5 ? "Hello" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
-};
-
-const STEP_LINE: Record<string, string> = {
-  wait: "I asked you to wait or buy now. Nothing was charged until you chose.",
-  waitlist: "I saved it for later. Nothing was charged.",
-  refuse: "I did not buy it. Nothing was charged.",
 };
 
 export function Home() {
@@ -102,7 +96,7 @@ export function Home() {
             <div className="ng-section"><h2 id="step-h" style={{ fontSize: "inherit" }}>Last time North stepped in</h2></div>
             <div className={`${card} n-stack`} style={{ gap: 10 }}>
               <div><StatusBadge view={stepView} /></div>
-              <p className="n-t-lg"><strong>{m.item(step.name)}</strong>, {formatMoney(step.amountCents)}. {STEP_LINE[step.decision]}</p>
+              <p className="n-t-lg"><strong>{m.item(step.name)}</strong>, {formatMoney(step.amountCents)}. {stepSentence(step)}</p>
               <p style={{ color: "var(--n-muted)" }}>{new Date(step.at).toLocaleString("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" })}</p>
             </div>
           </section>

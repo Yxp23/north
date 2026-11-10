@@ -32,6 +32,29 @@ export function collapseSteps(events: StepEvent[]): Line[] {
   return lines;
 }
 
+const TERMINAL = /^(Done|Stopped)\.?$/;
+export const MAX_SHORT_STEPS = 4;
+
+/**
+ * The short list shown by default: every step once (a helper that hands over to another helper can say the same words twice),
+ * "Done." or "Stopped." last, and at most four lines (the newest four). The whole log stays behind "Show details".
+ */
+export function shortSteps(lines: Line[], max = MAX_SHORT_STEPS): Line[] {
+  const seen = new Map<string, Line>();
+  for (const l of lines) {
+    const first = seen.get(l.label);
+    if (!first) seen.set(l.label, { ...l });
+    else {
+      first.done = first.done || l.done;
+      first.warn = first.warn || l.warn;
+      first.detail ??= l.detail;
+    }
+  }
+  const all = [...seen.values()];
+  const ordered = [...all.filter((l) => !TERMINAL.test(l.label)), ...all.filter((l) => TERMINAL.test(l.label))];
+  return ordered.slice(-max);
+}
+
 /**
  * The steps in plain words. "Show details" (for judges and curious people) adds each tool call under its line.
  * Details are shown as plain text, never as markup, because they can hold text from a listing.
@@ -47,9 +70,10 @@ export function ActivityPanel({
   checkout?: CheckoutTrace;
   guardian?: { decision: string; code: string; reason: string };
 }) {
-  const lines = collapseSteps(events);
+  const full = collapseSteps(events);
   const [showDetails, setShowDetails] = useState(false);
-  const hasDetails = lines.some((l) => l.detail);
+  const lines = showDetails ? full : shortSteps(full);
+  const hasDetails = full.some((l) => l.detail) || full.length > lines.length;
   const publish = usePublishTrace();
   useEffect(() => {
     if (events.length > 0) publish?.({ title, agents: agents ?? [], events, checkout, guardian });

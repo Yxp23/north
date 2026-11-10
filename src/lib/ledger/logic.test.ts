@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  applyWebhook, buildUserState, defaultLedgerData, flagSeller, isSellerFlagged, localDate, upgradeLedgerData, markPaid, spentThisWeekCents, summarize, weekStartDate,
+  applyWebhook, buildUserState, defaultLedgerData, flagSeller, isSellerFlagged, lastStepIn, localDate, upgradeLedgerData, markPaid, spentThisWeekCents, summarize, weekStartDate,
 } from "./logic";
 import type { LedgerData, PurchaseRecord } from "./types";
 
@@ -205,5 +205,26 @@ describe("flagged sellers", () => {
     expect(isSellerFlagged(d, "WWW.Shop.Example")).toBe(true);
     expect(isSellerFlagged(d, "other.example")).toBe(false);
     expect(isSellerFlagged(d, undefined)).toBe(false);
+  });
+});
+
+describe("lastStepIn never contradicts the rest of the screen", () => {
+  const withAudit = (lines: string[], waiting: string[] = []): LedgerData => {
+    const d = data();
+    d.audit = lines.map((detail, i) => ({ at: new Date(NOW.getTime() + i * 1000).toISOString(), type: "decision", detail }));
+    d.waitingList = waiting.map((name) => ({ id: name, productId: name, name, category: "x", imageUrl: "", amountCents: 100, currency: "USD", createdAt: NOW.toISOString(), remindAt: NOW.toISOString(), waitHours: 24, status: "waiting" })) as unknown as LedgerData["waitingList"];
+    return d;
+  };
+  it("an item stopped and then saved shows as ONE line", () => {
+    const step = lastStepIn(withAudit(["Headphones $100.00: refuse (over_budget)"], ["Headphones"]));
+    expect(step).toMatchObject({ decision: "refuse", alsoSaved: true });
+  });
+  it("an item stopped and then bought is not shown as stopped", () => {
+    expect(lastStepIn(withAudit(["Headphones $100.00: refuse (over_budget)", "Headphones $100.00: approve (ok)"]))).toBeNull();
+  });
+  it("other items are still found", () => {
+    const step = lastStepIn(withAudit(["Socks $11.00: wait (wait_big_buy)", "Headphones $100.00: approve (ok)"]));
+    expect(step).toMatchObject({ name: "Socks", decision: "wait" });
+    expect(step?.alsoSaved).toBeUndefined();
   });
 });

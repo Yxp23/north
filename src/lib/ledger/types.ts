@@ -243,7 +243,9 @@ export type WaitingView = {
 };
 
 /** The most recent time the Guardian did not simply approve: a wait, a saved-for-later, or a refusal. From the audit log. */
-export type LastStepIn = { at: string; name: string; amountCents: number; decision: "wait" | "waitlist" | "refuse"; code: string };
+export type LastStepIn = { at: string; name: string; amountCents: number; decision: "wait" | "waitlist" | "refuse"; code: string;
+  /** The item is on the waiting list right now (it was stopped or asked about, then saved), so the card says both in one line. */
+  alsoSaved?: boolean };
 
 export type HomeSummary = {
   weeklyBudgetCents: number;

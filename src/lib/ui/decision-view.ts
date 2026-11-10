@@ -2,6 +2,7 @@
 // and this only picks the words, the icon name and the status colour. A theme never changes a status: stop stays stop.
 import type { CheckoutOutcome } from "../checkout/checkout";
 import type { DecisionCode } from "../guardian/types";
+import { paidSentence } from "./dialog-subtitle";
 
 export type DecisionVariant = "approved" | "wait" | "saved" | "stopped" | "scam" | "assistant";
 export type Tone = "good" | "wait" | "stop";
@@ -53,7 +54,7 @@ export function decisionFromAnswer(a: Answer): DecisionView {
 export function decisionFromOutcome(o: CheckoutOutcome): DecisionView | null {
   switch (o.kind) {
     case "paid":
-      return decisionFromAnswer({ decision: "approve", code: o.result?.code ?? "ok", reason: o.result?.reason ?? "This is okay to buy." });
+      return decisionFromAnswer({ decision: "approve", code: o.result?.code ?? "ok", reason: paidSentence(o.purchase.amountCents) });
     case "wait":
     case "refused":
     case "waitlisted":
@@ -61,4 +62,13 @@ export function decisionFromOutcome(o: CheckoutOutcome): DecisionView | null {
     default:
       return null;
   }
+}
+
+/** The Home card's sentence under a past decision. One line even when the item was stopped and then saved: "Stopped at 11 PM, saved for later." */
+export function stepSentence(step: { decision: "wait" | "waitlist" | "refuse"; at: string; alsoSaved?: boolean }): string {
+  if (step.alsoSaved) {
+    const hour = new Date(step.at).toLocaleTimeString("en-US", { hour: "numeric" });
+    return `${step.decision === "refuse" ? "Stopped" : "Asked to wait"} at ${hour}, saved for later. Nothing was charged.`;
+  }
+  return { wait: "I asked you to wait or buy now. Nothing was charged until you chose.", waitlist: "I saved it for later. Nothing was charged.", refuse: "I did not buy it. Nothing was charged." }[step.decision];
 }

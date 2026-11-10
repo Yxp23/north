@@ -143,16 +143,30 @@ export function restoreWaiting(data: LedgerData, id: string): boolean {
   return true;
 }
 
-const DECISION_LINE = /^(.*) \$([0-9,]+(?:\.[0-9]{2})?): (wait|waitlist|refuse) \(([a-z_]+)\)$/;
+const DECISION_LINE = /^(.*) \$([0-9,]+(?:\.[0-9]{2})?): (approve|wait|waitlist|refuse) \(([a-z_]+)\)$/;
 
-/** The newest Guardian decision that was not an approval, read from the audit log (written by checkout in this exact shape). */
+/**
+ * The newest Guardian decision that was not an approval, read from the audit log (written by checkout in this exact shape).
+ * Two things keep the card from contradicting the rest of the screen:
+ *  - an item that was bought AFTER it was stopped is skipped (it is not "stepped in" any more), and
+ *  - an item that is on the waiting list now says so (`alsoSaved`), so "Stopped" and "Saved" show as one line.
+ */
 export function lastStepIn(data: LedgerData): LastStepIn | null {
+  const bought = new Set<string>();
   for (let i = data.audit.length - 1; i >= 0; i--) {
     const a = data.audit[i];
     if (a.type !== "decision") continue;
     const m = DECISION_LINE.exec(a.detail);
     if (!m) continue;
-    return { at: a.at, name: m[1], amountCents: Math.round(Number(m[2].replace(/,/g, "")) * 100), decision: m[3] as LastStepIn["decision"], code: m[4] };
+    const name = m[1];
+    if (m[3] === "approve") {
+      bought.add(name);
+      continue;
+    }
+    if (bought.has(name)) continue;
+    const decision = m[3] as LastStepIn["decision"];
+    const saved = data.waitingList.some((w) => w.status === "waiting" && w.name === name);
+    return { at: a.at, name, amountCents: Math.round(Number(m[2].replace(/,/g, "")) * 100), decision, code: m[4], ...(saved && decision !== "waitlist" ? { alsoSaved: true } : {}) };
   }
   return null;
 }

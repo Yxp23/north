@@ -13,6 +13,10 @@ const RULES: RuleFact[] = [
 const facts = { name: "Running Series Sneakers", priceCents: 7254, leftCents: 9501, rules: RULES };
 
 describe("decision subtitles say the person's own rule and the price", () => {
+  it("a paid buy says the rules said yes and what PayPal paid (never the stale 'okay to buy')", () => {
+    const o = { kind: "paid", purchase: { amountCents: 3600 }, result: res("approve", "ok") } as unknown as CheckoutOutcome;
+    expect(decisionSubtitle(o, facts)).toBe("Your rules said yes. PayPal paid $36.00.");
+  });
   it("a gentle wait", () => {
     const o: CheckoutOutcome = { kind: "wait", result: res("wait", "wait_big_buy", { canOverride: true, triggered: ["big_buy"] }) };
     expect(decisionSubtitle(o, facts)).toBe("You asked me to wait on buys over $50. This is $72.54.");
