@@ -318,9 +318,9 @@ export function AppShell({ children, signedIn = true }: { children: ReactNode; s
   async function logOut() {
     setLoggingOut(true);
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
-    // A full page load on purpose: after logging out, nothing from the old session should stay on the page.
+    // A full page load on purpose: after logging out, nothing from the old session should stay on the page. Logged out, "/" is the front page.
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-    window.location.assign("/login");
+    window.location.assign("/");
   }
 
   return (
