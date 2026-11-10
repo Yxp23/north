@@ -5,6 +5,7 @@ import { CsrfFetch } from "@/components/csrf-fetch";
 import { RateLimitWatch } from "@/components/rate-limit-watch";
 import { AppearanceProvider } from "@/components/shell/appearance";
 import { AppShell } from "@/components/shell/app-shell";
+import { isSignedIn } from "@/lib/auth/viewer";
 import { TraceProvider } from "@/components/shell/trace";
 import "./globals.css";
 
@@ -12,6 +13,11 @@ export const metadata: Metadata = {
   title: { default: "North", template: "%s · North" },
   description: "You set the rules. You can override them.",
 };
+
+// Draws the shell. It only needs to know whether someone is signed in to decide if the header shows the tabs and Menu (see auth/viewer.ts).
+async function Shell({ children }: { children: React.ReactNode }) {
+  return <AppShell signedIn={await isSignedIn()}>{children}</AppShell>;
+}
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -28,7 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <TraceProvider>
             {/* The shell reads the current address (to mark the tab and the login page), which Next only knows per request. */}
             <Suspense fallback={null}>
-              <AppShell>{children}</AppShell>
+              <Shell>{children}</Shell>
             </Suspense>
           </TraceProvider>
         </AppearanceProvider>

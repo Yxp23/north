@@ -484,3 +484,6 @@ html { scroll-padding-top: 96px; }
 .n-hint { margin: 0; color: var(--n-ink); font-size: 16px; }
 /* a button that is not ready yet keeps its shape and reads as "not yet", with a hint under it */
 .n-btn[disabled] { opacity: .7; }
+
+/* the header buttons stay at the right even when there are no tabs (the plain header) */
+@media (min-width: 1280px) { .ng-top-actions { grid-column: 3; } }

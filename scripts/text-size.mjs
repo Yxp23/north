@@ -4,10 +4,11 @@ import { BASE, launch, loggedInContext } from "./ui-lib.mjs";
 const PAGES = ["/", "/find", "/saved", "/money", "/rules", "/rules/new", "/rules/change/big_buy", "/assistants", "/connect", "/check", "/welcome", "/demo", "/how-it-works", "/try-to-break", "/assistant-demo"];
 const browser = await launch();
 const bad = new Map();
-for (const width of [1440, 390]) {
-  const ctx = await loggedInContext(browser, { width, height: 900 }, { reducedMotion: "reduce" });
+const PUBLIC = ["/", "/how-it-works", "/login"]; // looked at without logging in
+for (const width of [1440, 390]) for (const anon of [false, true]) {
+  const ctx = anon ? await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: "reduce" }) : await loggedInContext(browser, { width, height: 900 }, { reducedMotion: "reduce" });
   const page = await ctx.newPage();
-  for (const path of PAGES) {
+  for (const path of anon ? PUBLIC : PAGES) {
     await page.goto(BASE + path, { waitUntil: "load" });
     await page.waitForSelector("main h1, main h2", { timeout: 20000 }).catch(() => {});
     await page.waitForTimeout(400);

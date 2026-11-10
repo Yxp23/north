@@ -53,8 +53,20 @@ describe("every web route checks the login", () => {
     expect(r.text).toMatch(/export async function GET\(req: Request\) \{\s*if \(!isCronAuthorized/);
   });
 
-  it("the only public pages are the login page", () => {
-    expect([...PUBLIC_PAGES]).toEqual(["/login"]);
+  it("the only public pages are the front page, How North works and the login page", () => {
+    expect([...PUBLIC_PAGES]).toEqual(["/", "/how-it-works", "/login"]);
+  });
+
+  it("the public pages hold nothing private: no ledger, no login-checked data", () => {
+    for (const f of ["app/page.tsx", "app/_landing/landing.tsx", "app/_landing/decision-card.tsx", "app/_landing/try-demo.tsx", "app/how-it-works/page.tsx", "app/how-it-works/pipeline.tsx"]) {
+      const text = all.find((s) => s.file === f)?.text ?? "";
+      expect(text, f).not.toMatch(/getLedger|supabaseAdmin|authenticate\(|\/api\/summary|\/api\/rules/);
+    }
+  });
+
+  it("\"is someone signed in?\" is used only to choose what to draw (the layout and the front page), never to allow anything", () => {
+    const users = all.filter((s) => /from "@\/lib\/auth\/viewer"/.test(s.raw)).map((s) => s.file).sort();
+    expect(users).toEqual(["app/layout.tsx", "app/page.tsx"]);
   });
 
   it("a person is identified only by the verified login, never by something the request says", () => {
@@ -104,7 +116,7 @@ describe("demo tools can't be reached unless demo mode is on", () => {
   });
 
   it("the demo-only routes check demoOnly() right after the login", () => {
-    for (const p of ["/api/demo/ledger", "/api/demo/reset", "/api/demo-assistant"]) {
+    for (const p of ["/api/demo/ledger", "/api/demo/reset", "/api/demo/start-fresh", "/api/demo-assistant"]) {
       const r = routes.find((x) => routePath(x.file) === p)!;
       expect(r.text, p).toMatch(/const auth = await authenticate\(req\);\s*if \(!auth\.ok\) return auth\.response;\s*const off = demoOnly\(auth\.userId\);\s*if \(off\) return off;/);
     }

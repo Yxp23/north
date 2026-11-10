@@ -217,9 +217,10 @@ function SettingsMenu({ open, onClose, onAppearance, onHelp, triggerRef, demo, o
   );
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, signedIn = true }: { children: ReactNode; signedIn?: boolean }) {
   const path = usePathname() ?? "/";
-  const onLogin = path === "/login";
+  // The login page, and any page seen by someone who is not signed in (the landing page, How North works), get the plain header.
+  const onLogin = path === "/login" || !signedIn;
   const [menuOpen, setMenuOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [help, setHelp] = useState(false);
@@ -304,7 +305,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <footer className="ng-laptop-foot">
           <span>You set the rules. You can override them.</span>
           <span className="ng-foot-links">
-            {!onLogin && <Link href="/how-it-works" className="ng-foot-link">How North works</Link>}
+            <Link href="/how-it-works" className="ng-foot-link">How North works</Link>
             <button type="button" className="ng-foot-link" onClick={() => setHelp(true)}>Help is always here</button>
           </span>
         </footer>

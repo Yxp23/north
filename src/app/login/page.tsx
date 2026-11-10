@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { isDemoDeployment } from "@/lib/demo/mode";
+import { practiceLogin } from "@/lib/demo/practice";
 import { LoginForm } from "./login-form";
 
 export const metadata = { title: "Log in · North" };
@@ -8,9 +8,7 @@ export const metadata = { title: "Log in · North" };
 // In the judges' demo deployment, the practice account is shown here (it holds practice money only). Nowhere else.
 async function Form() {
   await connection(); // read the settings when the page is asked for, not when it is built
-  const practice = isDemoDeployment() && process.env.DEMO_LOGIN_EMAIL && process.env.DEMO_LOGIN_PASSWORD
-    ? { email: process.env.DEMO_LOGIN_EMAIL, password: process.env.DEMO_LOGIN_PASSWORD }
-    : null;
+  const practice = practiceLogin();
   return (
     <>
       {practice && (

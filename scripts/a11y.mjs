@@ -87,10 +87,14 @@ const lp = await anon.newPage();
 for (const mode of MODES) for (const theme of THEMES) for (const solid of [false, true]) {
   await lp.goto(`${BASE}/login`, { waitUntil: "domcontentloaded", timeout: 90000 });
   await lp.evaluate(([t, s, m]) => localStorage.setItem("north-appearance", JSON.stringify({ theme: t, mode: m, reduce: true, solid: s, behind: false })), [theme, solid, mode]);
-  await lp.reload({ waitUntil: "domcontentloaded", timeout: 90000 });
-  await lp.waitForSelector("main h1");
-  await scan(lp, `${theme}-${mode}${solid ? "+solid" : ""} /login`, found);
-  runs++;
+  // The pages anyone can open without logging in: the front page, How North works and the login page.
+  for (const path of ["/login", "/", "/how-it-works"]) {
+    await lp.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded", timeout: 90000 });
+    await lp.waitForSelector("main h1", { timeout: 60000 });
+    await lp.waitForTimeout(600);
+    await scan(lp, `${theme}-${mode}${solid ? "+solid" : ""} ${path} (logged out)`, found);
+    runs++;
+  }
 }
 await browser.close();
 
