@@ -49,14 +49,18 @@ export function DecisionDialog({
   const t = title ?? view.title;
   const r = reason ?? view.reason;
   return (
-    <Dialog label={`${view.word}. ${t}`} onClose={onClose} dismissable={dismissable} wide={wide}>
-      {/* The answer stays pinned at the top while the rest of the dialog scrolls, so it is never lost behind "How North decided". */}
-      <div className="gd-pin">
-        <StatusBadge view={view} />
-        <h2 ref={heading} tabIndex={-1} style={{ outline: "none" }}>{t}</h2>
-        {r && <p className="gd-reason">{r}</p>}
-        <div className="gd-hear"><SpeakButton text={hear ?? `${view.word}. ${t}. ${r ?? ""}`} /></div>
-      </div>
+    <Dialog
+      label={`${view.word}. ${t}`} onClose={onClose} dismissable={dismissable} wide={wide}
+      // The answer stays at the top, outside the scrolling part: it is never lost, and nothing can scroll under it.
+      pinned={
+        <div className="gd-pin">
+          <StatusBadge view={view} />
+          <h2 ref={heading} tabIndex={-1} style={{ outline: "none" }}>{t}</h2>
+          {r && <p className="gd-reason">{r}</p>}
+          <div className="gd-hear"><SpeakButton text={hear ?? `${view.word}. ${t}. ${r ?? ""}`} /></div>
+        </div>
+      }
+    >
       {children}
     </Dialog>
   );

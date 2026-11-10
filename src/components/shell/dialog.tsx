@@ -10,12 +10,14 @@ import { useAppearance } from "./appearance";
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
 
 export function Dialog({
-  label, onClose, children, wide = false, closeLabel = "Close", dismissable = true,
+  label, onClose, children, pinned, wide = false, closeLabel = "Close", dismissable = true,
 }: {
   /** The dialog's name for screen readers. Shown as its heading by the caller. */
   label: string;
   onClose(): void;
   children: ReactNode;
+  /** Stays at the top, outside the scrolling part, so nothing can ever scroll under it (a decision's answer). */
+  pinned?: ReactNode;
   wide?: boolean;
   closeLabel?: string;
   dismissable?: boolean;
@@ -23,6 +25,7 @@ export function Dialog({
   // The place dialogs are drawn (inside the themed app root). Read from the page; the server has none.
   const root = useSyncExternalStore(() => () => undefined, () => document.getElementById("north-dialog-root"), () => null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { reduced } = useAppearance();
   const titleId = useId();
   const onCloseRef = useRef(onClose);
@@ -43,7 +46,7 @@ export function Dialog({
     const laptop = window.matchMedia("(min-width: 651px)").matches;
     if (!reduced && typeof sheet.animate === "function") sheet.animate(sheetFrames(laptop), { duration: MOTION.sheet.durationMs, easing: "linear", fill: "none" });
     (sheet.querySelector<HTMLElement>("[data-autofocus]") ?? sheet).focus({ preventScroll: true });
-    sheet.scrollTop = 0;
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && dismissable) {
@@ -77,7 +80,7 @@ export function Dialog({
 
   // A new screen inside the same dialog (the check finishing, an answer replacing "checking") always starts at the top.
   useEffect(() => {
-    if (sheetRef.current) sheetRef.current.scrollTop = 0;
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [label, root]);
 
   if (!root) return null;
@@ -86,7 +89,9 @@ export function Dialog({
       <div className="ng-sheet-dimmer" />
       <div ref={sheetRef} className={`ng-sheet${wide ? " ng-sheet-wide" : ""}`} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <div className="ng-handle" aria-hidden="true" />
-        <div className="ng-sheet-top">
+        {/* The head never scrolls: the close button and, for a decision, its answer. */}
+        <div className={`ng-sheet-head${pinned ? "" : " ng-sheet-head-bare"}`}>
+          {pinned}
           {dismissable && (
             <button type="button" className="ng-sheet-close ng-glass" aria-label={closeLabel} onClick={onClose}>
               <X aria-hidden="true" />
@@ -94,7 +99,8 @@ export function Dialog({
           )}
         </div>
         <span id={titleId} className="ng-vh">{label}</span>
-        {children}
+        {/* The only scrolling part. It sits inside the rounded frame, so its scrollbar can never poke out of a corner. */}
+        <div ref={scrollRef} className="ng-sheet-scroll">{children}</div>
       </div>
     </>,
     root,

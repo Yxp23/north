@@ -225,11 +225,10 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
 .ng-sheet-dimmer { position: fixed; inset: 0; z-index: 60; background: #28232c24; backdrop-filter: blur(3px); }
 .ng-sheet {
   position: fixed; z-index: 61; background: var(--n-content); color: var(--n-ink); border: 1px solid var(--n-line); box-shadow: 0 -8px 45px var(--n-skin-shadow); transform-origin: center bottom;
-  left: 50%; right: auto; bottom: auto; top: 120px; transform: translateX(-50%); width: 520px; max-width: calc(100% - 38px); max-height: calc(100dvh - 150px); overflow: auto;
-  border-radius: 28px; padding: 16px 28px 25px; overscroll-behavior: contain;
+  left: 50%; right: auto; bottom: auto; top: 120px; transform: translateX(-50%); width: 520px; max-width: calc(100% - 38px); max-height: calc(100dvh - 150px);
+  border-radius: 28px; padding: 0; overflow: hidden; display: flex; flex-direction: column;
 }
 .ng-sheet.ng-sheet-wide { width: 680px; }
-.ng-sheet-top { display: flex; align-items: center; justify-content: flex-end; margin-bottom: 8px; min-height: 48px; }
 .ng-handle { display: none; height: 4px; width: 38px; border-radius: 4px; background: var(--n-line); margin: 0 auto; position: absolute; left: calc(50% - 19px); top: 10px; }
 .ng-sheet-close { border-radius: 50%; width: 48px; height: 48px; display: grid; place-items: center; color: var(--n-ink); cursor: pointer; }
 .ng-sheet-close svg { width: 18px; height: 18px; }
@@ -314,8 +313,10 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
   .ng-laptop-foot { gap: 10px; }
   /* bottom sheet */
   .ng-sheet {
-    left: 0; right: 0; top: auto; bottom: 0; width: auto; max-width: none; transform: none; max-height: 90dvh; border-radius: 32px 32px 0 0; padding: 12px 23px calc(25px + env(safe-area-inset-bottom));
+    left: 0; right: 0; top: auto; bottom: 0; width: auto; max-width: none; transform: none; max-height: 90dvh; border-radius: 32px 32px 0 0;
   }
+  .ng-sheet-head { padding-left: 23px; padding-right: 23px; }
+  .ng-sheet-scroll { padding-left: 23px; padding-right: 23px; --sheet-gap: 22px; }
   .ng-sheet.ng-sheet-wide { width: auto; }
   .ng-handle { display: block; }
   .ng-sheet h2 { font-size: 28px; }
@@ -421,11 +422,6 @@ html { scroll-padding-top: 96px; }
 }
 
 /* the decision stays pinned inside a scrolling dialog */
-.ng-sheet .gd-pin { position: sticky; top: -16px; z-index: 3; background: var(--n-content); margin: -8px -4px 12px; padding: 8px 4px 4px; border-bottom: 1px solid var(--n-line); }
-.ng-sheet .gd-pin h2 { margin-bottom: 8px; font-size: 26px; }
-.ng-sheet .gd-pin .gd-reason { margin-bottom: 10px; }
-.ng-sheet .gd-pin .gd-hear { margin-bottom: 10px; }
-.ng-sheet .gd-pin .gd-badge { margin-bottom: 8px; }
 
 .n-photo-hidden { display: grid; place-items: center; align-content: center; gap: 6px; background: var(--n-quiet) !important; color: var(--n-ink); font-size: 16px; text-align: center; min-height: 80px; }
 .n-photo-hidden svg { width: 28px; height: 28px; }
@@ -433,18 +429,11 @@ html { scroll-padding-top: 96px; }
 .ng-product-image .n-photo-hidden span { display: none; }
 
 /* ---- Breathing room (Nov 10): one idea per block, more space between blocks, every tap target at least 48px ---- */
-.ng-sheet { display: grid; gap: 20px; align-content: start; padding-top: 14px; }
-.ng-sheet > * { margin-top: 0 !important; margin-bottom: 0 !important; }
-.ng-sheet > .ng-sheet-top { margin-bottom: -8px !important; }
-.ng-sheet > .n-btn + .n-btn, .ng-sheet > .n-stack + .n-btn { margin-top: -6px !important; }
-.ng-sheet > .n-btn + .n-btn-quiet { margin-top: -10px !important; }
+.ng-sheet-scroll > .n-btn + .n-btn, .ng-sheet-scroll > .n-stack + .n-btn { margin-top: -6px !important; }
+.ng-sheet-scroll > .n-btn + .n-btn-quiet { margin-top: -10px !important; }
 .ng-sheet h2 { margin: 0; }
 .ng-sheet .ng-review { margin: 0; padding: 18px; }
 .ng-sheet .ng-review-row { padding: 8px 0; }
-.ng-sheet .gd-pin { margin: 0; padding: 4px 0 14px; }
-.ng-sheet .gd-pin .gd-badge { margin-bottom: 12px; }
-.ng-sheet .gd-pin h2 { margin-bottom: 10px; }
-.ng-sheet .gd-pin .gd-reason { margin-bottom: 12px; }
 .ng-sheet .n-note { margin: 0 !important; }
 .ng-sheet .n-disc { margin: 0; }
 .n-col { gap: 28px; }
@@ -468,22 +457,34 @@ html { scroll-padding-top: 96px; }
 
 /* ---- Decision dialog: the pinned answer, breathing room at the top, and a quiet "How North decided" (Nov 10) ---- */
 /* The pinned block sticks to the very top of the scrolling area and has its own top padding, so the badge never touches the edge. */
-.ng-sheet .gd-pin { top: 0; padding: 24px 0 16px; margin: 0; z-index: 3; }
-.ng-sheet { padding-top: 0; }
-.ng-sheet { --sheet-gap: 20px; gap: var(--sheet-gap); }
-@media (max-width: 650px) { .ng-sheet { --sheet-gap: 22px; } }
-/* the close button stays in the top corner while the dialog scrolls, without taking any room of its own */
-.ng-sheet > .ng-sheet-top { position: sticky; top: 0; height: 0; min-height: 0; margin: 0 0 calc(-1 * var(--sheet-gap)) !important; z-index: 5; overflow: visible; }
-.ng-sheet > .ng-sheet-top .ng-sheet-close { position: absolute; top: 6px; right: 0; }
-.ng-sheet .gd-pin { padding-right: 56px; } /* room for the close button, so it never overlaps the answer */
 /* "How North decided" is a plain row at the end: no box, so no stray side lines when it is open and scrolled. */
 .ng-sheet .gd-how.n-disc { border: 0; border-top: 1px solid var(--n-line); border-radius: 0; background: transparent; margin-top: 4px; }
 .ng-sheet .gd-how .n-disc-btn { padding-left: 0; padding-right: 0; }
 .ng-sheet .gd-how .n-disc-body { padding-left: 0; padding-right: 0; }
-.ng-sheet { scrollbar-gutter: stable; }
 .n-hint { margin: 0; color: var(--n-ink); font-size: 16px; }
 /* a button that is not ready yet keeps its shape and reads as "not yet", with a hint under it */
 .n-btn[disabled] { opacity: .7; }
 
 /* the header buttons stay at the right even when there are no tabs (the plain header) */
 @media (min-width: 1280px) { .ng-top-actions { grid-column: 3; } }
+
+/* ---- Dialog structure (Nov 11): a fixed head and ONE scrolling part inside a rounded frame ---- */
+.ng-sheet-head { position: relative; flex: none; padding: 0 28px; }
+.ng-sheet-head-bare { min-height: 64px; }
+.ng-sheet-close { position: absolute; top: 12px; right: 16px; z-index: 2; }
+.ng-sheet-head .gd-pin { padding: 26px 56px 16px 0; border-bottom: 1px solid var(--n-line); }
+.ng-sheet-head .gd-pin .gd-badge { margin: 0 0 12px; }
+.ng-sheet-head .gd-pin h2 { margin: 0 0 10px; font-size: 26px; }
+.ng-sheet-head .gd-pin .gd-reason { margin: 0 0 12px; }
+.ng-sheet-head .gd-pin .gd-hear { margin: 0; }
+.ng-sheet-scroll {
+  --sheet-gap: 20px; flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; overflow-anchor: none;
+  display: grid; gap: var(--sheet-gap); align-content: start; padding: 18px 28px 26px;
+  margin: 0 6px 14px 0; /* the scrollbar sits inside the rounded frame, clear of the corners */
+  scrollbar-width: thin; scrollbar-color: var(--n-edge) transparent;
+}
+.ng-sheet-scroll::-webkit-scrollbar { width: 8px; }
+.ng-sheet-scroll::-webkit-scrollbar-track { background: transparent; }
+.ng-sheet-scroll::-webkit-scrollbar-thumb { background: var(--n-edge); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+.ng-sheet-head-bare + .ng-vh + .ng-sheet-scroll { padding-top: 4px; }
+@media (max-width: 650px) { .ng-sheet-scroll { margin-bottom: max(14px, env(safe-area-inset-bottom)); } }
