@@ -5,6 +5,7 @@ import { MAX_FIND_CHARS, runFinder, type FinderOutcome } from "@/lib/agents/find
 import { storeFindBackend } from "@/lib/finder/adapter";
 import { parseFinderRequest } from "@/lib/finder/request";
 import { ndjsonResponse } from "@/lib/ndjson";
+import { demoCostLimit } from "@/lib/ratelimit/demo";
 import { limited } from "@/lib/ratelimit/route";
 import { getStore } from "@/lib/store";
 
@@ -19,6 +20,8 @@ export async function POST(req: Request) {
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 });
   const tooMany = await limited(auth.userId, "find", 40, 3600);
   if (tooMany) return tooMany;
+  const costly = await demoCostLimit(req, "ai"); // the public demo: each visitor, and the whole demo per day
+  if (costly) return costly;
 
   return ndjsonResponse(
     async (send) => {

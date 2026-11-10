@@ -2,6 +2,7 @@ import { authenticate } from "@/lib/auth/guard";
 import { runCheckout } from "@/lib/checkout/run";
 import { parseCheckoutBody } from "@/lib/checkout/request";
 import { readJson } from "@/lib/http/body";
+import { demoCostLimit } from "@/lib/ratelimit/demo";
 import { limited } from "@/lib/ratelimit/route";
 import { demoAllowed } from "@/lib/demo/mode";
 import { ndjsonResponse } from "@/lib/ndjson";
@@ -14,6 +15,8 @@ export async function POST(req: Request) {
   if (!auth.ok) return auth.response;
   const tooMany = await limited(auth.userId, "checkout", 60, 3600);
   if (tooMany) return tooMany;
+  const costly = await demoCostLimit(req, "stores"); // the public demo: each visitor, and the whole demo per day
+  if (costly) return costly;
   const parsed = parseCheckoutBody(await readJson(req), { demoOn: demoAllowed(auth.userId) });
   if (!parsed.ok) return Response.json({ error: "Bad request" }, { status: 400 });
   const input = parsed.input;

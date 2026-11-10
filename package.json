@@ -14,7 +14,8 @@
     "audit:verify": "node --env-file=.env.local --import tsx scripts/audit-verify.mts",
     "attack": "node --env-file=.env.local --import tsx attacker/run.mts",
     "typecheck": "next typegen && tsc --noEmit",
-    "proof": "node --import tsx scripts/proof-numbers.mts"
+    "proof": "node --import tsx scripts/proof-numbers.mts",
+    "seed:demo": "node --conditions=react-server --env-file=.env.local --import tsx scripts/seed-demo-week.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",

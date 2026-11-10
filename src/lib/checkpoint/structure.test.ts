@@ -24,9 +24,9 @@ describe("an assistant's key is accepted only on the MCP route", () => {
     const users = nonTest.filter((f) => /mcpHandler/.test(code(f)) && rel(f) !== "lib/checkpoint/run.ts").map(rel);
     expect(users).toEqual(["app/api/mcp/route.ts", "lib/auth/public-paths.ts"]); // (the second only names it, as the marker for the public list)
   });
-  it("no other route reads an Authorization header except the scheduled price check (its own secret)", () => {
+  it("no other route reads an Authorization header except the scheduled ones (their own secret)", () => {
     const routes = nonTest.filter((f) => rel(f).startsWith("app/api/") && /authorization/i.test(code(f))).map(rel);
-    expect(routes.sort()).toEqual(["app/api/watch/run/route.ts"]);
+    expect(routes.sort()).toEqual(["app/api/cron/daily/route.ts", "app/api/cron/demo-reset/route.ts", "app/api/watch/run/route.ts"]);
   });
 });
 

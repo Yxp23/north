@@ -3,10 +3,11 @@ import { authenticate } from "@/lib/auth/guard";
 import { IMAGE_MAX_BODY, readJson } from "@/lib/http/body";
 import { MAX_AD_CHARS, runScamChecker, type DealPayload } from "@/lib/agents/scam-checker/scam-checker";
 import { channel3Backend } from "@/lib/dealcheck/channel3-backend";
+import { applyDealVerdict } from "@/lib/dealcheck/apply";
 import { checkImage } from "@/lib/dealcheck/image";
 import { getLedger } from "@/lib/ledger/server";
-import { addAudit, flagSeller } from "@/lib/ledger/logic";
 import { ndjsonResponse } from "@/lib/ndjson";
+import { demoCostLimit } from "@/lib/ratelimit/demo";
 import { limited } from "@/lib/ratelimit/route";
 
 // "Is this deal real?" Streams the checker's steps (one JSON line each), then one result line.
@@ -30,6 +31,8 @@ export async function POST(req: Request) {
   if (price !== undefined && !(Number.isFinite(price) && price > 0 && price <= 100_000)) return Response.json({ error: "Please type a price like 27 or 27.50." }, { status: 400 });
   const tooMany = await limited(auth.userId, "deal-check", 20, 3600);
   if (tooMany) return tooMany;
+  const costly = await demoCostLimit(req, "ai"); // the public demo: each visitor, and the whole demo per day
+  if (costly) return costly;
 
   return ndjsonResponse(
     async (send) => {
@@ -48,25 +51,7 @@ export async function POST(req: Request) {
       });
 
       // A scam verdict flags the seller, so the Guardian refuses to pay them. If we can't save the flag, say so.
-      let flagged: "yes" | "no_seller" | "not_saved" | "no" = "no";
-      const now = new Date();
-      try {
-        await getLedger(auth.userId).update((d) => {
-          if (payload.kind === "verdict") {
-            addAudit(d, "deal_check", `Deal check: ${payload.verdict.kind} (${payload.verdict.code}). ${steps.length} steps.`, now);
-            if (payload.verdict.flagSeller && payload.sellerDomain) {
-              flagSeller(d, payload.sellerDomain, payload.verdict.reasons[0], now);
-              addAudit(d, "seller_flag", `Flagged ${payload.sellerDomain} as a scam seller. ${payload.verdict.reasons[0]}`, now);
-              flagged = "yes";
-            } else if (payload.verdict.kind === "scam") {
-              flagged = "no_seller";
-            }
-          }
-        });
-      } catch (e) {
-        console.error("[deal-check] could not save the flag:", e instanceof Error ? e.name : "unknown");
-        if (payload.kind === "verdict" && payload.verdict.kind === "scam") flagged = "not_saved";
-      }
+      const flagged = await applyDealVerdict(getLedger(auth.userId), payload, steps.length, new Date());
       send({ type: "result", payload, flagged });
     },
     (send) => send({ type: "result", payload: { kind: "error", message: "Something went wrong. Please try again." } satisfies DealPayload }),

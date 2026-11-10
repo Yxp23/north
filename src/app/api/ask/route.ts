@@ -1,5 +1,6 @@
 import { authenticate } from "@/lib/auth/guard";
 import { IMAGE_MAX_BODY, readJson } from "@/lib/http/body";
+import { demoCostLimit } from "@/lib/ratelimit/demo";
 import { limited } from "@/lib/ratelimit/route";
 import { POST as dealCheck } from "@/app/api/deal-check/route";
 import { POST as findRoute } from "@/app/api/find/route";
@@ -71,6 +72,8 @@ export async function POST(req: Request) {
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 });
   const tooMany = await limited(auth.userId, "ask", 40, 3600);
   if (tooMany) return tooMany;
+  const costly = await demoCostLimit(req, "ai"); // the public demo: each visitor, and the whole demo per day
+  if (costly) return costly;
   const route = typeof body?.route === "string" ? (body.route as Destination) : undefined;
 
   return ndjsonResponse(

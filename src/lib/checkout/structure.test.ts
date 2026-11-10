@@ -122,7 +122,20 @@ describe("the PayPal money calls sit behind a signed Guardian approval", () => {
   });
 
   it("only the gateway files call authorizeMoney", () => {
-    expect(using("authorizeMoney(")).toEqual(["lib/checkout/gateway.ts", "lib/guardian/authorize.ts", "lib/refund/run.ts"]);
+    // (seed-gateway.ts is the demo week's practice payments: it checks the very same signed approval and then records a DEMO- order. It never calls PayPal.)
+    expect(using("authorizeMoney(")).toEqual(["lib/checkout/gateway.ts", "lib/demo/seed-gateway.ts", "lib/guardian/authorize.ts", "lib/refund/run.ts"]);
+  });
+
+  it("the demo week's practice payments never touch PayPal, and only the demo seed uses them", () => {
+    const gw = sources.find((s) => s.file === "lib/demo/seed-gateway.ts")!.text;
+    expect(gw).not.toMatch(/from\s+["'][^"']*\/paypal["']|fetch\(|createOrderWithVault|captureOrder|refundCapture/);
+    expect(gw).toContain("DEMO-ORDER-");
+    const users = sources.filter((s) => /seed-gateway["']/.test(s.text)).map((s) => s.file);
+    expect(users).toEqual(["lib/demo/seed-week.ts"]);
+    // and the seed refuses anyone but the practice account before it does anything
+    expect(sources.find((s) => s.file === "lib/demo/seed-week.ts")!.text).toMatch(/if \(!demoAllowed\(deps\.userId\)\) throw/);
+    // no web route builds the seed's gateway: routes only call runDemoWeek
+    for (const r of sources.filter((x) => x.file.startsWith("app/"))) expect(r.text).not.toMatch(/seed-gateway|createSeedGateway|createSeedRefundGateway/);
   });
 
   it("approvals are signed only where the Guardian or a refund is decided", () => {

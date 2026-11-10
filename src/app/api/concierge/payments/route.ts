@@ -6,6 +6,7 @@ import { getLedger } from "@/lib/ledger/server";
 import { ndjsonResponse } from "@/lib/ndjson";
 import { createPaymentsBackend } from "@/lib/payments-help/backend";
 import { callToolkit } from "@/lib/paypal-toolkit/reader";
+import { demoCostLimit } from "@/lib/ratelimit/demo";
 import { limited } from "@/lib/ratelimit/route";
 
 // "Did my order go through?" / "Show my last payments". The helper asks PayPal through the PayPal Agent Toolkit,
@@ -19,6 +20,8 @@ export async function POST(req: Request) {
   if (question.length > MAX_QUESTION_CHARS) return Response.json({ error: "That is too long. Please ask in a few words." }, { status: 400 });
   const tooMany = await limited(auth.userId, "payments", 30, 3600);
   if (tooMany) return tooMany;
+  const costly = await demoCostLimit(req, "ai"); // the public demo: each visitor, and the whole demo per day
+  if (costly) return costly;
 
   return ndjsonResponse(
     async (send) => {

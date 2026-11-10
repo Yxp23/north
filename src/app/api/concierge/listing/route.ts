@@ -9,6 +9,7 @@ import { getLedger } from "@/lib/ledger/server";
 import { addAudit, buildUserState } from "@/lib/ledger/logic";
 import { ndjsonResponse } from "@/lib/ndjson";
 import { judgeProposals } from "@/lib/proposals/judge";
+import { demoCostLimit } from "@/lib/ratelimit/demo";
 import { limited } from "@/lib/ratelimit/route";
 import { getStore } from "@/lib/store";
 
@@ -26,6 +27,8 @@ export async function POST(req: Request) {
   if (!product) return Response.json({ error: "I could not find that product." }, { status: 404 });
   const tooMany = await limited(auth.userId, "listing", 30, 3600);
   if (tooMany) return tooMany;
+  const costly = await demoCostLimit(req, "ai"); // the public demo: each visitor, and the whole demo per day
+  if (costly) return costly;
   // "Pretend the AI is tricked" is a demo tool. It only works when demo tools are on.
   const pretend = body?.pretendTricked === true && demoAllowed(auth.userId);
 

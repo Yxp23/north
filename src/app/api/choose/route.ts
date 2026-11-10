@@ -7,6 +7,7 @@ import { parseFinderRequest } from "@/lib/finder/request";
 import { getLedger } from "@/lib/ledger/server";
 import { summarize } from "@/lib/ledger/logic";
 import { ndjsonResponse } from "@/lib/ndjson";
+import { demoCostLimit } from "@/lib/ratelimit/demo";
 import { limited } from "@/lib/ratelimit/route";
 import { getStore } from "@/lib/store";
 
@@ -22,6 +23,8 @@ export async function POST(req: Request) {
   const answer = typeof body?.answer === "string" ? body.answer.trim().slice(0, 60) : "";
   const tooMany = await limited(auth.userId, "choose", 30, 3600);
   if (tooMany) return tooMany;
+  const costly = await demoCostLimit(req, "ai"); // the public demo: each visitor, and the whole demo per day
+  if (costly) return costly;
 
   return ndjsonResponse(
     async (send) => {

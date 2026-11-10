@@ -2,6 +2,7 @@ import { authenticate } from "@/lib/auth/guard";
 import { runConciergeForUser } from "@/lib/agents/concierge/run";
 import { MAX_WORDS } from "@/lib/agents/concierge/concierge";
 import { readJson } from "@/lib/http/body";
+import { demoCostLimit } from "@/lib/ratelimit/demo";
 import { limited } from "@/lib/ratelimit/route";
 import { getLedger } from "@/lib/ledger/server";
 import { addAudit } from "@/lib/ledger/logic";
@@ -25,6 +26,8 @@ export async function POST(req: Request) {
 
   const tooMany = await limited(auth.userId, "concierge-rules", 30, 3600);
   if (tooMany) return tooMany;
+  const costly = await demoCostLimit(req, "ai"); // the public demo: each visitor, and the whole demo per day
+  if (costly) return costly;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({

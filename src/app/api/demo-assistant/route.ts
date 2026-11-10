@@ -10,6 +10,7 @@ import { demoOnly } from "@/lib/demo/mode";
 import { readJson } from "@/lib/http/body";
 import { getLedger } from "@/lib/ledger/server";
 import { ndjsonResponse } from "@/lib/ndjson";
+import { demoCostLimit } from "@/lib/ratelimit/demo";
 import { limited } from "@/lib/ratelimit/route";
 import { getStore } from "@/lib/store";
 
@@ -43,6 +44,8 @@ export async function POST(req: Request) {
     : [];
   const tooMany = await limited(auth.userId, "demo-assistant", 40, 3600);
   if (tooMany) return tooMany;
+  const costly = await demoCostLimit(req, "ai"); // the public demo: each visitor, and the whole demo per day
+  if (costly) return costly;
   const pretend = body?.pretendTricked === true;
 
   return ndjsonResponse(
