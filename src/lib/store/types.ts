@@ -15,6 +15,8 @@ export type StoreProduct = {
   priceCents: number;
   currency: string;
   imageUrl: string;
+  /** Every picture the store has for it (https only, the main one first). Missing for the demo products, which have just the one we chose. */
+  images?: string[];
   /** True when Channel3 price tracking was started, so a price history exists. */
   tracked: boolean;
   /**

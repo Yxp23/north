@@ -18,6 +18,12 @@ export function Photo({ src, alt = "", className, style }: { src: string; alt?: 
       </span>
     );
   }
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={alt} className={className} style={style} />;
+  // One frame for every product photo (see .ph-frame in north-pages.css): a fixed shape on a soft surface that matches the theme, the picture
+  // fitted inside it whole. The frame carries the size classes the caller passed; the picture only fills it.
+  return (
+    <span className={`ph-frame${className ? ` ${className}` : ""}`} style={style}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={alt} loading="lazy" decoding="async" />
+    </span>
+  );
 }

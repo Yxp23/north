@@ -78,6 +78,9 @@ export function toStoreProduct(raw: RawStoreProduct): StoreProduct | null {
   const image = raw.images?.find((i) => i.is_main_image && i.url) ?? raw.images?.find((i) => i.url);
   if (!image?.url || !/^https:\/\//.test(image.url)) return null;
 
+  // Every https picture, the main one first, no repeats (a product page shows them all).
+  const images = [image.url, ...(raw.images ?? []).map((i) => i.url ?? "")].filter((u, i, all) => /^https:\/\//.test(u) && all.indexOf(u) === i).slice(0, 12);
+
   const path = (raw.category?.path ?? []).map((p) => p.title ?? "").filter(Boolean);
   if (path.length === 0 && raw.category?.title) path.push(raw.category.title);
   const name = (stripBrands((raw.title ?? "").slice(0, 160), raw.brands) || raw.category?.title || "Product").slice(0, 80);
@@ -94,6 +97,7 @@ export function toStoreProduct(raw: RawStoreProduct): StoreProduct | null {
     priceCents: offers[0].cents,
     currency: "USD",
     imageUrl: image.url,
+    ...(images.length > 1 ? { images } : {}),
     tracked: false,
     sellerDomain: offers[0].domain,
     ...(typeof raw.description === "string" && raw.description ? { description: raw.description.slice(0, 1500) } : {}),

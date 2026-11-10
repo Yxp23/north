@@ -159,12 +159,12 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
   color: var(--n-ink); font-size: 17px; line-height: 1.45; min-height: 147px; text-decoration: none;
 }
 .ng-product-image { width: 101px; height: 111px; border-radius: 17px; background: var(--n-quiet); display: grid; place-items: center; flex-shrink: 0; overflow: hidden; }
-.ng-product-image img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.ng-product-image .ph-frame { width: 100%; height: 100%; border-radius: 0; }
 .ng-product-copy { display: grid; gap: 6px; min-width: 0; font-size: 17px; }
 .ng-product-copy strong { font-size: 23px; letter-spacing: -.5px; font-weight: 500; }
 .ng-product-copy small { font-size: 16px; line-height: 1.5; color: var(--n-success); }
 .ng-section { display: flex; align-items: center; justify-content: space-between; margin: 0 0 10px; font-size: 19px; letter-spacing: -.4px; font-weight: 500; }
-.n-thumb { width: 80px; height: 80px; border-radius: 14px; background: #fff; object-fit: contain; flex-shrink: 0; border: 1px solid var(--n-line); }
+.n-thumb { width: 80px; height: 80px; border-radius: 14px; flex-shrink: 0; border: 1px solid var(--n-line); }
 .n-rowitem { display: flex; align-items: center; gap: 16px; }
 .n-rowitem > :last-child { min-width: 0; flex: 1; }
 

@@ -71,5 +71,6 @@ export class LiveStore implements StoreProvider {
 /** A demo product keeps the name, picture and category we chose (brand-free, checked by eye); the price is live. */
 function overlay(live: StoreProduct, saved: StoreProduct | null): StoreProduct {
   if (!saved) return live;
-  return { ...live, name: saved.name, category: saved.category, imageUrl: saved.imageUrl, tracked: saved.tracked };
+  // The curated picture only: the live store's other photos can show real brands, and this product was picked to have none.
+  return { ...live, images: undefined, name: saved.name, category: saved.category, imageUrl: saved.imageUrl, tracked: saved.tracked };
 }
