@@ -1,4 +1,4 @@
-// Takes the review screenshots at 1440 and 390 of a RUNNING North (practice mode): Home, Find with a search result and the store comparison,
+// Takes the review screenshots (light and dark) at 1440 and 390 of a RUNNING North (practice mode): Home, Find with a search result and the store comparison,
 // a Guardian "wait" decision with "How North decided" open, Saved, Money, first-run step 1.   node scripts/ui-shots.mjs design/screenshots
 import fs from "node:fs";
 import { BASE, launch, loggedInContext, setAppearance } from "./ui-lib.mjs";
@@ -7,11 +7,11 @@ const out = process.argv[2] ?? "design/screenshots";
 fs.mkdirSync(out, { recursive: true });
 const browser = await launch();
 
-for (const [w, h] of [[1440, 900], [390, 844]]) {
+for (const [w, h, mode] of [[1440, 900, "light"], [390, 844, "light"], [1440, 900, "dark"], [390, 844, "dark"]]) {
   const ctx = await loggedInContext(browser, { width: w, height: h }, { reducedMotion: "reduce" });
   const page = await ctx.newPage();
-  await setAppearance(page, { theme: "bloom", reduce: true, solid: null, behind: false, videoSafe: false });
-  const shot = (name) => page.screenshot({ path: `${out}/${name}-${w}.png` });
+  await setAppearance(page, { theme: "bloom", mode, reduce: true, solid: null, behind: false, videoSafe: false });
+  const shot = (name) => page.screenshot({ path: `${out}/${name}-${w}${mode === "dark" ? "-dark" : ""}.png` });
   const ready = (sel = "main h1") => page.waitForSelector(sel, { timeout: 30000 });
 
   // A clean practice week, so the numbers are the starting ones.

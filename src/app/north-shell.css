@@ -18,7 +18,7 @@ body { margin: 0; background: #f9f3f3; }
 .ng-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 
 /* Focus: a dark ring with a light halo, visible on glass, on content and on the dark action buttons. */
-.north-app :focus-visible { outline: 3px solid var(--n-focus); outline-offset: 3px; border-radius: 10px; box-shadow: 0 0 0 6px #ffffffd0; }
+.north-app :focus-visible { outline: 3px solid var(--n-focus); outline-offset: 3px; border-radius: 10px; box-shadow: 0 0 0 6px var(--n-halo); }
 .north-app .ng-nav button:focus-visible { outline-offset: -3px; box-shadow: none; }
 
 /* ---- glass: fill, backdrop, bright edge, pointer highlight and one brief sweep. These rules belong together. ---- */
@@ -333,7 +333,7 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
 .n-pic { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; position: relative; }
 .n-pic-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 .n-pic-btn { width: auto; flex: 0 1 auto; }
-.n-pic-input:focus-visible + .n-pic-btn { outline: 3px solid var(--n-focus); outline-offset: 3px; box-shadow: 0 0 0 6px #ffffffd0; }
+.n-pic-input:focus-visible + .n-pic-btn { outline: 3px solid var(--n-focus); outline-offset: 3px; box-shadow: 0 0 0 6px var(--n-halo); }
 .n-pic-preview { position: relative; width: 96px; height: 96px; border-radius: 16px; border: 1px solid var(--n-line); background: #fff; overflow: visible; }
 .n-pic-preview img { width: 100%; height: 100%; object-fit: cover; border-radius: 15px; }
 .n-pic-remove { position: absolute; top: -12px; right: -12px; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--n-content); color: var(--n-ink); border: 1px solid var(--n-muted); cursor: pointer; }
@@ -457,3 +457,11 @@ html { scroll-padding-top: 96px; }
   .n-btn, .n-btn-auto, .ng-quick .n-btn { width: 100%; }
   .ng-sheet { gap: 22px; }
 }
+
+/* Light / Dark / Match my device */
+.ng-mode { border: 0; padding: 0; margin: 0; display: grid; gap: 4px; }
+.ng-mode legend { font-size: 17px; font-weight: 500; padding: 0 0 6px; }
+.ng-mode-opt { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 12px; border: 1px solid var(--n-line); border-radius: 14px; background: var(--n-paper); cursor: pointer; font-size: 16px; }
+.ng-mode-opt:has(input:checked) { border-color: var(--n-accent); box-shadow: inset 0 0 0 1px var(--n-accent); font-weight: 500; }
+.ng-mode-opt input { width: 22px; height: 22px; accent-color: var(--n-accent); flex-shrink: 0; }
+.ng-mode-opt:has(input:focus-visible) { outline: 3px solid var(--n-focus); outline-offset: 2px; }

@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { AskNorth } from "@/app/ask-north";
 import { navFrames, MOTION, springSamples } from "@/lib/ui/springs";
-import { THEMES, useAppearance } from "./appearance";
+import { MODES, THEMES, useAppearance } from "./appearance";
 import { BehindTheScenes } from "./behind-the-scenes";
 import { Dialog } from "./dialog";
 import { MotionLayer, shine } from "./motion-layer";
@@ -100,6 +100,19 @@ function AppearancePanel({ open, onClose, triggerRef }: { open: boolean; onClose
           </button>
         ))}
       </div>
+      <hr className="ng-controls-divider" />
+      <fieldset className="ng-mode">
+        <legend>Light or dark</legend>
+        {MODES.map((m) => (
+          <label key={m.id} className="ng-mode-opt">
+            <input
+              type="radio" name="ng-mode" checked={a.mode === m.id}
+              onChange={() => { a.setMode(m.id); setSaid(`${m.label} selected. Your menu and your spending rules are unchanged.`); }}
+            />
+            <span>{m.label}</span>
+          </label>
+        ))}
+      </fieldset>
       <hr className="ng-controls-divider" />
       <label className="ng-check">
         <input type="checkbox" checked={a.reduced} disabled={a.osReduced} onChange={(e) => a.setReduce(e.target.checked)} />

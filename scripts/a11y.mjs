@@ -1,7 +1,8 @@
 // Runs axe-core (WCAG 2.0/2.1/2.2 A and AA rules) on every screen, in all five themes, in normal and solid-surface modes, and on the
-// open dialogs and panels. Needs a running North (BASE_URL, default http://localhost:3200) in practice mode.
+// open dialogs and panels. Also light and dark. Needs a running North (BASE_URL, default http://localhost:3200) in practice mode.
 //   node scripts/a11y.mjs            everything
 //   node scripts/a11y.mjs quick      only Bloom and Opal, to check a fix
+//   node scripts/a11y.mjs all dark   one mode only (light or dark)
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import { BASE, launch, loggedInContext } from "./ui-lib.mjs";
@@ -28,18 +29,20 @@ const productHref = await page.locator('a[href^="/shop/"]').first().getAttribute
 const pages = [...PAGES, productHref];
 let runs = 0;
 
-for (const theme of THEMES) {
+const MODES = process.argv[3] ? [process.argv[3]] : ["light", "dark"];
+for (const mode of MODES) for (const theme of THEMES) {
   for (const solid of [false, true]) {
-    await page.evaluate(([t, s]) => localStorage.setItem("north-appearance", JSON.stringify({ theme: t, reduce: true, solid: s, behind: false })), [theme, solid]);
+    const setPrefs = (behind) => page.evaluate(([t, s, m, b]) => localStorage.setItem("north-appearance", JSON.stringify({ theme: t, mode: m, reduce: true, solid: s, behind: b })), [theme, solid, mode, behind]);
+    await setPrefs(false);
     for (const path of pages) {
       await page.goto(BASE + path, { waitUntil: "domcontentloaded", timeout: 90000 });
       await page.waitForSelector("main h1, main h2", { timeout: 20000 }).catch(() => {});
       await page.waitForTimeout(500);
-      await scan(page, `${theme}${solid ? "+solid" : ""} ${path}`, found);
+      await scan(page, `${theme}-${mode}${solid ? "+solid" : ""} ${path}`, found);
       runs++;
     }
     // Overlays: Help, Ask North, Appearance, Behind the scenes (with real steps), the review dialog and a decision.
-    const tag = `${theme}${solid ? "+solid" : ""}`;
+    const tag = `${theme}-${mode}${solid ? "+solid" : ""}`;
     await page.goto(BASE + "/saved", { waitUntil: "domcontentloaded", timeout: 90000 });
     await page.waitForSelector("main h1", { timeout: 20000 });
     await page.getByRole("button", { name: "Menu" }).click();
@@ -57,14 +60,20 @@ for (const theme of THEMES) {
     await scan(page, `${tag} panel:Appearance`, found);
     await page.keyboard.press("Escape");
     await page.goto(BASE + productHref, { waitUntil: "domcontentloaded", timeout: 90000 });
-    await page.getByRole("button", { name: "Buy this", exact: true }).click();
-    await page.waitForSelector("text=Check before you pay");
+    // The page must be interactive before the click counts, so click again if the dialog has not opened.
+    await page.waitForSelector("text=Buy this", { timeout: 60000 });
+    for (let tries = 0; tries < 4; tries++) {
+      await page.waitForTimeout(800);
+      await page.getByRole("button", { name: "Buy this", exact: true }).click();
+      if (await page.waitForSelector("text=Check before you pay", { timeout: 8000 }).then(() => true).catch(() => false)) break;
+    }
+    await page.waitForSelector("text=Check before you pay", { timeout: 30000 });
     await scan(page, `${tag} dialog:Review`, found);
     await page.getByRole("button", { name: /Pay with your saved PayPal/ }).click();
     await page.waitForFunction(() => { const h = document.querySelector("[role=dialog] h2"); return h && !/Checking|Check before/.test(h.textContent); }, null, { timeout: 30000 });
     await scan(page, `${tag} dialog:Decision`, found);
     await page.keyboard.press("Escape");
-    await page.evaluate(([t, s]) => localStorage.setItem("north-appearance", JSON.stringify({ theme: t, reduce: true, solid: s, behind: true })), [theme, solid]);
+    await setPrefs(true);
     await page.reload({ waitUntil: "domcontentloaded", timeout: 90000 });
     await page.waitForSelector(".ng-bts");
     await scan(page, `${tag} panel:Behind the scenes`, found);
@@ -75,12 +84,12 @@ for (const theme of THEMES) {
 // The login page, logged out.
 const anon = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 const lp = await anon.newPage();
-for (const theme of THEMES) for (const solid of [false, true]) {
+for (const mode of MODES) for (const theme of THEMES) for (const solid of [false, true]) {
   await lp.goto(`${BASE}/login`, { waitUntil: "domcontentloaded", timeout: 90000 });
-  await lp.evaluate(([t, s]) => localStorage.setItem("north-appearance", JSON.stringify({ theme: t, reduce: true, solid: s, behind: false })), [theme, solid]);
+  await lp.evaluate(([t, s, m]) => localStorage.setItem("north-appearance", JSON.stringify({ theme: t, mode: m, reduce: true, solid: s, behind: false })), [theme, solid, mode]);
   await lp.reload({ waitUntil: "domcontentloaded", timeout: 90000 });
   await lp.waitForSelector("main h1");
-  await scan(lp, `${theme}${solid ? "+solid" : ""} /login`, found);
+  await scan(lp, `${theme}-${mode}${solid ? "+solid" : ""} /login`, found);
   runs++;
 }
 await browser.close();

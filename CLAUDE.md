@@ -112,6 +112,8 @@ The whole frontend is restyled in the handoff's system. Tokens and background ge
 
 - Rules screens: `app/rules/strength-choice.tsx` + `strength-copy.ts` give Gentle/Firm/Locked one plain line and one example each; a change that takes a day is worded "starts tomorrow" (`whenPlain`). Decision dialogs pin the answer at the top (`.gd-pin`).
 
+- Dark mode (Nov 10): each theme has a dark palette in `north-theme.css` (`html[data-mode="dark"][data-theme=...]`), same shapes at lower strength, retuned status colours (stopped stays red). Appearance has Light / Dark / Match my device (default). The theme and mode sit on `<html>`; a `beforeInteractive` script in `layout.tsx` sets them before first paint (no flash). `scripts/contrast-tokens.mjs` checks all 10 palettes; `scripts/a11y.mjs` runs light and dark. Raw Tailwind utilities were moved onto `n-*` classes (`north-pages.css`).
+
 ## Stack
 Next.js (whatever `create-next-app@latest` installs) + TypeScript (App Router, `src/`), Supabase Postgres (users, rules, budgets, receipts, audit log), and Claude through the Anthropic API with tool use for the agents (key: `ANTHROPIC_API_KEY`). PayPal Agent Toolkit (`@paypal/agent-toolkit`) lets the Concierge agent create orders and check order status. Check its current docs before using it, and if it can't use a saved-account token, keep the saved-account charge in our own checkout code. Unit tests for the Guardian; an eval script for scam/injection detection; GitHub Actions; MIT license.
 
