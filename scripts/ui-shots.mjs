@@ -27,6 +27,7 @@ for (const [w, h, mode] of [[1440, 900, "light"], [390, 844, "light"], [1440, 90
 
   await page.goto(`${BASE}/find`, { waitUntil: "load" });
   await ready();
+  await page.waitForFunction(() => document.querySelectorAll("textarea.n-field").length === 1); // streaming can briefly hold two copies
   await page.getByLabel("What do you need?").fill("warm socks");
   await page.getByRole("button", { name: /^Find it/ }).click();
   await page.waitForSelector("text=What I found", { timeout: 90000 });
