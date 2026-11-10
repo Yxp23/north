@@ -175,6 +175,13 @@ export type AgentRequest = {
 };
 
 /** Connected assistants, what they asked, and what the person allows them to do on their own. */
+/**
+ * A change to the weekly money or the rent-and-bills money that has not started yet. Only changes that let MORE spend (more each week, less set
+ * aside) wait here, for one day, like a weaker rule; stricter ones start at once and are never stored. It lives inside the same JSON column as the
+ * assistant permission (no new table or migration), and is folded into the real numbers by settleMoneyPlan once it is due.
+ */
+export type MoneyPending = { weeklyBudgetCents?: number; protectedCents?: number; askedAt: string; startsAt: string };
+
 export type AgentCheckpointData = {
   agents: ConnectedAgent[];
   requests: AgentRequest[];
@@ -183,6 +190,8 @@ export type AgentCheckpointData = {
    * Same timing as the other rules: letting the assistant do MORE takes a day, doing LESS starts at once.
    */
   permission: StoredChangeable<{ underCents: number }>;
+  /** A looser money change waiting for its day (see MoneyPending). Missing or null = nothing waiting. */
+  pendingMoney?: MoneyPending | null;
 };
 
 export type AuditEntry = {
@@ -266,6 +275,8 @@ export type HomeSummary = {
   assistantAsks: AssistantAskView[];
   /** The most recent Guardian decision that was not an approval, or null. */
   lastStepIn: LastStepIn | null;
+  /** A looser money change that starts tomorrow, if there is one. */
+  pendingMoney: MoneyPending | null;
   /** What North did this week, counted from the audit log. */
   thisWeek: { scamsStopped: number; savedForLater: number; stoppedBuys: number };
 };

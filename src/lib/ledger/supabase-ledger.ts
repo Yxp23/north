@@ -7,7 +7,7 @@
 import "server-only";
 import { subkey } from "../guardian/secret";
 import { sealAudit } from "./audit-chain";
-import { defaultLedgerData } from "./logic";
+import { defaultLedgerData, settleMoneyPlan } from "./logic";
 import { assertValid, withLock, type Ledger } from "./ledger";
 import { diffChanges, fromSnapshot, ledgerSeed, type Snapshot } from "./supabase-mapping";
 import type { LedgerData } from "./types";
@@ -47,7 +47,9 @@ export class SupabaseLedger implements Ledger {
   }
 
   async read(): Promise<LedgerData> {
-    return (await this.load()).data;
+    const { data } = await this.load();
+    settleMoneyPlan(data, new Date()); // a money change whose day has passed counts now (it is saved by the next change)
+    return data;
   }
 
   update<T>(change: (data: LedgerData) => T | Promise<T>): Promise<T> {
@@ -56,6 +58,7 @@ export class SupabaseLedger implements Ledger {
       for (let attempt = 1; attempt <= MAX_TRIES; attempt++) {
         const { data, version } = await this.load();
         const before = structuredClone(data);
+        settleMoneyPlan(data, new Date()); // after the copy, so the folded numbers are saved with whatever this change is
         const result = await change(data); // if this throws, nothing is saved
         assertValid(data);
         sealAudit(data.audit, this.auditKey); // each new audit entry gets its tamper-evident link (the database checks the links)

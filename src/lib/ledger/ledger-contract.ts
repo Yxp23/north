@@ -373,6 +373,21 @@ export function ledgerContract(name: string, make: () => Promise<LedgerHarness>)
         expect((await l.read()).agentCheckpoint).toEqual({ agents: [agent], requests: [request], permission: { value: { underCents: 2000 }, changedAt: "2026-11-08T10:00:00.000Z", previous: null } });
       }));
 
+    it("a looser money change that is waiting is kept exactly, and is folded in once its day has passed (memory, file and real SQL alike)", () =>
+      withLedger(async (l) => {
+        const pending = { weeklyBudgetCents: 55000, askedAt: "2026-11-08T10:00:00.000Z", startsAt: "2099-11-09T10:00:00.000Z" };
+        await l.update((d) => void (d.agentCheckpoint.pendingMoney = pending));
+        const kept = await l.read();
+        expect(kept.agentCheckpoint.pendingMoney).toEqual(pending);
+        expect(kept.weeklyBudgetCents).toBe(40000); // the old number stays in force until the day is over
+        await l.update((d) => void (d.agentCheckpoint.pendingMoney = { ...pending, startsAt: "2000-01-01T00:00:00.000Z" }));
+        const after = await l.read();
+        expect(after.weeklyBudgetCents).toBe(55000); // due: it counts now
+        expect(after.agentCheckpoint.pendingMoney ?? null).toBeNull();
+        await l.update(() => undefined); // and the next save keeps the new number
+        expect((await l.read()).weeklyBudgetCents).toBe(55000);
+      }));
+
     it("a request can change status, and an assistant can be disconnected (revoked), but never deleted", () =>
       withLedger(async (l) => {
         await l.update((d) => {

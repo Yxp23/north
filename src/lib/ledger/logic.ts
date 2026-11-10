@@ -13,6 +13,30 @@ export const defaultAgentCheckpoint = (): AgentCheckpointData => ({ agents: [], 
 /** A request nobody answered for a day is no longer asked about. */
 export const REQUEST_LIFETIME_MS = DAY_MS;
 
+/**
+ * Fold a looser money change into the real numbers once its day has passed. The practice money moves with it, the same way first-run setup sets it
+ * (the protected amount plus four weeks of the plan), so a higher weekly amount can really be spent. Returns true if something changed.
+ */
+export function applyMoneyFields(data: LedgerData, f: { weeklyBudgetCents?: number; protectedCents?: number }): void {
+  if (f.weeklyBudgetCents !== undefined) {
+    data.baseBalanceCents += 4 * (f.weeklyBudgetCents - data.weeklyBudgetCents);
+    data.weeklyBudgetCents = f.weeklyBudgetCents;
+  }
+  if (f.protectedCents !== undefined) {
+    data.baseBalanceCents += f.protectedCents - data.protectedCents;
+    data.protectedCents = f.protectedCents;
+  }
+}
+
+export function settleMoneyPlan(data: LedgerData, now: Date): boolean {
+  const p = data.agentCheckpoint.pendingMoney;
+  if (!p || now.getTime() < new Date(p.startsAt).getTime()) return false;
+  applyMoneyFields(data, p);
+  data.agentCheckpoint.pendingMoney = null;
+  addAudit(data, "setup", "A weekly-money change you asked for yesterday has started.", now);
+  return true;
+}
+
 /** The starting demo state. Rules look 30 days old, so they are fully in effect. */
 export function defaultLedgerData(now: Date, timeZone: string): LedgerData {
   const settledAt = new Date(now.getTime() - 30 * DAY_MS).toISOString();
@@ -195,6 +219,7 @@ export function summarize(data: LedgerData, now: Date): HomeSummary {
     priceNotices: data.priceWatch.notices.filter((n) => !n.dismissed).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5),
     watching: data.priceWatch.watches.filter((w) => w.active).map((w) => ({ productId: w.productId, name: w.name, imageUrl: w.imageUrl })),
     lastStepIn: lastStepIn(data),
+    pendingMoney: data.agentCheckpoint.pendingMoney ?? null,
     thisWeek: thisWeekStats(data, now),
     assistantAsks: data.agentCheckpoint.requests
       .filter((r) => r.status === "pending" && now.getTime() - new Date(r.createdAt).getTime() < REQUEST_LIFETIME_MS)

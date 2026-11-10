@@ -11,6 +11,8 @@ import { formatMoney } from "@/lib/format";
 import type { Strength } from "@/lib/guardian";
 import type { RuleLine } from "@/lib/rules/summary";
 import { PurchaseRow, useSummary } from "../summary-parts";
+import { setupFinished } from "@/lib/setup/finished";
+import { MoneyStep } from "../welcome/setup";
 import { readSetup, subscribeSetup } from "../welcome/progress";
 import { PaymentsSection } from "./payments-section";
 import { useSyncExternalStore } from "react";
@@ -94,6 +96,13 @@ export function MoneyPage() {
           )}
         </section>
 
+
+        <section aria-labelledby="change-h" className="n-stack">
+          <h2 id="change-h">Change my weekly money</h2>
+          <p>Spending less, or keeping more safe, starts right away. Spending more, or keeping less safe, starts tomorrow, so you can change your mind.</p>
+          <MoneyStep key={`${data.weeklyBudgetCents}-${data.protectedCents}`} embedded weekly={data.weeklyBudgetCents} protectedCents={data.protectedCents} pending={data.pendingMoney} onSaved={load} />
+        </section>
+
         <PaymentsSection />
       </div>
 
@@ -104,7 +113,7 @@ export function MoneyPage() {
           <p>{data.paypalSaved ? "This is how North pays, after your rules say yes. North never shows your PayPal details." : "You need to save a PayPal before North can pay for anything."}</p>
           <Link href="/connect" className="n-btn n-btn-secondary">{data.paypalSaved ? "See my saved PayPal" : "Connect PayPal"}</Link>
         </section>
-        {setup !== "done" && (
+        {setup !== "done" && !setupFinished(data) && (
           <section aria-labelledby="setup-h" className="n-stack">
             <h2 id="setup-h">Setting up North</h2>
             <p>Three short steps: PayPal, your weekly money, and a first rule. You can skip any of them.</p>

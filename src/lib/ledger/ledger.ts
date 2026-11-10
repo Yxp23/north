@@ -2,7 +2,7 @@
 // A Supabase version can replace it later by implementing the same `Ledger` interface.
 import { subkey } from "../guardian/secret";
 import { sealAudit } from "./audit-chain";
-import { defaultLedgerData, upgradeLedgerData } from "./logic";
+import { defaultLedgerData, settleMoneyPlan, upgradeLedgerData } from "./logic";
 import type { LedgerData } from "./types";
 
 export interface Ledger {
@@ -89,13 +89,18 @@ export abstract class LockedLedger implements Ledger {
   }
 
   read() {
-    return withLock(this.lockKey, () => this.loadOrCreate());
+    return withLock(this.lockKey, async () => {
+      const data = await this.loadOrCreate();
+      settleMoneyPlan(data, this.clock()); // a money change whose day has passed counts now (it is saved by the next change)
+      return data;
+    });
   }
 
   update<T>(change: (data: LedgerData) => T | Promise<T>): Promise<T> {
     return withLock(this.lockKey, async () => {
       const data = await this.loadOrCreate();
       const before = structuredClone(data);
+      settleMoneyPlan(data, this.clock()); // after the copy, so the folded numbers are saved with whatever this change is
       const out = await change(data); // if this throws, nothing is saved
       assertValid(data);
       assertNoDeletes(before, data);

@@ -9,7 +9,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { btnPrimary, btnSecondary } from "@/components/classes";
 import { ErrorNote, Loading } from "@/components/states";
+import { PendingMoneyNote } from "@/components/pending-money";
 import { formatMoney } from "@/lib/format";
+import type { MoneyPending } from "@/lib/ledger/types";
+import { setupFinished } from "@/lib/setup/finished";
 import { Connect } from "../connect/connect";
 import { useSummary } from "../summary-parts";
 import { readSetup, subscribeSetup, writeSetup } from "./progress";
@@ -30,6 +33,23 @@ export function WelcomeSetup() {
     writeSetup({ state, step });
     router.push("/");
   };
+
+  // Someone who already finished setup does not walk through it again: their money is changed in Money, with the normal one-day rule.
+  if (!data && !error) return <Loading what="your money" />;
+  if (data && setupFinished(data)) {
+    return (
+      <div className="n-col" style={{ maxWidth: 680 }}>
+        <div className="ng-page-title">
+          <div className="ng-eyebrow">Set up North</div>
+          <h1 ref={headingRef} tabIndex={-1} style={{ outline: "none" }}>You&apos;re already set up.</h1>
+          <p>Change these in Money.</p>
+        </div>
+        <p role="status" className="n-note n-note-quiet"><Check aria-hidden="true" /><span>PayPal is connected and your money is set. Nothing here needs doing again.</span></p>
+        <Link href="/money" className={btnPrimary}>Go to Money<ArrowRight aria-hidden="true" /></Link>
+        <Link href="/" className="n-link">Back to Home</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="n-col" style={{ maxWidth: 680 }}>
@@ -54,7 +74,7 @@ export function WelcomeSetup() {
           <button type="button" className="n-btn n-btn-quiet" onClick={() => go(2)}>Skip this step</button>
         </div>
       )}
-      {step === 2 && (data ? <MoneyStep weekly={data.weeklyBudgetCents} protectedCents={data.protectedCents} onNext={() => go(3)} onBack={() => go(1)} onSaved={load} /> : error ? <ErrorNote what="your money" onRetry={load} /> : <Loading what="your money" />)}
+      {step === 2 && (data ? <MoneyStep weekly={data.weeklyBudgetCents} protectedCents={data.protectedCents} pending={data.pendingMoney} onNext={() => go(3)} onBack={() => go(1)} onSaved={load} /> : error ? <ErrorNote what="your money" onRetry={load} /> : <Loading what="your money" />)}
       {step === 3 && <RuleStep onBack={() => go(2)} onDone={(words) => { writeSetup({ state: "done", step: 3 }); router.push(words ? `/rules/new?said=${encodeURIComponent(words)}` : "/"); }} />}
 
       <div className="n-stack" style={{ borderTop: "1px solid var(--n-line)", paddingTop: 14 }}>
@@ -66,12 +86,15 @@ export function WelcomeSetup() {
   );
 }
 
-function MoneyStep({ weekly, protectedCents, onNext, onBack, onSaved }: { weekly: number; protectedCents: number; onNext(): void; onBack(): void; onSaved(): void }) {
+/** The weekly money and the rent-and-bills money. In setup it has Next, Back and Skip; on the Money page (`embedded`) it is just the form. */
+export function MoneyStep({ weekly, protectedCents, pending, onNext, onBack, onSaved, embedded = false }: { weekly: number; protectedCents: number; pending: MoneyPending | null; onNext?(): void; onBack?(): void; onSaved(): void; embedded?: boolean }) {
   const [week, setWeek] = useState(String(weekly / 100));
   const [rent, setRent] = useState(String(protectedCents / 100));
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [saved, setSaved] = useState(false);
+  // An account with buys: what happened, in plain words (and a looser change waiting for tomorrow is shown amber, never as an error).
+  const [said, setSaid] = useState("");
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -82,6 +105,7 @@ function MoneyStep({ weekly, protectedCents, onNext, onBack, onSaved }: { weekly
       const j = await r.json();
       if (r.ok) {
         setSaved(true);
+        setSaid(typeof j.message === "string" ? j.message : "");
         onSaved();
       } else setMessage(j.message ?? failureText("That did not work. Nothing was changed. Try again."));
     } catch {
@@ -102,14 +126,17 @@ function MoneyStep({ weekly, protectedCents, onNext, onBack, onSaved }: { weekly
       </label>
       <p style={{ color: "var(--n-ink)" }}>North will never spend the rent and bills money. Nothing can get past that.</p>
       {message && <ProblemNote message={message} />}
-      {saved && <p role="status" className="n-note n-note-good"><Check aria-hidden="true" /><span>Saved. You can spend {formatMoney(Math.round(Number(week) * 100))} each week. {formatMoney(Math.round(Number(rent) * 100))} is set aside.</span></p>}
-      {saved ? (
+      {pending && <PendingMoneyNote pending={pending} onChanged={() => { setSaved(false); setSaid(""); onSaved(); }} />}
+      {saved && (said
+        ? <p role="status" className="n-note n-note-good"><Check aria-hidden="true" /><span>{said}</span></p>
+        : <p role="status" className="n-note n-note-good"><Check aria-hidden="true" /><span>Saved. You can spend {formatMoney(Math.round(Number(week) * 100))} each week. {formatMoney(Math.round(Number(rent) * 100))} is set aside.</span></p>)}
+      {saved && !embedded ? (
         <button type="button" className={btnPrimary} onClick={onNext}>Next<ArrowRight aria-hidden="true" /></button>
       ) : (
         <button type="submit" className={btnPrimary} disabled={busy || !(Number(week) >= 1) || !(Number(rent) >= 0) || rent === ""}>{busy ? "Saving…" : "Save these"}</button>
       )}
-      <button type="button" className={btnSecondary} onClick={onBack}>Back</button>
-      {!saved && <button type="button" className="n-btn n-btn-quiet" onClick={onNext}>Skip this step</button>}
+      {!embedded && <button type="button" className={btnSecondary} onClick={onBack}>Back</button>}
+      {!embedded && !saved && <button type="button" className="n-btn n-btn-quiet" onClick={onNext}>Skip this step</button>}
     </form>
   );
 }
