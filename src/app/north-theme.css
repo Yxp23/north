@@ -94,7 +94,9 @@ html[data-theme="opal"] .ng-landscape::after {
   background: linear-gradient(130deg, var(--n-haze) 0%, var(--n-light) 44%, #ffffffe0 45%, #ffffff80 47%, var(--n-deep) 48%, var(--n-light) 100%);
   box-shadow: none; transform: rotate(-17deg); opacity: .58;
 }
+/* Phones: the background covers the WHOLE page (it scrolls with it), so a long page never shows a hard edge where a fixed layer ended. */
 @media (max-width: 650px) {
+  .ng-landscape { position: absolute; inset: 0; min-height: 100lvh; }
   html[data-theme="tide"] .ng-landscape::before { width: 700px; height: 240px; top: -200px; right: -250px; }
   html[data-theme="tide"] .ng-landscape::after { width: 950px; height: 340px; left: -290px; bottom: -190px; }
   html[data-theme="bloom"] .ng-landscape::before { width: 340px; height: 450px; right: -170px; top: -270px; }

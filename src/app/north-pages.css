@@ -157,8 +157,6 @@
   .lp-proof > li { grid-template-columns: auto auto 1fr; align-items: center; gap: 12px; }
   .lp-actions .n-btn { width: 100%; }
 }
-.lp-fresh { order: 3; }
-.lp-fresh svg { width: 18px; height: 18px; }
 
 /* Home: "North this week" */
 .tw-card { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; padding: 16px 18px; border-radius: 20px; background: var(--n-content); border: 1px solid var(--n-line); color: var(--n-ink); text-decoration: none; min-height: 48px; }

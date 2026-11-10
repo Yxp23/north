@@ -4,7 +4,6 @@
 import { StatusBadge } from "@/components/decision-dialog";
 import { SpeakButton } from "@/components/shell/speak";
 import { decide } from "@/lib/guardian";
-import { formatMoney } from "@/lib/format";
 import { buildUserState, defaultLedgerData } from "@/lib/ledger/logic";
 import { summarizeRules } from "@/lib/rules/summary";
 import { decisionFromAnswer } from "@/lib/ui/decision-view";
@@ -41,7 +40,7 @@ export function DecisionCardPreview() {
         </div>
       </div>
       <figcaption>
-        A real answer from North&apos;s Guardian for running shoes at {formatMoney(PRICE_CENTS)}. In the app, you choose.
+        A real answer from North&apos;s Guardian, live. In the app, you choose.
       </figcaption>
     </figure>
   );

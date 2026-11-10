@@ -14,7 +14,6 @@ export function Landing({ practice }: { practice: PracticeLogin | null }) {
   return (
     <div className="lp">
       <section className="lp-hero" aria-labelledby="lp-h">
-        <p className="ng-eyebrow">North</p>
         <h1 id="lp-h">AI agents can now spend your money. North makes them follow your rules.</h1>
         <p className="lp-sub">
           Built first for adults with cognitive disabilities. <strong>AI suggests. Code decides.</strong>
