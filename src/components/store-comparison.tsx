@@ -20,15 +20,15 @@ export function StoreComparison({ offers, live }: { offers?: StoreOffer[]; live?
       ) : (
         <>
           {saveCents > 0 && (
-            <p className="n-note n-note-good"><Check aria-hidden="true" /><span className="text-xl">You save {formatMoney(saveCents)} at the cheapest store.</span></p>
+            <p className="n-note n-note-good"><Check aria-hidden="true" /><span className="n-t-xl">You save {formatMoney(saveCents)} at the cheapest store.</span></p>
           )}
-          <ul className="n-stack" style={{ gap: 10 }}>
+          <ul className="n-stack n-gap-2">
             {rows.map((r) => (
-              <li key={r.domain} className="flex flex-wrap items-center justify-between gap-2 rounded-xl p-3" style={{ border: `${r.youPay ? 2 : 1}px solid ${r.youPay ? "var(--n-accent)" : "var(--n-line)"}` }}>
-                <span className="break-all text-lg">{m.store(r.domain)}</span>
-                <span className="text-right">
-                  <span className="block text-xl" style={{ fontVariantNumeric: "tabular-nums" }}>{formatMoney(r.cents)}</span>
-                  <span className="block text-base" style={r.youPay ? { fontWeight: 500, color: "var(--n-accent)" } : { color: "var(--n-muted)" }}>{r.youPay ? "You pay this" : `${formatMoney(r.moreCents)} more`}</span>
+              <li key={r.domain} className={`n-between n-offer${r.youPay ? " n-offer-pay" : ""}`}>
+                <span className="n-break n-t-lg">{m.store(r.domain)}</span>
+                <span className="n-right">
+                  <span className="n-block n-t-xl n-num">{formatMoney(r.cents)}</span>
+                  <span className={`n-block n-t-base ${r.youPay ? "n-pay" : "n-muted"}`}>{r.youPay ? "You pay this" : `${formatMoney(r.moreCents)} more`}</span>
                 </span>
               </li>
             ))}
@@ -36,7 +36,7 @@ export function StoreComparison({ offers, live }: { offers?: StoreOffer[]; live?
           {hiddenCount ? <p>And {hiddenCount} more {hiddenCount === 1 ? "store" : "stores"}, all costing more.</p> : null}
         </>
       )}
-      <p style={{ color: "var(--n-muted)" }}>This is a practice shop. Your test PayPal pays, and nothing is sent to you.</p>
+      <p className="n-muted">This is a practice shop. Your test PayPal pays, and nothing is sent to you.</p>
     </section>
   );
 }

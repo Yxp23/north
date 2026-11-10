@@ -90,11 +90,11 @@ function MoneyStep({ weekly, protectedCents, onNext, onBack, onSaved }: { weekly
 
   return (
     <form className="n-stack" onSubmit={save}>
-      <label className="block">
+      <label className="n-block">
         <span className="n-label"><Wallet aria-hidden="true" size={18} style={{ display: "inline", verticalAlign: "-3px", marginRight: 8 }} />How much can you spend each week? (dollars)</span>
         <input type="number" inputMode="decimal" min={1} step="1" value={week} onChange={(e) => { setWeek(e.target.value); setSaved(false); }} className="n-field" />
       </label>
-      <label className="block">
+      <label className="n-block">
         <span className="n-label"><PiggyBank aria-hidden="true" size={18} style={{ display: "inline", verticalAlign: "-3px", marginRight: 8 }} />How much is for rent and bills? (dollars)</span>
         <input type="number" inputMode="decimal" min={0} step="1" value={rent} onChange={(e) => { setRent(e.target.value); setSaved(false); }} className="n-field" />
       </label>
@@ -116,7 +116,7 @@ function RuleStep({ onBack, onDone }: { onBack(): void; onDone(words: string): v
   const [words, setWords] = useState("");
   return (
     <form className="n-stack" onSubmit={(e) => { e.preventDefault(); if (words.trim()) onDone(words.trim()); }}>
-      <label className="block">
+      <label className="n-block">
         <span className="n-label"><FilePlus2 aria-hidden="true" size={18} style={{ display: "inline", verticalAlign: "-3px", marginRight: 8 }} />What rule do you want?</span>
         <textarea value={words} onChange={(e) => setWords(e.target.value)} rows={3} maxLength={300} className="n-field" placeholder="Wait a day before I buy anything over $50" />
       </label>

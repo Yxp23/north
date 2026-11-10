@@ -119,12 +119,12 @@ export function CheckDeal({ prefill }: { prefill: string }) {
           }}
         >
           {head("Is this deal real?", "Found a deal? I will check it for you. I will not buy anything.")}
-          <label className="block">
+          <label className="n-block">
             <span className="n-label">Paste a link, or type what the ad says</span>
             <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} maxLength={2000} className="n-field" placeholder="70% off sneakers, $27" />
           </label>
           <PicturePicker id="ad-picture" label="Or add a picture of the ad" picture={picture} onChange={setPicture} />
-          <label className="block">
+          <label className="n-block">
             <span className="n-label">What price does the ad say? (if you know)</span>
             <input type="number" inputMode="decimal" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="n-field" placeholder="27" />
           </label>
@@ -148,7 +148,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
       body = (
         <form className="n-stack" onSubmit={(e) => { e.preventDefault(); if (Number(price) > 0) check(price); }}>
           {head(stage.question, "I couldn't find a price in the ad. Type it here and I will check again.")}
-          <label className="block">
+          <label className="n-block">
             <span className="n-label">Price in dollars</span>
             <input type="number" inputMode="decimal" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="n-field" />
           </label>
@@ -182,24 +182,24 @@ export function CheckDeal({ prefill }: { prefill: string }) {
             <div className="n-stack" style={{ gap: 8 }}>
               <p className="n-chip" style={{ padding: 0, background: "none" }}>{look.word}</p>
               <h1 ref={headingRef} tabIndex={-1} style={{ outline: "none" }}>{payload.verdict.headline}</h1>
-              <p className="text-xl">{main}</p>
+              <p className="n-t-xl">{main}</p>
             </div>
           </div>
-          {rest.length > 0 && <ul className="list-disc space-y-1 pl-6 text-lg">{rest.map((r) => <li key={r}>{r}</li>)}</ul>}
+          {rest.length > 0 && <ul className="n-t-lg n-list">{rest.map((r) => <li key={r}>{r}</li>)}</ul>}
           {flagged === "yes" && payload.sellerDomain && (
             <p role="status" className="n-note n-note-stop"><Hand aria-hidden="true" /><span><strong>I will not let you pay {payload.sellerDomain}.</strong> North will say no when you try to pay them.</span></p>
           )}
           {flagged === "no_seller" && <p role="status" className="n-note n-note-wait"><span>I don&apos;t know who the seller is, so I couldn&apos;t block them.</span></p>}
           {flagged === "not_saved" && <p role="alert" className="n-note n-note-wait"><span>I couldn&apos;t save a warning about this seller. Please be careful.</span></p>}
           <section aria-label="What I looked at" className={`${card} n-stack`} style={{ gap: 8 }}>
-            <h2 style={{ fontSize: 18 }} className="text-muted">What I looked at</h2>
-            <ul className="space-y-1 text-lg">
+            <h2 style={{ fontSize: 18 }} className="n-muted">What I looked at</h2>
+            <ul className="n-stack n-gap-1 n-t-lg">
               {payload.productTitle && <li>Product: {payload.productTitle}</li>}
               {payload.verdict.evidence.map((e) => <li key={e}>{e}</li>)}
             </ul>
           </section>
           {payload.claimSource === "picture" && (
-            <p className="text-lg">I read the price from your picture: {formatMoney(payload.claimedCents)}. If that is wrong, type the price and check again.</p>
+            <p className="n-t-lg">I read the price from your picture: {formatMoney(payload.claimedCents)}. If that is wrong, type the price and check again.</p>
           )}
           <ActivityPanel events={stage.events} agents={SCAM_CHECKER} guardian={scam && flagged === "yes" ? { decision: "refuse", code: "scam_seller", reason: "This seller looks like a scam. I won't pay them." } : undefined} />
           {payload.claimSource === "picture" && <button type="button" className={btnSecondary} onClick={() => setStage({ name: "ask" })}>Type the price myself</button>}
@@ -217,7 +217,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
                 {payload.sellerDomain && <Row label="Seller">{payload.sellerDomain}</Row>}
               </div>
               <h3 style={{ margin: "0 0 8px" }}>Real prices I checked</h3>
-              <ul className="list-disc space-y-1 pl-6" style={{ margin: "0 0 14px", color: "var(--n-ink)" }}>
+              <ul className="n-list" style={{ margin: "0 0 14px", color: "var(--n-ink)" }}>
                 {payload.verdict.evidence.map((e) => <li key={e}>{e}</li>)}
               </ul>
               {flagged === "yes" && <p className="n-note n-note-stop" style={{ margin: "0 0 14px" }}><Hand aria-hidden="true" /><span>I saved a warning about this seller. North will refuse to pay them.</span></p>}

@@ -82,9 +82,9 @@ export function AssistantChat() {
 
       {!key ? (
         <div className={`${card} n-stack`}>
-          <p className="text-lg">This assistant is not connected to North yet.</p>
+          <p className="n-t-lg">This assistant is not connected to North yet.</p>
           <button type="button" className={btnPrimary} onClick={connect}>Connect it to North</button>
-          <label className="block">
+          <label className="n-block">
             <span className="n-label">Or paste a key from Assistants</span>
             <input className={field} onChange={(e) => e.target.value.trim() && save(e.target.value.trim())} placeholder="north_…" />
           </label>
@@ -99,13 +99,13 @@ export function AssistantChat() {
         {turns.map((t, i) => (
           <li key={i} className={`${card} n-stack`} style={{ gap: 8, ...(t.role === "person" ? { background: "var(--n-quiet)" } : {}) }}>
             <p className="n-chip n-chip-quiet" style={{ justifySelf: "start" }}>{t.role === "person" ? "You" : "Any AI assistant"}</p>
-            <p className="text-lg" style={t.warn ? { color: "var(--n-stop)" } : undefined}>{t.text}</p>
+            <p className="n-t-lg" style={t.warn ? { color: "var(--n-stop)" } : undefined}>{t.text}</p>
             {t.events && t.events.length > 0 && <ActivityPanel events={t.events} title="What the assistant did" />}
           </li>
         ))}
         {busy && (
           <li className={`${card} n-stack`}>
-            <p role="status" className="text-lg">The assistant is working. One moment.</p>
+            <p role="status" className="n-t-lg">The assistant is working. One moment.</p>
             <ActivityPanel events={live} title="What the assistant is doing" />
           </li>
         )}
@@ -115,7 +115,7 @@ export function AssistantChat() {
       {key && (
         <div className="n-stack">
           <form className="n-stack" onSubmit={(e) => { e.preventDefault(); send(text); }}>
-            <label className="block">
+            <label className="n-block">
               <span className="n-label">Say something to your assistant</span>
               <input value={text} onChange={(e) => setText(e.target.value)} maxLength={500} className={field} placeholder="Please buy my shampoo" disabled={busy} />
             </label>

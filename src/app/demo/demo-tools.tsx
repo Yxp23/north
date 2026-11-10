@@ -62,7 +62,7 @@ export function DemoTools() {
 
       <section className={`${card} n-stack`} aria-labelledby="clock-h">
         <h2 id="clock-h">Pretend clock</h2>
-        <label className="block">
+        <label className="n-block">
           <span className="n-label">Pretend it is</span>
           <select value={hour} onChange={(e) => setDemoHour(e.target.value)} className="n-field">
             <option value="">The real time</option>
@@ -97,7 +97,7 @@ export function DemoTools() {
         {check && (
           <div className="n-stack">
             {!check.working && (
-              <p role="status" className="text-lg font-semibold">
+              <p role="status" className="n-t-lg n-strong">
                 {check.error ? check.error : check.result && check.result.checked === 0 ? "Nothing to watch yet. Wait on something first." : `Checked ${check.result?.checked ?? 0}. ${check.result?.notices.length ? `${check.result.notices.length} piece${check.result.notices.length === 1 ? "" : "s"} of news on the home screen.` : "No news."}`}
               </p>
             )}

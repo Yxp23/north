@@ -90,11 +90,11 @@ export default function HowItWorks() {
               </div>
               <div>
                 <p className="n-chip n-chip-good">Can</p>
-                <ul className="list-disc pl-6">{a.can.map((c) => <li key={c}>{c}</li>)}</ul>
+                <ul className="n-list">{a.can.map((c) => <li key={c}>{c}</li>)}</ul>
               </div>
               <div>
                 <p className="n-chip n-chip-stop">Can&apos;t</p>
-                <ul className="list-disc pl-6">{a.cannot.map((c) => <li key={c}>{c}</li>)}</ul>
+                <ul className="n-list">{a.cannot.map((c) => <li key={c}>{c}</li>)}</ul>
               </div>
             </li>
           ))}
@@ -114,7 +114,7 @@ export default function HowItWorks() {
         </ol>
         <div className="n-card">
           <Disclosure flush summary={`The ${CHECKS.length} individual checks`}>
-            <ol className="list-decimal pl-6">{CHECKS.map((c) => <li key={c}>{c}</li>)}</ol>
+            <ol className="n-list n-list-num">{CHECKS.map((c) => <li key={c}>{c}</li>)}</ol>
           </Disclosure>
         </div>
       </section>
@@ -184,7 +184,7 @@ export default function HowItWorks() {
 
         <div className={`${card} n-stack`}>
           <h3>What this does not show</h3>
-          <ul className="list-disc pl-6">
+          <ul className="n-list">
             <li>No person outside this project has audited North, and there has been no outside penetration test.</li>
             <li>Payments here use a PayPal sandbox with test money. Real payments would also need PayPal&apos;s risk data and monitoring.</li>
             <li>The checks cover the cases we thought of, and the attacker was an AI. Passing them is not a promise that nothing can go wrong.</li>

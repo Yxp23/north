@@ -118,22 +118,22 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
     }
   }
 
-  const h1 = "text-3xl font-bold outline-none";
+  const h1 = "n-focus-target";
 
   switch (stage.name) {
     case "write":
       return (
         <form className="n-col" onSubmit={(e) => { e.preventDefault(); if (words.trim()) ask(); }}>
           <h1 ref={headingRef} tabIndex={-1} className={h1}>Make a rule</h1>
-          <label className="block space-y-2">
-            <span className="block text-xl">Write your rule in your own words.</span>
-            <span className="block text-lg text-muted">For example: &quot;Don&apos;t let me buy big things late at night.&quot;</span>
+          <label className="n-block n-stack n-gap-2">
+            <span className="n-block n-t-xl">Write your rule in your own words.</span>
+            <span className="n-block n-t-lg n-muted">For example: &quot;Don&apos;t let me buy big things late at night.&quot;</span>
             <textarea
               value={words}
               onChange={(e) => setWords(e.target.value)}
               maxLength={500}
               rows={4}
-              className="min-h-32 w-full rounded-2xl border-2 border-line bg-card p-4 text-xl"
+              className="n-field n-field-lg"
             />
           </label>
           <button type="submit" className={btnPrimary} disabled={!words.trim()}>Next</button>
@@ -153,9 +153,9 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
       return (
         <form className="n-col" onSubmit={(e) => { e.preventDefault(); if (answer.trim()) ask({ missing: stage.missing, answer }); }}>
           <h1 ref={headingRef} tabIndex={-1} className={h1}>One question</h1>
-          <label className="block space-y-2">
-            <span className="block text-xl">{stage.question}</span>
-            <input value={answer} onChange={(e) => setAnswer(e.target.value)} maxLength={200} className="min-h-14 w-full rounded-2xl border-2 border-line bg-card px-4 text-xl" />
+          <label className="n-block n-stack n-gap-2">
+            <span className="n-block n-t-xl">{stage.question}</span>
+            <input value={answer} onChange={(e) => setAnswer(e.target.value)} maxLength={200} className="n-field n-t-xl" />
           </label>
           <button type="submit" className={btnPrimary} disabled={!answer.trim()}>Next</button>
           <button type="button" className={btnSecondary} onClick={startAgain}>Start again</button>
@@ -166,7 +166,7 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
       return (
         <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>{stage.message}</h1>
-          {stage.reasons.map((r) => <p key={r} className="text-xl">{r}</p>)}
+          {stage.reasons.map((r) => <p key={r} className="n-t-xl">{r}</p>)}
           <ActivityPanel events={events} />
           <button type="button" className={btnPrimary} onClick={startAgain}>Try again</button>
           <Link href="/rules" className={btnSecondary}>Back to my rules</Link>
@@ -177,7 +177,7 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
       return (
         <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>That did not work</h1>
-          <p role="alert" className="text-xl">{stage.message}</p>
+          <p role="alert" className="n-t-xl">{stage.message}</p>
           <button type="button" className={btnPrimary} onClick={startAgain}>Try again</button>
           <Link href="/rules" className={btnSecondary}>Back to my rules</Link>
         </div>
@@ -190,15 +190,15 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
         <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>Is that right?</h1>
           {proposal.items.map((i) => (
-            <div key={i.id} className={`${card} space-y-2`}>
+            <div key={i.id} className={`${card} n-stack n-gap-2`}>
               {i.status === "looser" ? (
-                <p role="alert" className="rounded-xl bg-bad-bg p-3 text-lg text-bad-ink">{i.blockedText}</p>
+                <p role="alert" className="n-note n-note-stop"><span>{i.blockedText}</span></p>
               ) : (
-                <p className="text-xl">{i.readBack}</p>
+                <p className="n-t-xl">{i.readBack}</p>
               )}
             </div>
           ))}
-          {proposal.notes.map((n) => <p key={n} className="rounded-xl bg-warn-bg p-3 text-lg text-warn-ink">{n}</p>)}
+          {proposal.notes.map((n) => <p key={n} className="n-note n-note-wait"><span>{n}</span></p>)}
           <ActivityPanel events={events} />
           {ok.length > 0 && <button type="button" className={btnPrimary} onClick={() => goToStrength(proposal)}>{ok.length < proposal.items.length ? "Yes, keep the rule I can make" : "Yes, that's right"}</button>}
           <button type="button" className={ok.length > 0 ? btnSecondary : btnPrimary} onClick={startAgain}>No, start again</button>
@@ -213,17 +213,17 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
       return (
         <form className="n-col" onSubmit={(e) => { e.preventDefault(); if (ready) save(items, choices); }}>
           <h1 ref={headingRef} tabIndex={-1} className={h1}>How strong should it be?</h1>
-          <p className="text-lg">Pick one. Each one says what I will do.</p>
+          <p className="n-t-lg">Pick one. Each one says what I will do.</p>
           {items.map((i) => {
             const c = choices[i.id];
                         return (
               <fieldset key={i.id} className={`${card} n-stack`}>
-                <legend className="px-1 text-xl font-semibold">{itemTitle(i)}</legend>
+                <legend className="n-legend">{itemTitle(i)}</legend>
                 <StrengthChoice name={`strength-${i.id}`} kind={i.rule.kind} value={c.strength} onChange={(st) => set(i.id, { strength: st })} minStrength={i.minStrength ?? undefined} suggested={i.rule.suggested ?? undefined} />
                 {c.strength === "firm" && (
-                  <label className="block space-y-1">
-                    <span className="block text-lg font-semibold">How long should I wait?</span>
-                    <select value={c.waitHours} onChange={(e) => set(i.id, { waitHours: Number(e.target.value) })} className="min-h-14 w-full rounded-xl border-2 border-line bg-card px-3 text-lg">
+                  <label className="n-block n-stack n-gap-1">
+                    <span className="n-block n-t-lg n-strong">How long should I wait?</span>
+                    <select value={c.waitHours} onChange={(e) => set(i.id, { waitHours: Number(e.target.value) })} className="n-field">
                       {WAITS.map((w) => <option key={w.h} value={w.h}>{w.t}</option>)}
                     </select>
                   </label>
@@ -231,7 +231,7 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
               </fieldset>
             );
           })}
-          <p className="text-lg">A new rule starts right away.</p>
+          <p className="n-t-lg">A new rule starts right away.</p>
           <button type="submit" className={btnPrimary} disabled={!ready}>{items.length > 1 ? "Save my rules" : "Save my rule"}</button>
           <button type="button" className={btnSecondary} onClick={startAgain}>Start again</button>
         </form>
@@ -239,19 +239,19 @@ export function NewRule({ initialWords = "" }: { initialWords?: string }) {
     }
 
     case "saving":
-      return <p role="status" className="text-2xl">Saving…</p>;
+      return <p role="status" className="n-t-2xl">Saving…</p>;
 
     case "saved":
       return (
         <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>{stage.result.saved.length ? "Saved" : "You already have that"}</h1>
           {stage.result.saved.map((s) => (
-            <div key={s.kind} className={`${card} space-y-1`}>
-              <p className="text-xl">{s.text}</p>
-              <p className="text-lg">It started right away.</p>
+            <div key={s.kind} className={`${card} n-stack n-gap-1`}>
+              <p className="n-t-xl">{s.text}</p>
+              <p className="n-t-lg">It started right away.</p>
             </div>
           ))}
-          {!stage.result.saved.length && <p className="text-xl">{stage.result.message}</p>}
+          {!stage.result.saved.length && <p className="n-t-xl">{stage.result.message}</p>}
           <Link href="/rules" className={btnPrimary}>See my rules</Link>
         </div>
       );

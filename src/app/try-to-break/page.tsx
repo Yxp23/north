@@ -21,7 +21,7 @@ async function Content() {
       <section className="n-stack" aria-labelledby="score">
         <h2 id="score">Our own attacker&apos;s latest score</h2>
         <p>An AI tries new tricks against North all the time (<code>npm run attack</code>). Last run: {new Date(scoreboard.at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" })}.</p>
-        <p className="text-xl"><strong>{scoreboard.totals.tried} attacks tried.</strong> Money moved against the rules: <strong>${(scoreboard.totals.movedAgainstRulesCents / 100).toFixed(2)}</strong>.</p>
+        <p className="n-t-xl"><strong>{scoreboard.totals.tried} attacks tried.</strong> Money moved against the rules: <strong>${(scoreboard.totals.movedAgainstRulesCents / 100).toFixed(2)}</strong>.</p>
         <div className="n-card" style={{ overflowX: "auto" }}>
           <table className="hw-table">
             <caption className="ng-vh">Attacks by category</caption>
@@ -40,7 +40,7 @@ async function Content() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<p className="text-lg">One moment…</p>}>
+    <Suspense fallback={<p className="n-t-lg">One moment…</p>}>
       <Content />
     </Suspense>
   );

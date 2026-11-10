@@ -81,7 +81,7 @@ export function RulesList() {
                 {s && (
                   <p className={`n-chip ${s.cls}`} style={{ justifySelf: "start" }}><s.Icon aria-hidden="true" />{s.label}<span className="ng-vh">: {s.what}</span></p>
                 )}
-                <p className="text-xl">{r.text}</p>
+                <p className="n-t-xl">{r.text}</p>
                 {s && <p style={{ color: "var(--n-muted)" }}>{s.what}</p>}
                 {r.pending && (
                   <div className="n-note n-note-wait">
@@ -107,7 +107,7 @@ export function RulesList() {
         <ul className="n-stack">
           {data.always.map((t) => (
             <li key={t} className={`${card} n-stack`}>
-              <p className="text-lg">{t}</p>
+              <p className="n-t-lg">{t}</p>
               <SpeakButton text={t} label="Hear this rule" />
             </li>
           ))}

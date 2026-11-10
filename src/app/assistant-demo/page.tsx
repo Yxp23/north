@@ -13,7 +13,7 @@ async function Gate() {
 
 export default function AssistantDemoPage() {
   return (
-    <Suspense fallback={<p role="status" className="text-xl">Loading…</p>}>
+    <Suspense fallback={<p role="status" className="n-t-xl">Loading…</p>}>
       <Gate />
     </Suspense>
   );

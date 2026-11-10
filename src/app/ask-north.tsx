@@ -63,17 +63,17 @@ export function AskNorth({ variant = "dialog", below }: { variant?: "dialog" | "
   }
 
   return (
-    <section aria-labelledby="ask-h" className={`n-stack${home ? " ng-askbox" : ""}`} style={{ gap: 16 }}>
+    <section aria-labelledby="ask-h" className={`n-stack n-gap-3${home ? " ng-askbox" : ""}`}>
       {home ? (
         <h2 id="ask-h" className="ng-vh">Ask North</h2>
       ) : (
         <>
-          <h2 id="ask-h" tabIndex={-1} data-autofocus style={{ outline: "none", fontSize: 30, letterSpacing: -0.8 }}>Ask North</h2>
-          <p style={{ color: "var(--n-muted)" }}>Type what you need, paste a deal, or add a photo. I will find the right helper.</p>
+          <h2 id="ask-h" tabIndex={-1} data-autofocus className="n-dialog-title">Ask North</h2>
+          <p className="n-muted">Type what you need, paste a deal, or add a photo. I will find the right helper.</p>
         </>
       )}
       <form onSubmit={(e) => { e.preventDefault(); ask(); }} className="n-stack">
-        <label className="block">
+        <label className="n-block">
           <span className="n-label">{home ? "What do you need?" : "What do you need?"}</span>
           <textarea value={text} onChange={(e) => setText(e.target.value)} rows={home ? 3 : 2} maxLength={500} className={`${field}${home ? " ng-askbox-field" : ""}`} placeholder="Tell North what you need, paste a deal, or add a photo" />
         </label>
@@ -97,8 +97,8 @@ export function AskResult({ a, price, setPrice, again }: { a: Answer; price: str
     if (p.kind === "error") return <p role="alert" className="n-note n-note-stop"><span>{p.message}</span></p>;
     if (p.kind === "needs_price") {
       return (
-        <div className="space-y-2">
-          <p className="text-xl font-semibold">{p.question}</p>
+        <div className="n-stack n-gap-2">
+          <p className="n-t-xl n-strong">{p.question}</p>
           <input type="number" inputMode="decimal" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className={field} aria-label="Price in dollars" />
           <button type="button" className={btnPrimary} disabled={!(Number(price) > 0)} onClick={() => again("scam_checker", { priceDollars: Number(price) })}>Check again</button>
         </div>
@@ -106,12 +106,12 @@ export function AskResult({ a, price, setPrice, again }: { a: Answer; price: str
     }
     const [main, ...rest] = p.verdict.reasons;
     return (
-      <div className="space-y-2" role="status">
+      <div className="n-stack n-gap-2" role="status">
         <div className={`n-note ${LOOK[p.verdict.kind]}`}><div>
-          <p className="text-2xl font-bold">{p.verdict.headline}</p>
-          <p className="mt-1 text-lg">{main}</p>
+          <p className="n-t-2xl n-strong">{p.verdict.headline}</p>
+          <p className="n-mt-1 n-t-lg">{main}</p>
         </div></div>
-        {rest.length > 0 && <ul className="list-disc space-y-1 pl-6 text-lg">{rest.map((r) => <li key={r}>{r}</li>)}</ul>}
+        {rest.length > 0 && <ul className="n-t-lg n-list">{rest.map((r) => <li key={r}>{r}</li>)}</ul>}
         {a.payload.flagged === "yes" && p.sellerDomain && <p className="n-note n-note-stop"><span><strong>I will not let you pay {p.sellerDomain}.</strong></span></p>}
         <Link href="/check" className={btnSecondary}>Open the full check</Link>
       </div>
@@ -121,9 +121,9 @@ export function AskResult({ a, price, setPrice, again }: { a: Answer; price: str
   if (a.route === "finder") {
     const p = a.payload.payload;
     if (p.kind === "error") return <p role="alert" className="n-note n-note-stop"><span>{p.message}</span></p>;
-    if (p.kind === "none") return <p role="status" className="text-lg">I did not find it. Try different words, or a clearer picture.</p>;
+    if (p.kind === "none") return <p role="status" className="n-t-lg">I did not find it. Try different words, or a clearer picture.</p>;
     return (
-      <ul className="space-y-3">
+      <ul className="n-stack">
         {p.items.map(({ item }, i) => (
           <li key={item.id}>
             <ProductCard item={item} openCompare={i === 0}><Link href={`/shop/${item.id}`} className={btnSecondary}>Look at this one</Link></ProductCard>
@@ -138,14 +138,14 @@ export function AskResult({ a, price, setPrice, again }: { a: Answer; price: str
     if (p.kind === "error") return <p role="alert" className="n-note n-note-stop"><span>{p.message}</span></p>;
     if (p.kind === "question") {
       return (
-        <div className="space-y-2">
-          <p className="text-xl font-semibold">{p.question}</p>
-          <ul className="grid grid-cols-2 gap-3">
+        <div className="n-stack n-gap-2">
+          <p className="n-t-xl n-strong">{p.question}</p>
+          <ul className="n-grid-2">
             {p.choices.map((c) => (
               <li key={c.label}>
-                <button type="button" onClick={() => again("help_me_choose", { answer: c.label })} className={`${card} flex h-full w-full flex-col items-center gap-2 text-center hover:border-accent`}>
-                  <Photo src={c.imageUrl} className="h-24 w-full rounded-xl bg-white object-contain" />
-                  <span className="text-lg font-semibold">{c.label}</span>
+                <button type="button" onClick={() => again("help_me_choose", { answer: c.label })} className={`${card} n-tile`}>
+                  <Photo src={c.imageUrl} className="n-photo n-photo-sm" />
+                  <span className="n-t-lg n-strong">{c.label}</span>
                 </button>
               </li>
             ))}
@@ -153,16 +153,16 @@ export function AskResult({ a, price, setPrice, again }: { a: Answer; price: str
         </div>
       );
     }
-    if (p.kind === "nothing_fits") return <p role="status" className="text-lg">Nothing I found fits the {formatMoney(p.leftCents)} you have left this week.{p.cheapestCents ? ` The lowest price I saw was ${formatMoney(p.cheapestCents)}.` : ""} That is okay. Try something that costs less.</p>;
-    if (p.kind === "no_results") return <p role="status" className="text-lg">I did not find a good idea for that. Try other words.</p>;
+    if (p.kind === "nothing_fits") return <p role="status" className="n-t-lg">Nothing I found fits the {formatMoney(p.leftCents)} you have left this week.{p.cheapestCents ? ` The lowest price I saw was ${formatMoney(p.cheapestCents)}.` : ""} That is okay. Try something that costs less.</p>;
+    if (p.kind === "no_results") return <p role="status" className="n-t-lg">I did not find a good idea for that. Try other words.</p>;
     return (
-      <div className="space-y-2">
+      <div className="n-stack n-gap-2">
         <p className="n-note n-note-good"><span>You have {formatMoney(p.leftCents)} left this week. These all fit.</span></p>
-        <ul className="space-y-3">
+        <ul className="n-stack">
           {p.picks.map((pk, i) => (
             <li key={pk.item.id}>
               <ProductCard item={pk.item} openCompare={i === 0}>
-                <p className="text-lg">{pk.reason}</p>
+                <p className="n-t-lg">{pk.reason}</p>
                 <Link href={`/shop/${pk.item.id}`} className={btnSecondary}>Look at this one</Link>
               </ProductCard>
             </li>
@@ -175,13 +175,13 @@ export function AskResult({ a, price, setPrice, again }: { a: Answer; price: str
   // payments
   if (a.route !== "payments") return null;
   const p = a.payload.payload;
-  if (p.kind === "error" || p.kind === "none") return <p role="status" className="text-lg">{p.message}</p>;
+  if (p.kind === "error" || p.kind === "none") return <p role="status" className="n-t-lg">{p.message}</p>;
   return (
-    <div className="space-y-2" role="status">
-      <p className="text-xl font-semibold">{p.summary}</p>
-      <ul className="space-y-2">
+    <div className="n-stack n-gap-2" role="status">
+      <p className="n-t-xl n-strong">{p.summary}</p>
+      <ul className="n-stack n-gap-2">
         {p.rows.map((r, i) => (
-          <li key={i} className="rounded-xl border border-line p-3 text-lg">
+          <li key={i} className="n-sub n-t-lg">
             <strong>{r.name}</strong>, {formatMoney(r.amountCents)}. North says {r.ours}.{" "}
             {r.paypal.checked ? `PayPal says ${r.paypal.words}. ${r.paypal.note}` : r.paypal.why}
           </li>

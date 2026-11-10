@@ -32,11 +32,11 @@ export function ProductCard({ item, children, openCompare = false, compare = tru
   const name = m.item(item.name, item.category);
   return (
     <div className={`${card} n-stack`}>
-      <Photo src={item.imageUrl} alt={name} className="h-40 w-full rounded-xl bg-white object-contain" />
-      <p className="text-xl">{name}</p>
-      <p style={{ fontSize: 30, fontVariantNumeric: "tabular-nums", letterSpacing: -1 }}>{formatMoney(item.priceCents)}</p>
+      <Photo src={item.imageUrl} alt={name} className="n-photo" />
+      <p className="n-t-xl">{name}</p>
+      <p className="n-price">{formatMoney(item.priceCents)}</p>
       <RealThingsLine cents={item.priceCents} className="ng-real" />
-      <p className="break-all" style={{ color: "var(--n-muted)" }}>Cheapest at {m.store(item.domain)}{item.storeCount > 1 ? `, ${item.storeCount} stores in all` : ""}</p>
+      <p className="n-break n-muted">Cheapest at {m.store(item.domain)}{item.storeCount > 1 ? `, ${item.storeCount} stores in all` : ""}</p>
       {compare && item.storeCount > 1 && (
         <Disclosure summary="Compare stores" defaultOpen={openCompare}>
           <Compare id={item.id} />

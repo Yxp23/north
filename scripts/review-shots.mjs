@@ -24,7 +24,7 @@ for (const w of widths.split(",").map(Number)) {
   await page.getByRole("button", { name: "Menu" }).click(); await page.waitForTimeout(300); await shot("menu", false);
   await page.getByRole("button", { name: "Appearance" }).click(); await page.waitForTimeout(300); await shot("appearance", false);
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "Menu" }).click(); await page.getByRole("button", { name: "Help", exact: true }).click(); await page.waitForTimeout(500); await shot("help", false);
+  await page.getByRole("banner").getByRole("button", { name: "Help" }).click(); await page.waitForTimeout(500); await shot("help", false);
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: /Ask North a question/ }).click(); await page.waitForTimeout(500); await shot("ask-dialog", false);
   await page.keyboard.press("Escape");

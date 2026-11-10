@@ -47,7 +47,7 @@ export function PaymentsSection() {
           <button type="button" className={btnPrimary} onClick={() => ask("Did my last order go through?")}>Did my last order go through?</button>
           <button type="button" className={btnSecondary} onClick={() => ask("Show my last payments")}>Show my last payments</button>
           <form className="n-stack" onSubmit={(e) => { e.preventDefault(); if (text.trim()) ask(text); }}>
-            <label className="block">
+            <label className="n-block">
               <span className="n-label">Or ask in your own words</span>
               <input value={text} onChange={(e) => setText(e.target.value)} maxLength={300} className="n-field" placeholder="Did I get my money back?" />
             </label>
@@ -81,18 +81,18 @@ export function PaymentsSection() {
                 <div className="n-rowitem">
                   <Photo src={r.imageUrl} className="n-thumb" />
                   <div>
-                    <p className="text-lg font-semibold">{m.item(r.name)}</p>
-                    <p className="text-xl">{formatMoney(r.amountCents)} <span className="text-base">on {day(r.at)}</span></p>
+                    <p className="n-t-lg n-strong">{m.item(r.name)}</p>
+                    <p className="n-t-xl">{formatMoney(r.amountCents)} <span className="n-t-base">on {day(r.at)}</span></p>
                   </div>
                 </div>
-                <p className="text-lg">North says: <strong>{r.ours}</strong></p>
+                <p className="n-t-lg">North says: <strong>{r.ours}</strong></p>
                 {r.paypal.checked ? (
                   <p className={`n-note ${r.paypal.agrees ? "n-note-good" : "n-note-wait"}`}>
                     {r.paypal.agrees ? <CircleCheck aria-hidden="true" /> : <TriangleAlert aria-hidden="true" />}
                     <span>PayPal says: <strong>{r.paypal.words}</strong>. {r.paypal.note}</span>
                   </p>
                 ) : (
-                  <p className="text-lg">{r.paypal.why}</p>
+                  <p className="n-t-lg">{r.paypal.why}</p>
                 )}
               </li>
             ))}
@@ -100,7 +100,7 @@ export function PaymentsSection() {
           {stage.answer.activity && "transactions" in stage.answer.activity && stage.answer.activity.transactions.length > 0 && (
             <div className={`${card} n-stack`} style={{ gap: 8 }}>
               <h3>PayPal&apos;s recent activity</h3>
-              <ul className="text-lg">{stage.answer.activity.transactions.map((t) => <li key={t.id}>{formatMoney(t.amountCents)}{t.at ? ` on ${day(t.at)}` : ""}</li>)}</ul>
+              <ul className="n-t-lg">{stage.answer.activity.transactions.map((t) => <li key={t.id}>{formatMoney(t.amountCents)}{t.at ? ` on ${day(t.at)}` : ""}</li>)}</ul>
             </div>
           )}
           {stage.answer.activity && "unavailable" in stage.answer.activity && (

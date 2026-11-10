@@ -55,27 +55,27 @@ export function ActivityPanel({
     if (events.length > 0) publish?.({ title, agents: agents ?? [], events, checkout, guardian });
   }, [publish, title, agents, events, checkout, guardian]);
   return (
-    <section aria-label={title} className={`${card} n-stack`} style={{ gap: 10 }}>
-      <h2 className="text-muted" style={{ fontSize: 18 }}>{title}</h2>
-      <ol aria-live="polite" className="n-stack" style={{ gap: 10 }}>
+    <section aria-label={title} className={`${card} n-stack n-gap-2`}>
+      <h2 className="n-muted n-panel-title">{title}</h2>
+      <ol aria-live="polite" className="n-stack n-gap-2">
         {lines.map((l, i) => (
-          <li key={i} className="text-base">
-            <div className="flex items-start gap-3">
-              <span aria-hidden="true" className="mt-0.5 shrink-0">
+          <li key={i} className="n-t-base">
+            <div className="n-flex-top">
+              <span aria-hidden="true" className="n-icon-top">
                 {l.warn ? <TriangleAlert size={20} /> : l.done ? <CircleCheck size={20} /> : <Clock size={20} />}
               </span>
-              <span className={l.warn ? "font-semibold text-warn-ink" : l.done ? "" : "font-semibold"}>
+              <span className={l.warn ? "n-strong n-ink-wait" : l.done ? "" : "n-strong"}>
                 {l.warn && <span className="ng-vh">Warning: </span>}{l.label}{!l.done && <span className="ng-vh"> (working)</span>}
               </span>
             </div>
             {showDetails && l.detail && (
-              <pre className="mt-1 ml-8 overflow-x-auto whitespace-pre-wrap break-words rounded-lg p-2 text-base" style={{ background: "var(--n-quiet)", color: "var(--n-ink)", fontFamily: "inherit" }}>{l.detail}</pre>
+              <pre className="n-pre">{l.detail}</pre>
             )}
           </li>
         ))}
       </ol>
       {hasDetails && (
-        <button type="button" aria-expanded={showDetails} onClick={() => setShowDetails((v) => !v)} className="n-link" style={{ justifySelf: "start" }}>
+        <button type="button" aria-expanded={showDetails} onClick={() => setShowDetails((v) => !v)} className="n-link n-self-start">
           {showDetails ? "Hide details" : "Show details"}
         </button>
       )}

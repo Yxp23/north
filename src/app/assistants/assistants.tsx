@@ -71,8 +71,8 @@ export function Assistants() {
     load();
   }
 
-  if (error) return <p role="status" className="text-lg">I can&apos;t load your assistants right now.</p>;
-  if (!view) return <p role="status" className="text-lg">Loading your assistants…</p>;
+  if (error) return <p role="status" className="n-t-lg">I can&apos;t load your assistants right now.</p>;
+  if (!view) return <p role="status" className="n-t-lg">Loading your assistants…</p>;
 
   const connected = view.agents.length > 0;
   return (
@@ -80,13 +80,13 @@ export function Assistants() {
       <h2 id="assistants-h" className={connected ? undefined : "ng-vh"}>{connected ? "Connected assistants" : "Connect an assistant"}</h2>
 
       {created && (
-        <div role="status" className="space-y-2 rounded-2xl border-2 border-good-ink bg-good-bg p-4 text-good-ink">
-          <p className="text-xl font-semibold">{created.name} is connected.</p>
-          <p className="text-lg">Copy these now. You will not see the key again.</p>
-          <p className="text-base font-semibold">North address</p>
-          <code className="block break-all rounded-lg bg-card p-2 text-base text-ink" style={{ border: "1px solid var(--n-line)" }}>{created.mcpUrl}</code>
-          <p className="text-base font-semibold">Its key</p>
-          <code className="block break-all rounded-lg bg-card p-2 text-base text-ink" style={{ border: "1px solid var(--n-line)" }}>{created.key}</code>
+        <div role="status" className="n-box n-box-good">
+          <p className="n-t-xl n-strong">{created.name} is connected.</p>
+          <p className="n-t-lg">Copy these now. You will not see the key again.</p>
+          <p className="n-t-base n-strong">North address</p>
+          <code className="n-code">{created.mcpUrl}</code>
+          <p className="n-t-base n-strong">Its key</p>
+          <code className="n-code">{created.key}</code>
           <button type="button" className={btnSecondary} onClick={() => navigator.clipboard?.writeText(created.key)}>Copy the key</button>
         </div>
       )}
@@ -94,17 +94,17 @@ export function Assistants() {
       {connected && (
         <>
       {view.agents.length === 0 ? (
-        <p className="text-lg">No assistant is connected.</p>
+        <p className="n-t-lg">No assistant is connected.</p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="n-stack">
           {view.agents.map((a) => (
-            <li key={a.id} className={`${card} space-y-2`}>
-              <p className="text-xl font-semibold">{a.name}</p>
-              <p className="text-base">Connected {day(a.createdAt)}.{a.lastUsedAt ? ` Last asked ${day(a.lastUsedAt)}.` : " It has not asked yet."}</p>
-              <p className="text-base">It may: {[a.scopes.includes("request_purchase") && "ask to buy things", a.scopes.includes("read_rules") && "see your rules", a.scopes.includes("read_week_money") && "see what is left this week"].filter(Boolean).join(", ") || "nothing"}.</p>
+            <li key={a.id} className={`${card} n-stack n-gap-2`}>
+              <p className="n-t-xl n-strong">{a.name}</p>
+              <p className="n-t-base">Connected {day(a.createdAt)}.{a.lastUsedAt ? ` Last asked ${day(a.lastUsedAt)}.` : " It has not asked yet."}</p>
+              <p className="n-t-base">It may: {[a.scopes.includes("request_purchase") && "ask to buy things", a.scopes.includes("read_rules") && "see your rules", a.scopes.includes("read_week_money") && "see what is left this week"].filter(Boolean).join(", ") || "nothing"}.</p>
               {confirming === a.id ? (
-                <div role="group" aria-label={`Disconnect ${a.name}?`} className="space-y-2">
-                  <p className="text-lg font-semibold">Disconnect {a.name}? Its key stops working right now.</p>
+                <div role="group" aria-label={`Disconnect ${a.name}?`} className="n-stack n-gap-2">
+                  <p className="n-t-lg n-strong">Disconnect {a.name}? Its key stops working right now.</p>
                   <button type="button" className={btnPrimary} onClick={() => disconnect(a.id)}>Yes, disconnect it</button>
                   <button type="button" className={btnSecondary} onClick={() => setConfirming(null)}>No, keep it</button>
                 </div>
@@ -121,15 +121,15 @@ export function Assistants() {
       {!connected && <p className="n-note n-note-quiet"><span>No assistant is connected yet. Connect one first. Then you can choose what it may do on its own.</span></p>}
       <form onSubmit={connect} className={`${card} n-stack`}>
         <h3>{connected ? "Connect another assistant" : "Connect an assistant"}</h3>
-        <label className="block space-y-2">
-          <span className="block text-lg font-semibold">What do you call it?</span>
+        <label className="n-block n-stack n-gap-2">
+          <span className="n-block n-t-lg n-strong">What do you call it?</span>
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} className={field} placeholder="My assistant" />
         </label>
-        <fieldset className="space-y-2">
-          <legend className="text-lg font-semibold">What may it do?</legend>
-          <label className="flex min-h-12 items-center gap-3 text-lg"><input type="checkbox" className="h-6 w-6" checked={mayBuy} onChange={(e) => setMayBuy(e.target.checked)} /> Ask to buy things (you still decide)</label>
-          <label className="flex min-h-12 items-center gap-3 text-lg"><input type="checkbox" className="h-6 w-6" checked={maySeeRules} onChange={(e) => setMaySeeRules(e.target.checked)} /> See my rules</label>
-          <label className="flex min-h-12 items-center gap-3 text-lg"><input type="checkbox" className="h-6 w-6" checked={maySeeMoney} onChange={(e) => setMaySeeMoney(e.target.checked)} /> See what is left this week</label>
+        <fieldset className="n-stack n-gap-2">
+          <legend className="n-t-lg n-strong">What may it do?</legend>
+          <label className="n-checkrow"><input type="checkbox" checked={mayBuy} onChange={(e) => setMayBuy(e.target.checked)} /> Ask to buy things (you still decide)</label>
+          <label className="n-checkrow"><input type="checkbox" checked={maySeeRules} onChange={(e) => setMaySeeRules(e.target.checked)} /> See my rules</label>
+          <label className="n-checkrow"><input type="checkbox" checked={maySeeMoney} onChange={(e) => setMaySeeMoney(e.target.checked)} /> See what is left this week</label>
         </fieldset>
         <button type="submit" className={btnPrimary} disabled={!name.trim() || !(mayBuy || maySeeRules || maySeeMoney)}>Connect it</button>
       </form>
@@ -152,25 +152,25 @@ export function Assistants() {
               <span>Let it buy must-have things under a limit, without asking</span>
             </label>
             {choice === "under" && (
-              <label className="block" style={{ marginLeft: 36 }}>
+              <label className="n-block" style={{ marginLeft: 36 }}>
                 <span className="n-label">The limit (dollars). It starts tomorrow.</span>
                 <input type="number" inputMode="decimal" min={1} max={100} step="1" value={dollars} onChange={(e) => setDollars(e.target.value)} className={field} />
               </label>
             )}
           </fieldset>
           <button type="button" className={btnSecondary} disabled={choice === "under" && !(Number(dollars) >= 1)} onClick={() => savePermission(choice === "under" ? Number(dollars) : null)}>Save my choice</button>
-          {message && <p role="status" className="text-lg font-semibold">{message}</p>}
+          {message && <p role="status" className="n-t-lg n-strong">{message}</p>}
         </div>
       )}
 
       {view.requests.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-xl font-semibold">What my assistants asked for</h3>
-          <ul className="space-y-3">
+        <div className="n-stack">
+          <h3 className="n-t-xl n-strong">What my assistants asked for</h3>
+          <ul className="n-stack">
             {view.requests.map((r) => (
-              <li key={r.id} className={`${card} space-y-2`}>
-                <p className="text-lg font-semibold">{r.agentName} asked to buy {r.name}, {formatMoney(r.amountCents)}</p>
-                <p className="text-base">{STATUS[r.status] ?? r.status} · {day(r.createdAt)}</p>
+              <li key={r.id} className={`${card} n-stack n-gap-2`}>
+                <p className="n-t-lg n-strong">{r.agentName} asked to buy {r.name}, {formatMoney(r.amountCents)}</p>
+                <p className="n-t-base">{STATUS[r.status] ?? r.status} · {day(r.createdAt)}</p>
                 <ActivityPanel title="What happened" events={r.steps.map((s) => ({ ...s, state: "done" as const }))} />
               </li>
             ))}

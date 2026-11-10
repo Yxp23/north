@@ -69,7 +69,7 @@ export function FindIt() {
 
       <form className="n-stack" style={{ gap: 18 }} onSubmit={(e) => { e.preventDefault(); void find(); }}>
         <p className="ng-vh">A photo with no words finds the same thing so you can buy it again.</p>
-        <label className="block">
+        <label className="n-block">
           <span className="n-label">What do you need?</span>
           <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={500} className="n-field" placeholder="Running shoes, size 8. Or: something warm for my feet, not too expensive." />
         </label>

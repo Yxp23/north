@@ -78,8 +78,8 @@ export function AskRow({ a, onChange, onAnswered }: { a: AssistantAskView; onCha
         <Photo src={a.imageUrl} className="n-thumb" />
         <div>
           <p className="n-chip n-chip-quiet" style={{ marginBottom: 6 }}><Bell aria-hidden="true" />Your assistant is asking</p>
-          <p className="text-lg font-semibold">{sentence}</p>
-          {a.reason && <p className="mt-1">It says: &ldquo;{a.reason}&rdquo;</p>}
+          <p className="n-t-lg n-strong">{sentence}</p>
+          {a.reason && <p className="n-mt-1">It says: &ldquo;{a.reason}&rdquo;</p>}
         </div>
       </div>
       {a.needsOverride && <p className="n-note n-note-wait"><Clock aria-hidden="true" /><span>{a.note} Only you can say Buy now.</span></p>}
@@ -101,7 +101,7 @@ export function NoticeRow({ n, onChange }: { n: PriceNotice; onChange: () => voi
     <li className={`${card} n-stack`}>
       <div className="n-rowitem">
         <Photo src={n.imageUrl} className="n-thumb" />
-        <p className="text-lg font-semibold">{m.sentence(n.message, n.name)}</p>
+        <p className="n-t-lg n-strong">{m.sentence(n.message, n.name)}</p>
       </div>
       {n.kind !== "sold_out" && <Link href={`/shop/${n.productId}`} className={btnPrimary}>Look at it</Link>}
       <button type="button" className={btnSecondary} onClick={dismiss}>Not now</button>
@@ -132,8 +132,8 @@ export function WaitingRow({ w, onRemove, primary = false }: { w: WaitingView; o
       <div className="n-rowitem">
         <Photo src={w.imageUrl} className="n-thumb" />
         <div>
-          <p className="text-lg font-semibold">{m.item(w.name)}</p>
-          <p className="text-lg">{formatMoney(w.amountCents)}</p>
+          <p className="n-t-lg n-strong">{m.item(w.name)}</p>
+          <p className="n-t-lg">{formatMoney(w.amountCents)}</p>
           <p className={`n-chip ${w.ready ? "n-chip-good" : "n-chip-wait"}`} style={{ marginTop: 6 }}>
             {w.ready ? <CircleCheck aria-hidden="true" /> : <Clock aria-hidden="true" />}
             {w.ready ? "Ready. You can buy it." : `I'll remind you. Ready ${when(w.remindAt)}.`}
@@ -204,8 +204,8 @@ export function PurchaseRow({ p, onChange }: { p: PurchaseView; onChange: () => 
       <div className="n-rowitem">
         <Photo src={p.imageUrl} className="n-thumb" />
         <div>
-          <p className="text-lg font-semibold">{m.item(p.name)}</p>
-          <p className="text-lg">{formatMoney(p.amountCents)}</p>
+          <p className="n-t-lg n-strong">{m.item(p.name)}</p>
+          <p className="n-t-lg">{formatMoney(p.amountCents)}</p>
           <p className={`n-chip ${st.cls}`} style={{ marginTop: 6 }}><st.Icon aria-hidden="true" />{st.label}</p>
         </div>
       </div>
@@ -218,18 +218,18 @@ export function PurchaseRow({ p, onChange }: { p: PurchaseView; onChange: () => 
           </dl>
         </Disclosure>
       )}
-      {message && <p role="status" className="text-lg font-semibold">{message}</p>}
+      {message && <p role="status" className="n-t-lg n-strong">{message}</p>}
       {p.status === "paid" && step === "idle" && (
         <button type="button" className={btnSecondary} onClick={() => setStep("asking")}>Get my money back</button>
       )}
       {step === "asking" && (
         <div role="group" aria-label={`Refund ${m.item(p.name)}?`} className="n-stack">
-          <p className="text-lg font-semibold">Refund {m.item(p.name)}? You will get {formatMoney(p.amountCents)} back.</p>
+          <p className="n-t-lg n-strong">Refund {m.item(p.name)}? You will get {formatMoney(p.amountCents)} back.</p>
           <button type="button" className={btnPrimary} onClick={refund}>Yes, refund it</button>
           <button type="button" className={btnSecondary} onClick={() => setStep("idle")}>No, keep it</button>
         </div>
       )}
-      {step === "working" && <p role="status" className="text-lg">Asking PayPal. One moment.</p>}
+      {step === "working" && <p role="status" className="n-t-lg">Asking PayPal. One moment.</p>}
     </li>
   );
 }

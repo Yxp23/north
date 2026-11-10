@@ -94,7 +94,7 @@ export function Connect({ embedded = false }: { embedded?: boolean }) {
     Promise.resolve(session.start({ presentationMode: "auto" }, setupTokenPromise)).catch(() => setState("error"));
   }
 
-  const h1 = "text-3xl font-bold outline-none";
+  const h1 = "n-focus-target";
 
   if (state === "connected" && embedded) {
     return <p role="status" className="n-note n-note-good"><span><strong>PayPal is connected.</strong> No money was taken.</span></p>;
@@ -103,7 +103,7 @@ export function Connect({ embedded = false }: { embedded?: boolean }) {
     return (
       <div className="n-col">
         <h1 ref={headingRef} tabIndex={-1} className={h1}>PayPal is connected</h1>
-        <p className="text-xl">You can buy things now. No money was taken.</p>
+        <p className="n-t-xl">You can buy things now. No money was taken.</p>
         <Link href="/find" className={btnPrimary}>Find something</Link>
         <Link href="/money" className={btnSecondary}>See my money</Link>
       </div>
@@ -117,17 +117,17 @@ export function Connect({ embedded = false }: { embedded?: boolean }) {
       ) : (
         <>
           <h1 ref={headingRef} tabIndex={-1} className={h1}>Connect PayPal</h1>
-          <p className="text-xl">This saves your PayPal so you can buy things. It does not buy anything. No money moves.</p>
+          <p className="n-t-xl">This saves your PayPal so you can buy things. It does not buy anything. No money moves.</p>
         </>
       )}
 
-      {state === "loading" && <p role="status" className="text-lg">Getting PayPal ready…</p>}
-      {state === "connecting" && <p role="status" className="text-lg">Working with PayPal…</p>}
-      {state === "cancelled" && <p role="status" className="rounded-xl bg-warn-bg p-3 text-warn-ink">You stopped. Nothing was saved.</p>}
+      {state === "loading" && <p role="status" className="n-t-lg">Getting PayPal ready…</p>}
+      {state === "connecting" && <p role="status" className="n-t-lg">Working with PayPal…</p>}
+      {state === "cancelled" && <p role="status" className="n-note n-note-wait"><span>You stopped. Nothing was saved.</span></p>}
       {state === "not_eligible" && (
-        <p role="alert" className="rounded-xl bg-bad-bg p-3 text-bad-ink">PayPal says this account can&apos;t be saved here.</p>
+        <p role="alert" className="n-note n-note-stop"><span>PayPal says this account can&apos;t be saved here.</span></p>
       )}
-      {state === "error" && <p role="alert" className="rounded-xl bg-bad-bg p-3 text-bad-ink">That did not work. Nothing was saved. Please try again.</p>}
+      {state === "error" && <p role="alert" className="n-note n-note-stop"><span>That did not work. Nothing was saved. Please try again.</span></p>}
 
       <button
         type="button"

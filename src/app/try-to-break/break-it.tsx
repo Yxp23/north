@@ -48,11 +48,11 @@ export function BreakIt() {
         </div>
       </div>
       <form className={`${card} n-stack`} onSubmit={(e) => { e.preventDefault(); go(); }}>
-        <label className="block"><span className="n-label">Product (an id, or words)</span>
+        <label className="n-block"><span className="n-label">Product (an id, or words)</span>
           <input className={field} value={product} onChange={(e) => setProduct(e.target.value)} maxLength={120} /></label>
-        <label className="block"><span className="n-label">How many</span>
+        <label className="n-block"><span className="n-label">How many</span>
           <input className={field} type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} /></label>
-        <label className="block"><span className="n-label">What the assistant says (its reason)</span>
+        <label className="n-block"><span className="n-label">What the assistant says (its reason)</span>
           <textarea className={field} rows={3} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={600} /></label>
         <label className="n-checkrow"><input type="checkbox" checked={web} onChange={(e) => setWeb(e.target.checked)} /> It got the idea from text on a web page</label>
         <button type="submit" className={btnPrimary} disabled={busy}>{busy ? "Asking the Guardian…" : "Ask North"}</button>
@@ -62,9 +62,9 @@ export function BreakIt() {
         <div role="status" className={`${card} n-stack`}>
           <StatusBadge view={view} />
           <h2>{view.title}</h2>
-          <p className="text-lg">{out.reason}</p>
-          <p className="text-lg font-semibold">{out.next}</p>
-          <p className="text-base">Guardian code: {out.code}</p>
+          <p className="n-t-lg">{out.reason}</p>
+          <p className="n-t-lg n-strong">{out.next}</p>
+          <p className="n-t-base">Guardian code: {out.code}</p>
           <ActivityPanel title="What North did" events={out.steps.map((s) => ({ ...s, state: "done" as const }))} agents={[{ name: "Money Guardian", ai: false, did: "Judged the ask. It never trusts the assistant's words." }]} guardian={{ decision: out.decision, code: out.code, reason: out.reason }} />
         </div>
       )}

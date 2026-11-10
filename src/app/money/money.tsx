@@ -43,7 +43,7 @@ function RulesGlance() {
             return (
               <li key={r.kind} className={`${card} n-stack`} style={{ gap: 8 }}>
                 {s && <p className={`n-chip ${s.cls}`} style={{ justifySelf: "start" }}><s.Icon aria-hidden="true" />{s.label}</p>}
-                <p className="text-lg">{r.text}</p>
+                <p className="n-t-lg">{r.text}</p>
                 {r.pending && <p className="n-note n-note-wait"><Clock aria-hidden="true" /><span>A change is waiting to start. See My rules to undo it.</span></p>}
                 <SpeakButton text={`${s ? `${s.label} rule. ` : ""}${r.text}`} label="Hear this rule" />
               </li>

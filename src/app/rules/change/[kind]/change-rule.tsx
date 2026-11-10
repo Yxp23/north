@@ -27,7 +27,7 @@ type Stage =
   | { name: "error"; message: string }
   | { name: "done"; result: Extract<ChangeResult, { ok: true }> };
 
-const h1 = "text-3xl font-bold outline-none";
+const h1 = "n-focus-target";
 const field = "n-field";
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
@@ -98,16 +98,16 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
 
   switch (stage.name) {
     case "loading":
-      return <p role="status" className="text-xl">Loading your rule…</p>;
+      return <p role="status" className="n-t-xl">Loading your rule…</p>;
 
     case "saving":
-      return <p role="status" className="text-2xl">Saving…</p>;
+      return <p role="status" className="n-t-2xl">Saving…</p>;
 
     case "missing":
       return (
         <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>That rule is not on</h1>
-          <p className="text-xl">There is nothing to change. You can make a new rule.</p>
+          <p className="n-t-xl">There is nothing to change. You can make a new rule.</p>
           <Link href="/rules/new" className={btnPrimary}>Make a rule</Link>
           <Link href="/rules" className={btnSecondary}>Back to my rules</Link>
         </div>
@@ -117,7 +117,7 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
       return (
         <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>That did not work</h1>
-          <p role="alert" className="text-xl">{stage.message}</p>
+          <p role="alert" className="n-t-xl">{stage.message}</p>
           <Link href="/rules" className={btnPrimary}>Back to my rules</Link>
         </div>
       );
@@ -126,9 +126,9 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
       return (
         <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>What do you want to do?</h1>
-          <div className={`${card} space-y-1`}>
-            <p className="text-lg font-semibold">Your rule now</p>
-            <p className="text-xl">{stage.line.text}</p>
+          <div className={`${card} n-stack n-gap-1`}>
+            <p className="n-t-lg n-strong">Your rule now</p>
+            <p className="n-t-xl">{stage.line.text}</p>
           </div>
           <button type="button" className={btnPrimary} onClick={() => setStage({ name: "edit", line: stage.line })}>Change this rule</button>
           <button type="button" className={btnSecondary} onClick={() => setStage({ name: "remove", line: stage.line })}>Remove this rule</button>
@@ -144,23 +144,23 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
       return (
         <form className="n-col" onSubmit={(e) => { e.preventDefault(); if (next) send({ action: "set", rule: { kind, ...next } }); }}>
           <h1 ref={headingRef} tabIndex={-1} className={h1}>Change this rule</h1>
-          <p className="text-xl">{title}</p>
+          <p className="n-t-xl">{title}</p>
 
           {kind === "big_buy" ? (
-            <label className="block space-y-1">
-              <span className="block text-lg font-semibold">Wait on buys over how many dollars?</span>
+            <label className="n-block n-stack n-gap-1">
+              <span className="n-block n-t-lg n-strong">Wait on buys over how many dollars?</span>
               <input type="number" inputMode="decimal" min={1} step="0.01" value={dollars} onChange={(e) => setDollars(e.target.value)} className={field} />
             </label>
           ) : (
             <>
-              <label className="block space-y-1">
-                <span className="block text-lg font-semibold">Start waiting at</span>
+              <label className="n-block n-stack n-gap-1">
+                <span className="n-block n-t-lg n-strong">Start waiting at</span>
                 <select value={after} onChange={(e) => setAfter(Number(e.target.value))} className={field}>
                   {HOURS.map((h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
                 </select>
               </label>
-              <label className="block space-y-1">
-                <span className="block text-lg font-semibold">Stop waiting at</span>
+              <label className="n-block n-stack n-gap-1">
+                <span className="n-block n-t-lg n-strong">Stop waiting at</span>
                 <select value={until} onChange={(e) => setUntil(Number(e.target.value))} className={field}>
                   {HOURS.map((h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
                 </select>
@@ -169,11 +169,11 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
           )}
 
           <fieldset className={`${card} n-stack`}>
-            <legend className="px-1 text-xl font-semibold">How strong should it be?</legend>
+            <legend className="n-legend">How strong should it be?</legend>
             <StrengthChoice name="strength" kind={kind} value={strength} onChange={setStrength} />
             {strength === "firm" && (
-              <label className="block space-y-1">
-                <span className="block text-lg font-semibold">How long should I wait?</span>
+              <label className="n-block n-stack n-gap-1">
+                <span className="n-block n-t-lg n-strong">How long should I wait?</span>
                 <select value={waitHours} onChange={(e) => setWaitHours(Number(e.target.value))} className={field}>
                   {[...WAITS, ...(WAITS.some((w) => w.h === waitHours) ? [] : [{ h: waitHours, t: `${waitHours} hours` }])].map((w) => <option key={w.h} value={w.h}>{w.t}</option>)}
                 </select>
@@ -181,12 +181,12 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
             )}
           </fieldset>
 
-          {!next && <p role="status" className="rounded-xl bg-warn-bg p-3 text-lg text-warn-ink">{kind === "big_buy" ? "Type an amount of $1 or more." : "Pick two different times."}</p>}
-          {timing === "now" && <p role="status" className="rounded-xl bg-good-bg p-3 text-lg text-good-ink">This is as strong as your rule now, or stronger. It starts right away.</p>}
+          {!next && <p role="status" className="n-note n-note-wait"><span>{kind === "big_buy" ? "Type an amount of $1 or more." : "Pick two different times."}</span></p>}
+          {timing === "now" && <p role="status" className="n-note n-note-good"><span>This is as strong as your rule now, or stronger. It starts right away.</span></p>}
           {timing === "in_a_day" && (
-            <p role="status" className="rounded-xl bg-warn-bg p-3 text-lg text-warn-ink">
+            <p role="status" className="n-note n-note-wait"><span>
               This makes your rule weaker, so it starts tomorrow. Until then, your old rule stays.
-            </p>
+            </span></p>
           )}
           <button type="submit" className={btnPrimary} disabled={!next}>Save this change</button>
           <button type="button" className={btnSecondary} onClick={() => setStage({ name: "menu", line: stage.line })}>Go back</button>
@@ -199,11 +199,11 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
         <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>Remove this rule?</h1>
           <div className={card}>
-            <p className="text-xl">{stage.line.text}</p>
+            <p className="n-t-xl">{stage.line.text}</p>
           </div>
-          <p className="rounded-xl bg-warn-bg p-3 text-lg text-warn-ink">
+          <p className="n-note n-note-wait"><span>
             I will turn it off tomorrow. Until then, it stays.
-          </p>
+          </span></p>
           <button type="button" className={btnPrimary} onClick={() => send({ action: "remove", kind })}>Yes, turn it off tomorrow</button>
           <button type="button" className={btnSecondary} onClick={() => setStage({ name: "menu", line: stage.line })}>No, keep it</button>
         </div>
@@ -214,10 +214,10 @@ export function ChangeRule({ kind }: { kind: RuleKind }) {
       return (
         <div className="n-col">
           <h1 ref={headingRef} tabIndex={-1} className={h1}>{r.changed ? "Done" : "Nothing changed"}</h1>
-          <div className={`${card} space-y-1`}>
-            {r.text && <p className="text-xl">{r.text}</p>}
-            <p className="text-lg">{r.changed && !r.startsNow ? (r.removed ? "Done. This rule turns off tomorrow. Until then, it stays." : "Saved. This makes the rule weaker, so it starts tomorrow. Until then, your old rule stays.") : r.message}</p>
-            {r.changed && !r.startsNow && <p className="text-lg font-semibold">It starts {whenPlain(r.startsAt)}.</p>}
+          <div className={`${card} n-stack n-gap-1`}>
+            {r.text && <p className="n-t-xl">{r.text}</p>}
+            <p className="n-t-lg">{r.changed && !r.startsNow ? (r.removed ? "Done. This rule turns off tomorrow. Until then, it stays." : "Saved. This makes the rule weaker, so it starts tomorrow. Until then, your old rule stays.") : r.message}</p>
+            {r.changed && !r.startsNow && <p className="n-t-lg n-strong">It starts {whenPlain(r.startsAt)}.</p>}
           </div>
           <Link href="/rules" className={btnPrimary}>See my rules</Link>
         </div>

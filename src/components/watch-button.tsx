@@ -21,20 +21,20 @@ export function WatchButton({ productId }: { productId: string }) {
 
   if (state === "done" || state === "full") {
     return (
-      <div className="space-y-3">
-        <p role="status" className="rounded-xl bg-good-bg p-3 text-lg font-semibold text-good-ink">
+      <div className="n-stack">
+        <p role="status" className="n-note n-note-good"><span>
           {state === "full" ? "I am already watching a lot of things. Okay, we will wait." : "Okay. I will watch the price. I will tell you on the home screen if it changes."}
-        </p>
+        </span></p>
         <Link href="/" className={btnPrimary}>See my money</Link>
       </div>
     );
   }
   return (
-    <div className="space-y-2">
+    <div className="n-stack n-gap-2">
       <button type="button" className={btnPrimary} onClick={watch} disabled={state === "working"}>
         {state === "working" ? "One moment…" : "Wait, and watch the price"}
       </button>
-      {state === "error" && <p role="alert" className="text-lg text-bad-ink">I could not do that. Please try again.</p>}
+      {state === "error" && <p role="alert" className="n-t-lg n-ink-stop">I could not do that. Please try again.</p>}
     </div>
   );
 }

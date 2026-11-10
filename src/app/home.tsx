@@ -106,7 +106,7 @@ export function Home() {
             <div className="ng-section"><h2 id="step-h" style={{ fontSize: "inherit" }}>Last time North stepped in</h2></div>
             <div className={`${card} n-stack`} style={{ gap: 10 }}>
               <div><StatusBadge view={stepView} /></div>
-              <p className="text-lg"><strong>{m.item(step.name)}</strong>, {formatMoney(step.amountCents)}. {STEP_LINE[step.decision]}</p>
+              <p className="n-t-lg"><strong>{m.item(step.name)}</strong>, {formatMoney(step.amountCents)}. {STEP_LINE[step.decision]}</p>
               <p style={{ color: "var(--n-muted)" }}>{new Date(step.at).toLocaleString("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" })}</p>
             </div>
           </section>
