@@ -36,8 +36,8 @@ export type DealPayload =
       kind: "verdict";
       verdict: Verdict;
       claimedCents: number;
-      /** Where the claimed price came from: the user's price box, the typed words, or the model's reading of a picture. */
-      claimSource: "typed" | "text" | "picture";
+      /** Where the claimed price came from: the user's price box, the typed words, the model's reading of a picture, or a product page's own listing. */
+      claimSource: "typed" | "text" | "picture" | "listing";
       /** From the store API. */
       productTitle?: string;
       sellerDomain: string | null;

@@ -49,7 +49,7 @@ export function computeVerdict(e: Evidence): Verdict {
   };
 
   // ---- evidence lines ------------------------------------------------------------------------
-  if (claimedOk) evidence.push(`The ad says ${dollarsLabel(e.claimedCents!)}.`);
+  if (claimedOk) evidence.push(`${e.fromListing ? "This listing says" : "The ad says"} ${dollarsLabel(e.claimedCents!)}.`);
   if (e.claimedWasCents && e.claimedWasCents > 0) evidence.push(`The ad's old price: ${dollarsLabel(e.claimedWasCents)}.`);
   if (cheapest) {
     const next = sorted[1];

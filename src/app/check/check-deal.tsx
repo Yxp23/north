@@ -35,14 +35,16 @@ const LOOK: Record<Verdict["verdict"]["kind"], { Icon: LucideIcon; word: string;
 };
 
 const SCAM_CHECKER = [{ name: "Scam checker", ai: true, did: "Read the ad and found the matching listing. Code worked out the verdict from real prices." }];
+const LISTING_CHECKER = [{ name: "Scam checker", ai: false, did: "Compared this listing with every store that sells it, and its 30-day price. Plain code, no AI." }];
 
-export function CheckDeal({ prefill }: { prefill: string }) {
+export function CheckDeal({ prefill, listing = null }: { prefill: string; /** A live product page's listing: checked from its own stores and price history, with nothing to paste. */ listing?: { id: string; name: string; stores: number } | null }) {
   const [stage, setStage] = useState<Stage>({ name: "ask" });
   const [text, setText] = useState(prefill);
   const [price, setPrice] = useState("");
   const [picture, setPicture] = useState<Picture | null>(null);
   const [showScam, setShowScam] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const checkers = listing ? LISTING_CHECKER : SCAM_CHECKER;
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -57,7 +59,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
       const res = await fetch("/api/deal-check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: JSON.stringify(listing ? { productId: listing.id } : {
           text,
           imageBase64: picture?.base64,
           priceDollars: priceText.trim() && Number.isFinite(dollars) && dollars > 0 ? dollars : undefined,
@@ -110,7 +112,14 @@ export function CheckDeal({ prefill }: { prefill: string }) {
   let body: React.ReactNode = null;
   switch (stage.name) {
     case "ask":
-      body = (
+      body = listing ? (
+        <form className="n-stack" style={{ gap: 20 }} onSubmit={(e) => { e.preventDefault(); void check(); }}>
+          {head("Is this deal real?", `I will check ${listing.name} at ${listing.stores === 1 ? "the store that sells it" : `all ${listing.stores} stores that sell it`}, and its price over the last 30 days. I will not buy anything.`)}
+          <button type="submit" className={btnPrimary}>Check this deal</button>
+          <Link href="/check" className={btnSecondary}>Check a different ad instead</Link>
+          <Link href={`/shop/${encodeURIComponent(listing.id)}`} className={btnSecondary}>Back to the product</Link>
+        </form>
+      ) : (
         <form
           className="n-stack"
           style={{ gap: 20 }}
@@ -140,7 +149,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
         <div className="n-stack">
           {head("Checking the deal")}
           <p role="status" className="n-note n-note-quiet"><span>This takes a few seconds. Nothing is bought.</span></p>
-          <ActivityPanel events={stage.events} agents={SCAM_CHECKER} />
+          <ActivityPanel events={stage.events} agents={checkers} />
         </div>
       );
       break;
@@ -153,7 +162,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
             <span className="n-label">Price in dollars</span>
             <input type="number" inputMode="decimal" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="n-field" />
           </label>
-          <ActivityPanel events={stage.events} agents={SCAM_CHECKER} />
+          <ActivityPanel events={stage.events} agents={checkers} />
           <button type="submit" className={btnPrimary} disabled={!(Number(price) > 0)}>Check again</button>
           <button type="button" className={btnSecondary} onClick={startOver}>Start over</button>
         </form>
@@ -181,7 +190,6 @@ export function CheckDeal({ prefill }: { prefill: string }) {
           <div className={`n-note ${look.box}`} style={{ padding: 22, borderRadius: 23 }}>
             <look.Icon aria-hidden="true" size={30} />
             <div className="n-stack" style={{ gap: 8 }}>
-              <p className="n-chip" style={{ padding: 0, background: "none" }}>{look.word}</p>
               <h1 ref={headingRef} tabIndex={-1} style={{ outline: "none" }}>{payload.verdict.headline}</h1>
               <p className="n-t-xl">{main}</p>
             </div>
@@ -203,7 +211,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
           {payload.claimSource === "picture" && (
             <p className="n-t-lg">I read the price from your picture: {formatMoney(payload.claimedCents)}. If that is wrong, type the price and check again.</p>
           )}
-          <ActivityPanel events={stage.events} agents={SCAM_CHECKER} guardian={scam && flagged === "yes" ? { decision: "refuse", code: "scam_seller", reason: "This seller looks like a scam. I won't pay them." } : undefined} />
+          <ActivityPanel events={stage.events} agents={checkers} guardian={scam && flagged === "yes" ? { decision: "refuse", code: "scam_seller", reason: "This seller looks like a scam. I won't pay them." } : undefined} />
           {payload.claimSource === "picture" && <button type="button" className={btnSecondary} onClick={() => setStage({ name: "ask" })}>Type the price myself</button>}
           <button type="button" className={btnPrimary} onClick={startOver}>Check another deal</button>
           <Link href="/find" className={btnSecondary}>Back to Find</Link>
@@ -215,7 +223,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
             >
               <div className="gd-evidence" role="group" aria-label="What I found">
                 {payload.productTitle && <Row label="Product">{payload.productTitle}</Row>}
-                <Row label="The ad says">{formatMoney(payload.claimedCents)}</Row>
+                <Row label={payload.claimSource === "listing" ? "This listing says" : "The ad says"}>{formatMoney(payload.claimedCents)}</Row>
                 {payload.sellerDomain && <Row label="Seller">{payload.sellerDomain}</Row>}
               </div>
               <h3 style={{ margin: "0 0 8px" }}>Real prices I checked</h3>
@@ -223,7 +231,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
                 {payload.verdict.evidence.map((e) => <li key={e}>{e}</li>)}
               </ul>
               {flagged === "yes" && <p className="n-note n-note-stop" style={{ margin: "0 0 14px" }}><Hand aria-hidden="true" /><span>I saved a warning about this seller. North will refuse to pay them.</span></p>}
-              <HowDecided title="Checking a deal" data={{ agents: [...SCAM_CHECKER, { name: "Money Guardian", ai: false, did: "Refuses to pay a seller that was flagged as a scam." }], guardian: flagged === "yes" ? { decision: "refuse", code: "scam_seller", reason: "This seller looks like a scam. I won't pay them." } : undefined, events: stage.events }} />
+              <HowDecided title="Checking a deal" data={{ agents: [...checkers, { name: "Money Guardian", ai: false, did: "Refuses to pay a seller that was flagged as a scam." }], guardian: flagged === "yes" ? { decision: "refuse", code: "scam_seller", reason: "This seller looks like a scam. I won't pay them." } : undefined, events: stage.events }} />
               <button type="button" className="n-btn n-btn-primary" data-autofocus onClick={() => setShowScam(false)}>Okay, I understand</button>
             </DecisionDialog>
           )}

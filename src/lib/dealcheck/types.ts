@@ -20,6 +20,8 @@ export type SellerFacts = {
 export type Evidence = {
   /** We found the product at stores. */
   matched: boolean;
+  /** The facts came from a product page's own listing (not a pasted ad): the words say "This listing says". */
+  fromListing?: boolean;
   productTitle?: string;
   /** What the ad says it costs. */
   claimedCents: number | null;

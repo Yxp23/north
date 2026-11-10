@@ -94,10 +94,11 @@
 .n-list-num { list-style: decimal; }
 .n-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .n-between { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
-/* One photo frame everywhere: fixed shape, soft surface that matches the theme (never a white box), the whole picture fitted inside.
-   multiply lets a photo's own white background melt into the frame instead of showing as an inner block. */
+/* One photo frame everywhere: a fixed shape, rounded, and the photo FILLS it (cover, centred), so a store's own grey or white photo
+   background never shows as a block inside our frame. The soft theme surface only shows while a photo loads. The full-screen viewer is the one
+   place a photo is shown whole (contain). */
 .ph-frame { display: block; position: relative; overflow: hidden; isolation: isolate; background: var(--n-photo); border-radius: 14px; }
-.ph-frame > img { display: block; width: 100%; height: 100%; object-fit: contain; padding: 6px; box-sizing: border-box; mix-blend-mode: multiply; }
+.ph-frame > img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .n-photo { width: 100%; aspect-ratio: 4 / 3; }
 .n-photo-md { aspect-ratio: auto; height: 112px; }
 .n-photo-sm { aspect-ratio: auto; height: 96px; }
