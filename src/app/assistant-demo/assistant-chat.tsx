@@ -1,6 +1,7 @@
 "use client";
 // DEMO: "Any AI assistant". A generic chat that stands in for an outside AI. It reaches North only through the MCP server,
 // with its own key, so the video can show an outside agent being stopped by the checkpoint.
+import { ProblemNote } from "@/components/states";
 import { FlaskConical } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -93,7 +94,7 @@ export function AssistantChat() {
       ) : (
         <p className="n-note n-note-good"><span>Connected to North. <button type="button" className="n-link" style={{ display: "inline-flex" }} onClick={() => { save(""); setTurns([]); }}>Forget the key</button></span></p>
       )}
-      {error && <p role="alert" className="n-note n-note-stop"><span>{error}</span></p>}
+      {error && <ProblemNote message={error} />}
 
       <ul className="n-stack" aria-live="polite">
         {turns.map((t, i) => (

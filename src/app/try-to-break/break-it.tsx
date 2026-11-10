@@ -1,4 +1,5 @@
 "use client";
+import { ProblemNote } from "@/components/states";
 import { useState } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
@@ -57,7 +58,7 @@ export function BreakIt() {
         <label className="n-checkrow"><input type="checkbox" checked={web} onChange={(e) => setWeb(e.target.checked)} /> It got the idea from text on a web page</label>
         <button type="submit" className={btnPrimary} disabled={busy}>{busy ? "Asking the Guardian…" : "Ask North"}</button>
       </form>
-      {err && <p role="alert" className="n-note n-note-stop"><span>{err}</span></p>}
+      {err && <ProblemNote message={err} />}
       {out && view && (
         <div role="status" className={`${card} n-stack`}>
           <StatusBadge view={view} />

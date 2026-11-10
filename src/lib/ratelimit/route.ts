@@ -2,7 +2,9 @@
 import "server-only";
 import { getRateLimiter } from "../ledger/server";
 
-export const TOO_MANY = "That is a lot of tries. Please wait a little while.";
+import { RATE_LIMIT_MESSAGE } from "../ui/rate-limit";
+
+export const TOO_MANY = RATE_LIMIT_MESSAGE;
 
 /**
  * For the attacker and other test runs that set things up over and over: NORTH_DEV_RATE_MULTIPLIER=10 makes the per-person limits

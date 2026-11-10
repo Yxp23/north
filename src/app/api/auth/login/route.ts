@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { loginCookies } from "@/lib/auth/cookies";
 import { sameOrigin } from "@/lib/auth/check";
 import { signIn } from "@/lib/auth/provider";
+import { LOGIN_RATE_LIMIT_MESSAGE } from "@/lib/ui/rate-limit";
 import { csrfFor, issueSession, SESSION_TTL_MS } from "@/lib/auth/session";
 import { subkey } from "@/lib/guardian/secret";
 import { getLedger, getRateLimiter } from "@/lib/ledger/server";
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
   const ip = (req.headers.get("x-forwarded-for")?.split(",")[0] ?? req.headers.get("x-real-ip") ?? "unknown").trim().slice(0, 64);
   const who = createHash("sha256").update(email.toLowerCase()).digest("hex").slice(0, 32);
   const [okIp, okWho] = await Promise.all([limiter.allow(`login:ip:${ip}`, 30, 900), limiter.allow(`login:who:${who}:${ip}`, 8, 900)]);
-  if (!okIp || !okWho) return Response.json({ error: "That is a lot of tries. Please wait a few minutes." }, { status: 429, headers: { ...noStore, "Retry-After": "300" } });
+  if (!okIp || !okWho) return Response.json({ error: LOGIN_RATE_LIMIT_MESSAGE }, { status: 429, headers: { ...noStore, "Retry-After": "300" } });
 
   const r = await signIn(email, password);
   if (!r.ok) {

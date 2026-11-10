@@ -2,6 +2,7 @@
 // "Ask North": type or upload whatever you need. The Concierge routes it to the right helper (Scam checker, Finder, Help me choose,
 // the rule helper, or the Payments helper) and the activity panel shows the handoff. The pages for each helper stay as shortcuts.
 // Routing can't move money: every helper here only reads or notifies, and buying is always a separate tap through the Money Guardian.
+import { ProblemNote } from "@/components/states";
 import { Photo } from "@/components/photo";
 import Link from "next/link";
 import { useState } from "react";
@@ -85,7 +86,7 @@ export function AskNorth({ variant = "dialog", below }: { variant?: "dialog" | "
         {empty && !busy && <p id={hintId} className="n-hint">Type or add a photo first.</p>}
       </form>
       {below}
-      {error && <p role="alert" className="n-note n-note-stop"><span>{error}</span></p>}
+      {error && <ProblemNote message={error} />}
       {(busy || events.length > 0) && <ActivityPanel events={events} agents={answer ? [CONCIERGE, ...(HELPERS[answer.route] ? [HELPERS[answer.route]] : [])] : [CONCIERGE]} />}
       {answer && <AskResult a={answer} price={price} setPrice={setPrice} again={(route, extra) => ask({ route, extra })} />}
     </section>
@@ -98,7 +99,7 @@ export function AskResult({ a, price, setPrice, again }: { a: Answer; price: str
 
   if (a.route === "scam_checker") {
     const p = a.payload.payload;
-    if (p.kind === "error") return <p role="alert" className="n-note n-note-stop"><span>{p.message}</span></p>;
+    if (p.kind === "error") return <ProblemNote message={p.message} />;
     if (p.kind === "needs_price") {
       return (
         <div className="n-stack n-gap-2">
@@ -124,7 +125,7 @@ export function AskResult({ a, price, setPrice, again }: { a: Answer; price: str
 
   if (a.route === "finder") {
     const p = a.payload.payload;
-    if (p.kind === "error") return <p role="alert" className="n-note n-note-stop"><span>{p.message}</span></p>;
+    if (p.kind === "error") return <ProblemNote message={p.message} />;
     if (p.kind === "none") return <p role="status" className="n-t-lg">I did not find it. Try different words, or a clearer picture.</p>;
     return (
       <ul className="n-stack">
@@ -139,7 +140,7 @@ export function AskResult({ a, price, setPrice, again }: { a: Answer; price: str
 
   if (a.route === "help_me_choose") {
     const p = a.payload.payload;
-    if (p.kind === "error") return <p role="alert" className="n-note n-note-stop"><span>{p.message}</span></p>;
+    if (p.kind === "error") return <ProblemNote message={p.message} />;
     if (p.kind === "question") {
       return (
         <div className="n-stack n-gap-2">

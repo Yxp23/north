@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Suspense } from "react";
 import { CsrfFetch } from "@/components/csrf-fetch";
+import { RateLimitWatch } from "@/components/rate-limit-watch";
 import { AppearanceProvider } from "@/components/shell/appearance";
 import { AppShell } from "@/components/shell/app-shell";
 import { TraceProvider } from "@/components/shell/trace";
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {`(function(){try{var p=JSON.parse(localStorage.getItem("north-appearance")||"{}");var t=["tide","dune","grove","opal","bloom"].indexOf(p.theme)>-1?p.theme:"bloom";var d=p.mode==="dark"||(p.mode!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);var r=document.documentElement;r.dataset.theme=t;r.dataset.mode=d?"dark":"light";}catch(e){}})();`}
         </Script>
         <CsrfFetch />
+        <RateLimitWatch />
         <AppearanceProvider forceVideoSafe={process.env.VIDEO_SAFE === "1"}>
           <TraceProvider>
             {/* The shell reads the current address (to mark the tab and the login page), which Next only knows per request. */}

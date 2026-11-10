@@ -1,6 +1,7 @@
 "use client";
 // Payment history, inside Money: ask about your orders. The helper asks PayPal (through the PayPal Agent Toolkit) and tells you in plain words.
 // It can only look. Every amount comes from North's record or PayPal, never from the AI's words.
+import { failureText } from "@/lib/ui/rate-limit-client";
 import { Photo } from "@/components/photo";
 import { CircleCheck, TriangleAlert } from "lucide-react";
 import { useState } from "react";
@@ -31,7 +32,7 @@ export function PaymentsSection() {
     setStage({ name: "thinking", events: [] });
     const r = await postAgent<PaymentsOutcome>("/api/concierge/payments", { question }, (events) => setStage({ name: "thinking", events }));
     const p = r.payload;
-    if (!p) setStage({ name: "message", title: "I couldn't look that up", message: r.error ?? "That did not work. Nothing was changed. Try again.", events: r.events });
+    if (!p) setStage({ name: "message", title: "I couldn't look that up", message: r.error ?? failureText("That did not work. Nothing was changed. Try again."), events: r.events });
     else if (p.kind === "answer") setStage({ name: "answer", answer: p, events: r.events });
     else if (p.kind === "none") setStage({ name: "message", title: "Nothing yet", message: p.message, events: r.events });
     else setStage({ name: "message", title: "I couldn't look that up", message: p.message, events: r.events });

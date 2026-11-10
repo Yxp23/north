@@ -1,6 +1,7 @@
 "use client";
 // What the Money Guardian said about a buy, shown over the screen you bought from. Used after "Pay" on a product and after "Buy this again".
 // While the Guardian works, the real steps stream in. Then the answer takes its place: one of the six looks.
+import { ProblemNote } from "@/components/states";
 import { Check, Clock, Hand } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -13,6 +14,7 @@ import { WatchButton } from "@/components/watch-button";
 import type { StepEvent } from "@/lib/agents/loop";
 import type { CheckoutOutcome } from "@/lib/checkout/checkout";
 import { formatMoney } from "@/lib/format";
+import { decisionSubtitle, type SubtitleFacts } from "@/lib/ui/dialog-subtitle";
 import { decisionFromOutcome } from "@/lib/ui/decision-view";
 import { traceFromCheckout } from "@/lib/ui/guardian-trace";
 import { DecisionDialog, Row } from "./decision-dialog";
@@ -23,10 +25,12 @@ const GUARDIAN: { name: string; ai: false; did: string }[] = [{ name: "Money Gua
 export type CheckoutPhase = { name: "working"; events: StepEvent[] } | { name: "done"; outcome: CheckoutOutcome; events: StepEvent[] };
 
 export function CheckoutDialog({
-  phase, product, onBuyNow, onClose,
+  phase, product, facts, onBuyNow, onClose,
 }: {
   phase: CheckoutPhase;
   product: CheckoutProduct;
+  /** What the subtitle needs (the price, the rules, what is left). Without it the Guardian's own sentence is shown. */
+  facts?: SubtitleFacts;
   /** The person tapped "Buy now" on a wait answer. Only they can. */
   onBuyNow(): void;
   onClose(): void;
@@ -49,6 +53,9 @@ export function CheckoutDialog({
   const trace = traceFromCheckout(o, events);
   const panel = <HowDecided title={`Buying ${product.name}`} data={{ agents: GUARDIAN, checkout: trace, events }} />;
   const view = decisionFromOutcome(o);
+  const sub = facts ? decisionSubtitle(o, facts) : null;
+  // The line under the title: the person's own rule and the price when we know them. The Guardian's own words stay in "How North decided".
+  const withSub = (v: NonNullable<typeof view>) => (sub ? { ...v, reason: sub } : v);
   const close = <button type="button" className="n-btn n-btn-quiet" onClick={onClose}>Back</button>;
 
   async function undoSave(id: string) {
@@ -66,7 +73,7 @@ export function CheckoutDialog({
   if (o.kind === "paid" && view) {
     const p = o.purchase;
     return (
-      <DecisionDialog view={view} onClose={onClose} hear={`Approved. You bought ${p.name} for ${formatMoney(p.amountCents)}. You'll still have ${formatMoney(o.leftCents)} this week.`}>
+      <DecisionDialog view={withSub(view)} onClose={onClose} hear={`Approved. You bought ${p.name} for ${formatMoney(p.amountCents)}. You'll still have ${formatMoney(o.leftCents)} this week.`}>
         <Link href="/money" className="n-btn n-btn-primary">See my money</Link>
         <Link href="/find" className="n-btn n-btn-quiet">Keep looking</Link>
         <div className="ng-review" role="group" aria-label="Your receipt">
@@ -92,7 +99,7 @@ export function CheckoutDialog({
 
   if (o.kind === "wait" && view) {
     return (
-      <DecisionDialog view={view} onClose={onClose} hear={`Wait, or buy now? ${o.result.reason}`}>
+      <DecisionDialog view={withSub(view)} onClose={onClose} hear={`Wait, or buy now? ${sub ?? o.result.reason}`}>
         <p className="n-note n-note-wait" style={{ margin: "0 0 14px" }}><Clock aria-hidden="true" /><span>No money has moved. You can wait, or you can buy it now. It is your call.</span></p>
         <WatchButton productId={product.id} />
         {view.canBuyNow && <button type="button" className="n-btn n-btn-secondary" onClick={onBuyNow}>Buy now</button>}
@@ -104,13 +111,13 @@ export function CheckoutDialog({
 
   if (o.kind === "waitlisted" && view) {
     return (
-      <DecisionDialog view={view} onClose={onClose} hear={`Saved for later. ${o.result.reason}`}>
+      <DecisionDialog view={withSub(view)} onClose={onClose} hear={`Saved for later. ${sub ?? o.result.reason}`}>
         {undone === "done" ? (
           <p role="status" className="n-note n-note-good"><Check aria-hidden="true" /><span>Okay. It is not on your list. Nothing was bought.</span></p>
         ) : (
           <p className="n-note n-note-quiet" style={{ margin: "0 0 14px" }}><span>I will also watch the price while you wait, and tell you on the home screen if it changes.</span></p>
         )}
-        {undone === "failed" && <p role="alert" className="n-note n-note-stop" style={{ margin: "0 0 14px" }}><span>That did not work. It is still saved. Try again.</span></p>}
+        {undone === "failed" && <ProblemNote message="That did not work. It is still saved. Try again." style={{ margin: "0 0 14px" }} />}
         {undone !== "done" && <Link href="/saved" className="n-btn n-btn-primary">See my saved items</Link>}
         {undone !== "done" && (
           <button type="button" className="n-btn n-btn-quiet" disabled={undoing} onClick={() => undoSave(o.item.id)}>Undo. Don&apos;t save it.</button>
@@ -122,7 +129,7 @@ export function CheckoutDialog({
 
   if (o.kind === "refused" && view) {
     return (
-      <DecisionDialog view={view} onClose={onClose} hear={`${view.word}. ${view.title}. ${o.result.reason}`}>
+      <DecisionDialog view={withSub(view)} onClose={onClose} hear={`${view.word}. ${view.title}. ${sub ?? o.result.reason}`}>
         <p className="n-note n-note-stop" style={{ margin: "0 0 14px" }}><Hand aria-hidden="true" /><span>Nothing was charged. {view.variant === "scam" ? "I will not pay this seller, whatever anyone says." : "No one can get past this, not even a Buy now."}</span></p>
         {view.variant === "scam" && <Link href={`/check?product=${encodeURIComponent(product.id)}`} className="n-btn n-btn-quiet">See why I think it is a scam</Link>}
         {o.result.code === "locked_rule" && <Link href="/rules" className="n-btn n-btn-quiet">See my rules</Link>}

@@ -1,6 +1,7 @@
 "use client";
 // A product with its picture, name and price, for lists of finds, picks and matches. The price is the store's own number.
 // "Compare stores" opens the same store comparison as the product page (every in-stock store, cheapest first). It is read from the store when opened.
+import { ProblemNote } from "./states";
 import { Photo } from "./photo";
 import { useEffect, useState, type ReactNode } from "react";
 import { Disclosure } from "@/components/disclosure";
@@ -23,7 +24,7 @@ function Compare({ id }: { id: string }) {
     return () => { alive = false; };
   }, [id]);
   if (product === null) return <p role="status" className="n-note n-note-quiet"><span>Getting the stores. One moment.</span></p>;
-  if (product === "error") return <p role="alert" className="n-note n-note-stop"><span>I could not get the stores just now. Nothing was changed.</span></p>;
+  if (product === "error") return <ProblemNote message="I could not get the stores just now. Nothing was changed." />;
   return <StoreComparison offers={product.offers} live={product.live} />;
 }
 

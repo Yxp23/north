@@ -1,6 +1,8 @@
 "use client";
 // First-run setup, in three short steps: connect PayPal, set the weekly money and the rent-and-bills money, write a first rule in your own words.
 // Every step can be skipped. It remembers where you stopped (on this device) and can be run again from Demo tools.
+import { failureText } from "@/lib/ui/rate-limit-client";
+import { ProblemNote } from "@/components/states";
 import { ArrowRight, Check, FilePlus2, PiggyBank, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -81,9 +83,9 @@ function MoneyStep({ weekly, protectedCents, onNext, onBack, onSaved }: { weekly
       if (r.ok) {
         setSaved(true);
         onSaved();
-      } else setMessage(j.message ?? "That did not work. Nothing was changed. Try again.");
+      } else setMessage(j.message ?? failureText("That did not work. Nothing was changed. Try again."));
     } catch {
-      setMessage("That did not work. Nothing was changed. Try again.");
+      setMessage(failureText("That did not work. Nothing was changed. Try again."));
     }
     setBusy(false);
   }
@@ -99,7 +101,7 @@ function MoneyStep({ weekly, protectedCents, onNext, onBack, onSaved }: { weekly
         <input type="number" inputMode="decimal" min={0} step="1" value={rent} onChange={(e) => { setRent(e.target.value); setSaved(false); }} className="n-field" />
       </label>
       <p style={{ color: "var(--n-ink)" }}>North will never spend the rent and bills money. Nothing can get past that.</p>
-      {message && <p role="alert" className="n-note n-note-stop"><span>{message}</span></p>}
+      {message && <ProblemNote message={message} />}
       {saved && <p role="status" className="n-note n-note-good"><Check aria-hidden="true" /><span>Saved. You can spend {formatMoney(Math.round(Number(week) * 100))} each week. {formatMoney(Math.round(Number(rent) * 100))} is set aside.</span></p>}
       {saved ? (
         <button type="button" className={btnPrimary} onClick={onNext}>Next<ArrowRight aria-hidden="true" /></button>

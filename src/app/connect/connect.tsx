@@ -1,6 +1,7 @@
 "use client";
 // Connect PayPal. This saves your PayPal for later. It does not buy anything and no money moves.
 // PayPal SDK v6 "save without purchase": setup token -> popup -> permanent token (kept on the server).
+import { ProblemNote } from "@/components/states";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { btnPrimary, btnSecondary } from "@/components/classes";
@@ -127,7 +128,7 @@ export function Connect({ embedded = false }: { embedded?: boolean }) {
       {state === "not_eligible" && (
         <p role="alert" className="n-note n-note-stop"><span>PayPal says this account can&apos;t be saved here.</span></p>
       )}
-      {state === "error" && <p role="alert" className="n-note n-note-stop"><span>That did not work. Nothing was saved. Please try again.</span></p>}
+      {state === "error" && <ProblemNote message="That did not work. Nothing was saved. Please try again." />}
 
       <button
         type="button"

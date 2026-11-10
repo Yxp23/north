@@ -1,6 +1,7 @@
 "use client";
 // One decision per screen: look, Buy this, review the item, seller and total, then the Guardian's answer (paid / wait / saved / stopped).
 // The price on screen comes from the store. The reason text comes from the Guardian. Every action shows its steps, in plain words.
+import { ProblemNote } from "@/components/states";
 import { Photo } from "@/components/photo";
 import { Bot, ShieldCheck, TriangleAlert, Wallet } from "lucide-react";
 import Link from "next/link";
@@ -165,7 +166,7 @@ function HelperDialog({ product, screen, demoMode, onAgain, onClose }: {
     <Dialog label="What the helper found" onClose={onClose} wide>
       <h2 data-autofocus tabIndex={-1} style={{ outline: "none" }}>What the helper found</h2>
       {r.error ? (
-        <p role="alert" className="n-note n-note-stop"><span>{r.error}</span></p>
+        <ProblemNote message={r.error} />
       ) : (
         <>
           <div className="ng-review">

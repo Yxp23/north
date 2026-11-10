@@ -18,7 +18,7 @@ const TABS: Tab[] = [
   { href: "/", label: "Home", Icon: House, match: /^\/$/ },
   { href: "/find", label: "Find", Icon: Search, match: /^\/(find|shop|choose|reorder|check)(\/|$)/ },
   { href: "/saved", label: "Saved", Icon: Bookmark, match: /^\/saved(\/|$)/ },
-  { href: "/money", label: "Money", Icon: Wallet, match: /^\/(money|rules|payments|connect|welcome)(\/|$)/ },
+  { href: "/money", label: "Money", Icon: Wallet, match: /^\/(money|rules|payments|connect)(\/|$)/ },
 ];
 export const activeTab = (path: string) => TABS.findIndex((t) => t.match.test(path));
 

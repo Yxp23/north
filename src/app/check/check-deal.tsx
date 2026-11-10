@@ -10,7 +10,7 @@ import { ActivityPanel } from "@/components/activity-panel";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
 import { DecisionDialog, Row } from "@/components/decision-dialog";
 import { PicturePicker, type Picture } from "@/components/picture-picker";
-import { ErrorNote } from "@/components/states";
+import { ErrorNote, ProblemNote } from "@/components/states";
 import { HowDecided } from "@/components/trace-view";
 import type { StepEvent } from "@/lib/agents/loop";
 import type { DealPayload } from "@/lib/agents/scam-checker/scam-checker";
@@ -164,7 +164,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
         <div className="n-stack">
           {head("I couldn't check that")}
           <ErrorNote what="that deal" touched="Nothing was bought." onRetry={() => setStage({ name: "ask" })} />
-          <p role="alert" className="n-note n-note-stop"><span>{stage.message}</span></p>
+          <ProblemNote message={stage.message} />
           <Link href="/find" className={btnSecondary}>Back to Find</Link>
         </div>
       );

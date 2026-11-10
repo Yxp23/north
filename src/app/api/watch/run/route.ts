@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   // "Pretend the prices dropped" is a demo tool. It only works when demo tools are on.
   const p = Number(body?.pretendDropPercent);
   const pretend = demoAllowed(auth.userId) && Number.isFinite(p) && p > 0 && p < 100 ? Math.round(p) : undefined;
-  const tooMany = await limited(auth.userId, "watch-run", 30, 3600, "That is a lot of checks. Please wait a little while.");
+  const tooMany = await limited(auth.userId, "watch-run", 30, 3600);
   if (tooMany) return tooMany;
 
   return ndjsonResponse(

@@ -1,6 +1,8 @@
 "use client";
 // The pieces of "this week's money" that more than one screen shows: the data hook, the assistant's one-tap card, price news, the
 // waiting list (with Remove and Undo), the list of buys (with refunds and PayPal's receipt numbers) and the demo tools.
+import { failureText } from "@/lib/ui/rate-limit-client";
+import { ProblemNote } from "@/components/states";
 import { Bell, CircleCheck, CircleX, Clock, Hourglass, Undo2, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -63,9 +65,9 @@ export function AskRow({ a, onChange, onAnswered }: { a: AssistantAskView; onCha
     try {
       const res = await fetch("/api/agents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "answer", id: a.id, answer: yes ? "yes" : "no" }) });
       const out = await res.json();
-      onAnswered(out.message ?? "That did not work. Nothing was bought. Try again.");
+      onAnswered(out.message ?? failureText("That did not work. Nothing was bought. Try again."));
     } catch {
-      onAnswered("That did not work. Nothing was bought. Try again.");
+      onAnswered(failureText("That did not work. Nothing was bought. Try again."));
     }
     setWorking(false);
     onChange();
@@ -142,7 +144,7 @@ export function WaitingRow({ w, onRemove, primary = false }: { w: WaitingView; o
       </div>
       {w.ready && <Link href={`/shop/${w.productId}`} className={primary ? btnPrimary : btnSecondary}>Look at it again</Link>}
       <button type="button" className={btnSecondary} onClick={remove} disabled={working}>Take it off my list</button>
-      {failed && <p role="alert" className="n-note n-note-stop">That did not work. Your list is the same. Try again.</p>}
+      {failed && <ProblemNote message="That did not work. Your list is the same. Try again." />}
     </li>
   );
 }
@@ -190,10 +192,10 @@ export function PurchaseRow({ p, onChange }: { p: PurchaseView; onChange: () => 
         out.kind === "refunded" ? `Done. ${formatMoney(p.amountCents)} is coming back to you.`
         : out.kind === "already_refunded" ? "Already refunded."
         : out.kind === "pending" ? "PayPal is sending your money back. It can take a moment."
-        : "That did not work. Nothing was refunded. Try again.",
+        : failureText("That did not work. Nothing was refunded. Try again."),
       );
     } catch {
-      setMessage("That did not work. Nothing was refunded. Try again.");
+      setMessage(failureText("That did not work. Nothing was refunded. Try again."));
     }
     setStep("idle");
     onChange();

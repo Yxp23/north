@@ -29,7 +29,6 @@ export default function LoginPage() {
       <div className="ng-page-title">
         <div className="ng-eyebrow">Welcome</div>
         <h1>Log in<br />to North.</h1>
-        <p>You set the rules. You can override them.</p>
       </div>
       <Suspense fallback={<p role="status" className="n-note n-note-quiet">One moment.</p>}>
         <Form />

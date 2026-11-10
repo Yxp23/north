@@ -1,6 +1,7 @@
 "use client";
 // "My rules": every rule in plain words, with its strength. Each rule can be read aloud. A change that has not started yet can be
 // undone: that only brings back the rule you have now, so it can never make a rule weaker.
+import { failureText } from "@/lib/ui/rate-limit-client";
 import { Bell, Clock, Lock, Undo2, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -47,9 +48,9 @@ export function RulesList() {
     try {
       const r = await fetch("/api/rules/change", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "cancel", kind }) });
       const j = await r.json();
-      setMessage(r.ok ? j.message : "That did not work. Your rule is the same. Try again.");
+      setMessage(r.ok ? j.message : failureText("That did not work. Your rule is the same. Try again."));
     } catch {
-      setMessage("That did not work. Your rule is the same. Try again.");
+      setMessage(failureText("That did not work. Your rule is the same. Try again."));
     }
     load();
   }
