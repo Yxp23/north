@@ -9,6 +9,7 @@ import { ActivityPanel } from "@/components/activity-panel";
 import { BuyFlow, type BuyItem } from "@/components/buy-flow";
 import { btnPrimary, btnSecondary } from "@/components/classes";
 import { PicturePicker, type Picture } from "@/components/picture-picker";
+import { Channel3Credit } from "@/components/channel3-credit";
 import { ProductCard } from "@/components/product-card";
 import { ErrorNote, Loading } from "@/components/states";
 import type { StepEvent } from "@/lib/agents/loop";
@@ -97,6 +98,7 @@ export function FindIt() {
           ) : (
             <AskResult a={stage.answer} price={price} setPrice={setPrice} again={(route, extra) => void find({ route, extra })} />
           )}
+          {(stage.name === "again" || stage.answer.route === "finder" || stage.answer.route === "help_me_choose") && <Channel3Credit />}
         </section>
       )}
       {events.length > 0 && stage.name !== "thinking" && <ActivityPanel events={events} agents={agents} title="What I did" />}

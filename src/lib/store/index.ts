@@ -11,7 +11,9 @@ export type { StoreOffer, StoreProduct, StoreProvider } from "./types";
  * STORE_MODE=demo also keeps it to the 14 demo products: live results can show real brand names and logos in
  * their pictures, and the contest bans those in the video.
  */
+/** True when prices come live from Channel3 (the screens then say so). */
+export const storeIsLive = (env: Record<string, string | undefined> = process.env): boolean => Boolean(env.CHANNEL3_API_KEY) && env.STORE_MODE !== "demo";
+
 export function getStore(): StoreProvider {
-  const live = Boolean(process.env.CHANNEL3_API_KEY) && process.env.STORE_MODE !== "demo";
-  return live ? new LiveStore(channel3Source) : new DemoStore();
+  return storeIsLive() ? new LiveStore(channel3Source) : new DemoStore();
 }

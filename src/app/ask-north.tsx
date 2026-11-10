@@ -9,6 +9,7 @@ import { useState } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
 import { PicturePicker, type Picture } from "@/components/picture-picker";
+import { Channel3Credit } from "@/components/channel3-credit";
 import { ProductCard } from "@/components/product-card";
 import type { StepEvent } from "@/lib/agents/loop";
 import type { ChooseOutcome } from "@/lib/agents/finder/choose";
@@ -134,6 +135,7 @@ export function AskResult({ a, price, setPrice, again }: { a: Answer; price: str
             <ProductCard item={item} openCompare={i === 0}><Link href={`/shop/${item.id}`} className={btnSecondary}>Look at this one</Link></ProductCard>
           </li>
         ))}
+        <li><Channel3Credit /></li>
       </ul>
     );
   }
@@ -173,6 +175,7 @@ export function AskResult({ a, price, setPrice, again }: { a: Answer; price: str
             </li>
           ))}
         </ul>
+        <Channel3Credit />
       </div>
     );
   }

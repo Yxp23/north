@@ -10,6 +10,7 @@ import { ActivityPanel } from "@/components/activity-panel";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
 import { DecisionDialog, Row } from "@/components/decision-dialog";
 import { PicturePicker, type Picture } from "@/components/picture-picker";
+import { Channel3Credit } from "@/components/channel3-credit";
 import { ErrorNote, ProblemNote } from "@/components/states";
 import { HowDecided } from "@/components/trace-view";
 import type { StepEvent } from "@/lib/agents/loop";
@@ -197,6 +198,7 @@ export function CheckDeal({ prefill }: { prefill: string }) {
               {payload.productTitle && <li>Product: {payload.productTitle}</li>}
               {payload.verdict.evidence.map((e) => <li key={e}>{e}</li>)}
             </ul>
+            <Channel3Credit what="price history" />
           </section>
           {payload.claimSource === "picture" && (
             <p className="n-t-lg">I read the price from your picture: {formatMoney(payload.claimedCents)}. If that is wrong, type the price and check again.</p>

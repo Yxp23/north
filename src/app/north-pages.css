@@ -127,3 +127,4 @@
 .n-self-start { justify-self: start; }
 .n-focus-target { outline: none; }
 .hw-actor-name { display: flex; gap: 8px; align-items: center; }
+.n-credit { margin: 0; font-size: 16px; color: var(--n-muted); }

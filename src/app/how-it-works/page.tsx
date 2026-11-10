@@ -76,6 +76,7 @@ export default function HowItWorks() {
       <section aria-labelledby="path-h" className="n-stack">
         <h2 id="path-h">The path of a payment</h2>
         <p>An AI assistant can now spend your money. North is the checkpoint that makes it follow your rules.</p>
+        <p className="n-credit">Prices and store comparisons come live from Channel3, and so does the 30-day price history (it builds up day by day). North never takes a price from an AI: it reads the price from Channel3 again at checkout.</p>
         <Pipeline />
       </section>
 

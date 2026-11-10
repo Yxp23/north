@@ -12,6 +12,7 @@ import { BehindTheScenes } from "./behind-the-scenes";
 import { Dialog } from "./dialog";
 import { MotionLayer, shine } from "./motion-layer";
 import { SpeakButton } from "./speak";
+import { StoreLiveContext } from "./store-live";
 
 type Tab = { href: string; label: string; Icon: LucideIcon; match: RegExp };
 const TABS: Tab[] = [
@@ -224,6 +225,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [help, setHelp] = useState(false);
   const [ask, setAsk] = useState(false);
   const [demo, setDemo] = useState(false);
+  const [storeLive, setStoreLive] = useState(false);
   const menuBtn = useRef<HTMLButtonElement>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const closeAppearance = useCallback(() => setAppearanceOpen(false), []);
@@ -233,7 +235,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (onLogin) return;
     let alive = true;
-    fetch("/api/summary", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => alive && setDemo(j?.demoMode === true)).catch(() => undefined);
+    fetch("/api/summary", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (!alive) return; setDemo(j?.demoMode === true); setStoreLive(j?.storeLive === true); }).catch(() => undefined);
     return () => { alive = false; };
   }, [onLogin]);
 
@@ -256,7 +258,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <>
+    <StoreLiveContext.Provider value={storeLive}>
       <MotionLayer />
       <PageMotion path={path} />
       <div className="ng-content">
@@ -331,6 +333,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           <AskNorth />
         </Dialog>
       )}
-    </>
+    </StoreLiveContext.Provider>
   );
 }

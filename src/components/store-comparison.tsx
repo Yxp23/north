@@ -5,6 +5,7 @@ import { Check, TriangleAlert } from "lucide-react";
 import { compareStores } from "@/lib/store/compare";
 import type { StoreOffer } from "@/lib/store/types";
 import { formatMoney } from "@/lib/format";
+import { Channel3Credit } from "./channel3-credit";
 import { card } from "./classes";
 import { useMask } from "./shell/mask";
 
@@ -36,6 +37,7 @@ export function StoreComparison({ offers, live }: { offers?: StoreOffer[]; live?
           {hiddenCount ? <p>And {hiddenCount} more {hiddenCount === 1 ? "store" : "stores"}, all costing more.</p> : null}
         </>
       )}
+      {live !== false && <Channel3Credit />}
       <p className="n-muted">This is a practice shop. Your test PayPal pays, and nothing is sent to you.</p>
     </section>
   );
