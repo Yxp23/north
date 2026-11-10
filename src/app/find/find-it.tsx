@@ -4,7 +4,8 @@
 // through the same review and the same Money Guardian. Finding never buys anything.
 import { Search, Wallet } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
 import { BuyFlow, type BuyItem } from "@/components/buy-flow";
 import { btnPrimary, btnSecondary } from "@/components/classes";
@@ -15,7 +16,8 @@ import { ErrorNote, Loading } from "@/components/states";
 import type { StepEvent } from "@/lib/agents/loop";
 import type { FinderOutcome } from "@/lib/agents/finder/finder";
 import { postAgent } from "@/lib/ndjson-client";
-import { AskResult, type Answer } from "../ask-north";
+import { normalizeQuery, readFind, readLastResults, rememberResults, resultsUrl, writeFind } from "@/lib/ui/find-cache";
+import { AskResult, FIRST_RESULTS, type Answer } from "../ask-north";
 
 const CONCIERGE = { name: "Concierge", ai: true, did: "Read what you wrote and chose the right helper. It cannot move money." };
 const FINDER = { name: "Finder", ai: true, did: "Searched the stores. It can only find, never buy." };
@@ -27,24 +29,56 @@ type Stage =
   | { name: "again"; items: Extract<FinderOutcome, { kind: "found" }>["items"]; events: StepEvent[] }
   | { name: "error"; message: string; events: StepEvent[] };
 
+/**
+ * Put the page back where it was. The results are drawn a moment after the page opens (and the browser may scroll to the top once the page
+ * changes), so this tries for about a second, and stops at once if the person scrolls themselves.
+ */
+function restoreScroll(y: number) {
+  let frames = 0;
+  let stop = false;
+  const cancel = () => { stop = true; };
+  const events = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
+  events.forEach((e) => window.addEventListener(e, cancel, { passive: true, once: true }));
+  const tick = () => {
+    const tallEnough = document.documentElement.scrollHeight >= y + window.innerHeight * 0.8;
+    if (!stop && tallEnough && Math.abs(window.scrollY - y) > 2) window.scrollTo({ top: y, behavior: "instant" });
+    if (!stop && ++frames < 60) requestAnimationFrame(tick);
+    else events.forEach((e) => window.removeEventListener(e, cancel));
+  };
+  requestAnimationFrame(tick);
+}
+
+/** The "Or look around" shelf is for when nothing has been searched yet. */
+export function BrowseOnly({ children }: { children: ReactNode }) {
+  return useSearchParams().get("q") ? null : <>{children}</>;
+}
+
 export function FindIt() {
+  // The search words live in the address (/find?q=running+shoes), so Back, a refresh and a shared link all show the same results.
+  const q = (useSearchParams().get("q") ?? "").slice(0, 500);
+  const router = useRouter();
   const [stage, setStage] = useState<Stage>({ name: "ask" });
-  const [text, setText] = useState("");
+  const [text, setText] = useState(q);
   const [price, setPrice] = useState("");
   const [picture, setPicture] = useState<Picture | null>(null);
   const [buying, setBuying] = useState<BuyItem | null>(null);
+  const [shown, setShown] = useState(FIRST_RESULTS);
   const resultsRef = useRef<HTMLHeadingElement>(null);
+  const ranFor = useRef<string | null>(null);
+  const fromCache = useRef(false);
   const done = stage.name === "answer" || stage.name === "again";
   useEffect(() => {
-    if (done) resultsRef.current?.focus();
+    // A new search moves focus to the results. Results brought back from memory keep the page where it was.
+    if (done && !fromCache.current) resultsRef.current?.focus();
   }, [done]);
 
-  async function find(extra?: { route: string; extra: Record<string, unknown> }) {
-    if (!text.trim() && !picture) return;
+  const find = useCallback(async (words: string, extra?: { route: string; extra: Record<string, unknown> }, withPicture: Picture | null = null) => {
+    if (!words.trim() && !withPicture) return;
     setStage({ name: "thinking", events: [] });
+    fromCache.current = false;
     // A photo and no words: "buy this again". Otherwise the Concierge decides.
-    if (!extra && picture && !text.trim()) {
-      const r = await postAgent<FinderOutcome>("/api/find", { mode: "reorder", imageBase64: picture.base64 }, (events) => setStage({ name: "thinking", events }));
+    if (!extra && withPicture && !words.trim()) {
+      const r = await postAgent<FinderOutcome>("/api/find", { mode: "reorder", imageBase64: withPicture.base64 }, (events) => setStage({ name: "thinking", events }));
       const p = r.payload;
       if (!p) setStage({ name: "error", message: r.error ?? "That did not work. Nothing was bought. Try again.", events: r.events });
       else if (p.kind === "error") setStage({ name: "error", message: p.message, events: r.events });
@@ -52,23 +86,78 @@ export function FindIt() {
       else setStage({ name: "again", items: p.items, events: r.events });
       return;
     }
-    const r = await postAgent<Answer["payload"]>("/api/ask", { text, imageBase64: picture?.base64, ...(extra ?? {}) }, (events) => setStage({ name: "thinking", events }));
+    const r = await postAgent<Answer["payload"]>("/api/ask", { text: words, imageBase64: withPicture?.base64, ...(extra ?? {}) }, (events) => setStage({ name: "thinking", events }));
     if (!r.payload || !r.line) return setStage({ name: "error", message: r.error ?? "That did not work. Nothing was bought. Try again.", events: r.events });
-    setStage({ name: "answer", answer: { route: r.line.route, payload: r.payload } as Answer, events: r.events });
+    const answer = { route: r.line.route, payload: r.payload } as Answer;
+    setStage({ name: "answer", answer, events: r.events });
+    // Remember a words-only search, so coming back never asks the stores (and spends a credit) again.
+    if (!withPicture && words.trim()) writeFind(words, { answer, events: r.events, shown: FIRST_RESULTS });
+  }, []);
+
+  // Open /find?q=…: from memory if this tab already searched it, otherwise search once.
+  useEffect(() => {
+    if (!q) {
+      ranFor.current = null;
+      return;
+    }
+    const key = normalizeQuery(q);
+    // Coming back to this page from a product: the page is kept alive but shown again, so it only has to find its place.
+    const last = readLastResults();
+    const backHere = !!last && last.url === resultsUrl(q);
+    if (ranFor.current === key) {
+      if (backHere) restoreScroll(last.scroll);
+      return;
+    }
+    ranFor.current = key;
+    const hit = readFind(q);
+    if (hit) {
+      // Reading this tab's saved results is syncing with an outside store (sessionStorage), which the server can't see: it has to happen after the first render.
+      /* eslint-disable react-hooks/set-state-in-effect */
+      fromCache.current = true;
+      setText(q);
+      setShown(hit.shown);
+      setStage({ name: "answer", answer: hit.answer as Answer, events: hit.events as StepEvent[] });
+      /* eslint-enable react-hooks/set-state-in-effect */
+      if (backHere) restoreScroll(last.scroll);
+      return;
+    }
+    setText(q);
+    setShown(FIRST_RESULTS);
+    void find(q);
+  }, [q, find]);
+
+  function submit() {
+    const words = text.trim();
+    if (!words && !picture) return;
+    if (picture || !words) return void find(words, undefined, picture); // a photo can't go in an address, so it searches right here
+    if (normalizeQuery(words) === normalizeQuery(q) && stage.name !== "error") return; // the same words: keep what is already here
+    ranFor.current = null;
+    router.push(resultsUrl(words));
+  }
+
+  function showMore() {
+    setShown(1000);
+    if (stage.name === "answer" && q) writeFind(q, { answer: stage.answer, events: stage.events, shown: 1000 });
+  }
+
+  // Opening a product: remember where in the results we were, so "Back to results" lands in the same place.
+  function leaving(e: React.MouseEvent) {
+    const link = (e.target as HTMLElement).closest("a");
+    if (q && link?.getAttribute("href")?.startsWith("/shop/")) rememberResults({ url: resultsUrl(q), scroll: window.scrollY });
   }
 
   const events = stage.name === "ask" ? [] : stage.events;
   const agents = stage.name === "again" ? [FINDER] : stage.name === "answer" ? [CONCIERGE] : [CONCIERGE];
 
   return (
-    <div className="n-col" style={{ maxWidth: 760 }}>
-      <div className="ng-page-title">
+    <div className="n-col" style={{ maxWidth: 980 }}>
+      <div className="ng-page-title" style={{ maxWidth: 760 }}>
         <div className="ng-eyebrow">Find</div>
         <h1>What are you<br />looking for?</h1>
         <p>Type what you want, or add a photo. North finds it, and shows every store&apos;s price.</p>
       </div>
 
-      <form className="n-stack" style={{ gap: 18 }} onSubmit={(e) => { e.preventDefault(); void find(); }}>
+      <form className="n-stack" style={{ gap: 18, maxWidth: 760 }} onSubmit={(e) => { e.preventDefault(); submit(); }}>
         <p className="ng-vh">A photo with no words finds the same thing so you can buy it again.</p>
         <label className="n-block">
           <span className="n-label">What do you need?</span>
@@ -79,10 +168,10 @@ export function FindIt() {
       </form>
 
       {stage.name === "thinking" && <Loading what="your results" />}
-      {stage.name === "error" && <ErrorNote what="that" touched="Nothing was bought." onRetry={() => void find()} />}
+      {stage.name === "error" && <ErrorNote what="that" touched="Nothing was bought." onRetry={() => void find(text, undefined, picture)} />}
 
       {done && (
-        <section aria-labelledby="results-h" className="n-stack">
+        <section aria-labelledby="results-h" className="n-stack" onClickCapture={leaving}>
           <h2 id="results-h" ref={resultsRef} tabIndex={-1} style={{ outline: "none" }}>{stage.name === "again" ? "Which one is it?" : "What I found"}</h2>
           {stage.name === "again" ? (
             <ul className="n-stack" style={{ gap: 18 }}>
@@ -96,9 +185,9 @@ export function FindIt() {
               ))}
             </ul>
           ) : (
-            <AskResult a={stage.answer} price={price} setPrice={setPrice} again={(route, extra) => void find({ route, extra })} />
+            <AskResult a={stage.answer} price={price} setPrice={setPrice} again={(route, extra) => void find(text, { route, extra })} shown={shown} onMore={showMore} />
           )}
-          {(stage.name === "again" || stage.answer.route === "finder" || stage.answer.route === "help_me_choose") && <Channel3Credit />}
+          {stage.name === "again" && <Channel3Credit />}
         </section>
       )}
       {events.length > 0 && stage.name !== "thinking" && <ActivityPanel events={events} agents={agents} title="What I did" />}

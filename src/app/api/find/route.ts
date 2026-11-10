@@ -36,7 +36,7 @@ export async function POST(req: Request) {
         client,
         backend: storeFindBackend(getStore()),
         input: { text: parsed.text, imageBase64: parsed.image?.base64, imageType: parsed.image?.type },
-        maxResults: reorder ? 3 : 5,
+        maxResults: reorder ? 3 : 12,
         onStep: (s) => send({ type: "step", ...s }),
       });
       send({ type: "result", payload: outcome });

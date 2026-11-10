@@ -404,7 +404,7 @@ textarea.n-field { min-height: 90px; line-height: 1.45; }
 .ng-review-row > :first-child { flex-shrink: 0; }
 @media (max-width: 650px) {
   /* on a phone, Buy comes right after the price: the store list follows */
-  .ng-buy-split { display: flex !important; flex-direction: column; gap: 18px !important; }
+  .ng-buy-split { display: flex !important; flex-direction: column; align-items: stretch; gap: 18px !important; }
   .ng-buy-split > div { display: contents !important; }
   .ng-buy-split .ng-b-title { order: 0; } .ng-buy-split .ng-b-photo { order: 1; } .ng-buy-split .ng-b-price { order: 2; }
   .ng-buy-split .ng-b-actions { order: 3; } .ng-buy-split .ng-b-stores { order: 4; }

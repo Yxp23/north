@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
+import { BackToResults } from "@/components/back-to-results";
 import { BuyFlow } from "@/components/buy-flow";
 import { DecisionDialog, Row } from "@/components/decision-dialog";
 import { BigMoney, RealThingsLine } from "@/components/money";
@@ -83,6 +84,7 @@ export function BuyScreen({ product, demoMode }: { product: StoreProduct; demoMo
       <div className="ng-split ng-buy-split" style={{ gridTemplateColumns: "1fr 1fr", gap: 40 }}>
         <div className="n-stack" style={{ gap: 18 }}>
           <div className="ng-b-title">
+            <BackToResults />
             <div className="ng-eyebrow">Find</div>
             <h1>{shownName}</h1>
           </div>

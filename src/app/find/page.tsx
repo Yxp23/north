@@ -1,7 +1,7 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { getStore } from "@/lib/store";
-import { FindIt } from "./find-it";
+import { BrowseOnly, FindIt } from "./find-it";
 import { ProductGrid } from "./product-grid";
 
 export const metadata = { title: "Find" };
@@ -16,13 +16,17 @@ async function Products() {
 export default function FindPage() {
   return (
     <div className="n-stack" style={{ gap: 34 }}>
-      <FindIt />
-      <section aria-labelledby="pick-h" className="n-stack">
-        <h2 id="pick-h">Or look around</h2>
-        <Suspense fallback={<p role="status" className="n-note n-note-quiet">Getting the shop. One moment.</p>}>
-          <Products />
-        </Suspense>
-      </section>
+      <Suspense fallback={<p role="status" className="n-note n-note-quiet">One moment.</p>}>
+        <FindIt />
+        <BrowseOnly>
+          <section aria-labelledby="pick-h" className="n-stack">
+            <h2 id="pick-h">Or look around</h2>
+            <Suspense fallback={<p role="status" className="n-note n-note-quiet">Getting the shop. One moment.</p>}>
+              <Products />
+            </Suspense>
+          </section>
+        </BrowseOnly>
+      </Suspense>
     </div>
   );
 }

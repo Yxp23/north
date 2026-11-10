@@ -331,7 +331,7 @@ export function AppShell({ children, signedIn = true }: { children: ReactNode; s
       )}
       {ask && (
         <Dialog label="Ask North" wide onClose={() => setAsk(false)}>
-          <AskNorth />
+          <AskNorth onLeave={() => setAsk(false)} />
         </Dialog>
       )}
     </StoreLiveContext.Provider>

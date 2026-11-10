@@ -41,11 +41,12 @@ describe("finding a product from words", () => {
     expect(JSON.stringify(m.requests[2].messages.at(-1))).toMatch(/only use the handles/i);
   });
 
-  it("keeps only as many as asked for (default 5, and 3 for a photo reorder)", async () => {
-    const many = backend({ search: async () => Array.from({ length: 6 }, (_, i) => item(`X${i}`)) });
-    const handles = ["p1", "p2", "p3", "p4", "p5", "p6"];
-    const five = await find([reply([toolUse("search_stores", { query: "s" })]), reply([finish(handles)])], { text: "s" }, many);
-    if (five.out.kind === "found") expect(five.out.items).toHaveLength(5);
+  it("keeps only as many as asked for (default 12, and 3 for a photo reorder)", async () => {
+    const many = backend({ search: async () => Array.from({ length: 14 }, (_, i) => item(`X${i}`)) });
+    const handles = Array.from({ length: 12 }, (_, i) => `p${i + 1}`);
+    const twelve = await find([reply([toolUse("search_stores", { query: "s" })]), reply([finish(handles)])], { text: "s" }, many);
+    expect(twelve.out.kind).toBe("found");
+    if (twelve.out.kind === "found") expect(twelve.out.items).toHaveLength(12);
     const three = await find([reply([toolUse("search_stores", { query: "s" })]), reply([finish(handles)])], { text: "s" }, many, { maxResults: 3 });
     if (three.out.kind === "found") expect(three.out.items).toHaveLength(3);
   });

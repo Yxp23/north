@@ -5,6 +5,7 @@
 import { ProblemNote } from "@/components/states";
 import { Photo } from "@/components/photo";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
@@ -18,6 +19,7 @@ import type { PaymentsOutcome } from "@/lib/agents/payments/payments";
 import type { DealPayload } from "@/lib/agents/scam-checker/scam-checker";
 import { formatMoney } from "@/lib/format";
 import { postAgent } from "@/lib/ndjson-client";
+import { resultsUrl, writeFind } from "@/lib/ui/find-cache";
 
 type Wrapped<T> = { payload: T; flagged?: string };
 export type Answer =
@@ -41,7 +43,7 @@ const HELPERS: Record<string, { name: string; ai: boolean; did: string }> = {
 };
 const CONCIERGE = { name: "Concierge", ai: true, did: "Read what you wrote and chose the right helper. It cannot move money." };
 
-export function AskNorth({ variant = "dialog", below }: { variant?: "dialog" | "home"; /** Shown right under the form, above any answer (Home puts its quick buttons here). */ below?: React.ReactNode }) {
+export function AskNorth({ variant = "dialog", below, onLeave }: { variant?: "dialog" | "home"; /** Shown right under the form, above any answer (Home puts its quick buttons here). */ below?: React.ReactNode; /** Called just before this box sends the person to another page (the dialog closes itself). */ onLeave?: () => void }) {
   const home = variant === "home";
   const hintId = home ? "ask-hint-home" : "ask-hint";
   const [text, setText] = useState("");
@@ -51,6 +53,7 @@ export function AskNorth({ variant = "dialog", below }: { variant?: "dialog" | "
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [error, setError] = useState("");
   const [price, setPrice] = useState("");
+  const router = useRouter();
 
   const empty = !text.trim() && !picture;
 
@@ -64,7 +67,17 @@ export function AskNorth({ variant = "dialog", below }: { variant?: "dialog" | "
     setEvents(r.events);
     setBusy(false);
     if (!r.payload || !r.line) return setError(r.error ?? "Something went wrong. Please try again.");
-    setAnswer({ route: r.line.route, payload: r.payload } as Answer);
+    const next = { route: r.line.route, payload: r.payload } as Answer;
+    // Shopping has its own results page, with the words in the address. The answer is saved for that page first, so it opens
+    // instantly and the stores are not asked again. (A photo can't go in an address, so a photo search stays right here.)
+    const q = text.trim();
+    if (!extra && q && !picture && (next.route === "finder" || next.route === "help_me_choose")) {
+      writeFind(q, { answer: next, events: r.events, shown: FIRST_RESULTS });
+      onLeave?.();
+      router.push(resultsUrl(q));
+      return;
+    }
+    setAnswer(next);
   }
 
   return (
@@ -94,7 +107,14 @@ export function AskNorth({ variant = "dialog", below }: { variant?: "dialog" | "
   );
 }
 
-export function AskResult({ a, price, setPrice, again }: { a: Answer; price: string; setPrice: (s: string) => void; again: (route: string, extra: Record<string, unknown>) => void }) {
+/** How many finds show before "Show more". */
+export const FIRST_RESULTS = 6;
+
+export function AskResult({ a, price, setPrice, again, shown = FIRST_RESULTS, onMore }: {
+  a: Answer; price: string; setPrice: (s: string) => void; again: (route: string, extra: Record<string, unknown>) => void;
+  /** How many finds to show now, and what "Show more" does. Without `onMore` there is no button. */
+  shown?: number; onMore?: () => void;
+}) {
   if (a.route === "none" || a.route === "error") return <p role="status" className="n-note n-note-quiet"><span>{a.payload.message}</span></p>;
   if (a.route === "new_rule") return <Link href={a.payload.href} className={btnPrimary}>Open the rule helper</Link>;
 
@@ -128,15 +148,21 @@ export function AskResult({ a, price, setPrice, again }: { a: Answer; price: str
     const p = a.payload.payload;
     if (p.kind === "error") return <ProblemNote message={p.message} />;
     if (p.kind === "none") return <p role="status" className="n-t-lg">I did not find it. Try different words, or a clearer picture.</p>;
+    const visible = p.items.slice(0, shown);
+    const more = p.items.length - visible.length;
     return (
-      <ul className="n-stack">
-        {p.items.map(({ item }, i) => (
-          <li key={item.id}>
-            <ProductCard item={item} openCompare={i === 0}><Link href={`/shop/${item.id}`} className={btnSecondary}>Look at this one</Link></ProductCard>
-          </li>
-        ))}
-        <li><Channel3Credit /></li>
-      </ul>
+      <div className="n-stack">
+        <p className="n-muted" role="status">{p.items.length === 1 ? "1 thing" : `${p.items.length} things`} found. Showing {visible.length}.</p>
+        <ul className="fr-grid">
+          {visible.map(({ item }, i) => (
+            <li key={item.id}>
+              <ProductCard item={item} openCompare={i === 0 && visible.length === 1}><Link href={`/shop/${item.id}`} className={btnSecondary}>Look at this one</Link></ProductCard>
+            </li>
+          ))}
+        </ul>
+        {more > 0 && onMore && <button type="button" className={btnSecondary} onClick={onMore}>Show {more} more</button>}
+        <Channel3Credit />
+      </div>
     );
   }
 

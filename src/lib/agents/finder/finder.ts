@@ -25,7 +25,7 @@ export type FinderOutcome =
   | { kind: "error"; message: string };
 
 export const MAX_FIND_CHARS = 500;
-const SEARCH_LIMIT = 6;
+const SEARCH_LIMIT = 12; // one store search either way: the results page shows 6 first, then "Show more"
 
 export const FINDER_SYSTEM = `You are the Finder for North, a money helper for adults with cognitive disabilities. The user wants to find a product. They gave words, a photo, or both. Your job is to FIND it at the stores.
 
@@ -40,7 +40,7 @@ Rules you must follow:
 - Only use the handles (p1, p2…) the tools gave you.`;
 
 const SubmitSchema = z.object({
-  matches: z.array(z.string().regex(/^p[1-9]\d{0,2}$/)).max(10),
+  matches: z.array(z.string().regex(/^p[1-9]\d{0,2}$/)).max(12),
   not_sure: z.boolean(),
 }).strict();
 type Submitted = z.infer<typeof SubmitSchema>;
@@ -57,7 +57,7 @@ export type RunFinderOptions = {
   client: ModelClient;
   backend: FindBackend;
   input: FinderInput;
-  /** How many matches to hand back. 5 to browse; 3 for "buy this again". */
+  /** How many matches to hand back. 12 to browse (the page shows 6, then "Show more"); 3 for "buy this again". */
   maxResults?: number;
   onStep?(event: StepEvent): void;
 };
@@ -70,7 +70,7 @@ export async function runFinder(opts: RunFinderOptions): Promise<{ outcome: Find
   if (!words && !hasPicture) return fail("Please type what you are looking for, or add a picture.");
   if (words.length > MAX_FIND_CHARS) return fail("That is too long. Please use a few words.");
   if (hasPicture && Buffer.byteLength(input.imageBase64!, "base64") > MAX_IMAGE_BYTES) return fail("That picture is too big. Please try a smaller one.");
-  const maxResults = opts.maxResults ?? 5;
+  const maxResults = opts.maxResults ?? 12;
 
   const shelf = new Shelf();
   let wantedSize: string | null = null;
@@ -82,7 +82,7 @@ export async function runFinder(opts: RunFinderOptions): Promise<{ outcome: Find
   const tools: ToolDef<Submitted>[] = [
     {
       name: "search_stores",
-      description: "Search the stores for a product by words. Returns up to 6 store listings with handles (p1, p2…).",
+      description: "Search the stores for a product by words. Returns up to 12 store listings with handles (p1, p2…).",
       input_schema: { type: "object", properties: { query: { type: "string", description: "A short plain search, like 'warm winter socks'." } }, required: ["query"], additionalProperties: false },
       label: "Looking for it at stores…",
       run: async (inp) => {
@@ -98,7 +98,7 @@ export async function runFinder(opts: RunFinderOptions): Promise<{ outcome: Find
     ...(hasPicture
       ? [{
           name: "search_by_picture",
-          description: "Search the stores using the photo the user added. Returns up to 6 store listings with handles.",
+          description: "Search the stores using the photo the user added. Returns up to 12 store listings with handles.",
           input_schema: { type: "object", properties: {}, additionalProperties: false },
           label: "Looking for it by picture…",
           run: async () => {
