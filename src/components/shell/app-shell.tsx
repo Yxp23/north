@@ -3,14 +3,14 @@
 // the Ask North bar, and the footer. It also hosts Help, Ask North and the Behind the scenes panel.
 import { ArrowUp, Bookmark, Bot, CircleHelp, Eye, FlaskConical, House, LogOut, Palette, Route, Search, UserRound, Wallet, X, type LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { AskNorth } from "@/app/ask-north";
-import { navFrames, MOTION, springSamples } from "@/lib/ui/springs";
+import { navFrames, MOTION } from "@/lib/ui/springs";
 import { MODES, THEMES, useAppearance } from "./appearance";
 import { BehindTheScenes } from "./behind-the-scenes";
 import { Dialog } from "./dialog";
-import { MotionLayer, shine } from "./motion-layer";
+import { MotionLayer } from "./motion-layer";
 import { SpeakButton } from "./speak";
 import { StoreLiveContext } from "./store-live";
 
@@ -25,22 +25,32 @@ export const activeTab = (path: string) => TABS.findIndex((t) => t.match.test(pa
 
 function ShellNav({ path }: { path: string }) {
   const idx = activeTab(path);
+  const router = useRouter();
   const navRef = useRef<HTMLElement>(null);
   const selRef = useRef<HTMLSpanElement>(null);
   const last = useRef<{ idx: number; x: number } | null>(null);
+  // Set when the pill was let go on a tab: it is already there and bouncing, so the route change that follows must not restart it.
+  const snapped = useRef<number | null>(null);
+  const drag = useRef<{ x0: number; pill0: number; moved: boolean; id: number } | null>(null);
+  const justDragged = useRef(false);
+  const [dragging, setDragging] = useState(false);
   const { reduced } = useAppearance();
 
   useLayoutEffect(() => {
     const el = selRef.current;
     if (!el) return;
     const place = (animate: boolean) => {
+      if (animate && snapped.current === idx) {
+        snapped.current = null;
+        return;
+      }
+      snapped.current = null;
       el.getAnimations().forEach((a) => a.cancel());
       el.style.opacity = idx < 0 ? "0" : "";
       const x = el.offsetWidth * Math.max(idx, 0);
       el.style.transform = `translateX(${x}px)`;
       if (animate && idx >= 0 && last.current && last.current.idx !== idx && !reduced && typeof el.animate === "function") {
         el.animate(navFrames(last.current.x, x), { duration: MOTION.nav.durationMs, easing: "linear", fill: "none" });
-        shine(navRef.current);
       }
       last.current = { idx, x };
     };
@@ -50,11 +60,67 @@ function ShellNav({ path }: { path: string }) {
     return () => window.removeEventListener("resize", onResize);
   }, [idx, reduced]);
 
+  // The selected pill can be dragged to another tab. It follows the finger, then snaps to the nearest tab with the same bounce as a tap and
+  // goes there. The tabs are still real links (a tap, the keyboard and a screen reader work exactly as before): dragging is only an extra.
+  function down(e: React.PointerEvent<HTMLElement>) {
+    const pill = selRef.current;
+    if (idx < 0 || !pill || (e.pointerType === "mouse" && e.button !== 0)) return;
+    const r = pill.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right) return; // only a press on the selected pill starts a drag
+    drag.current = { x0: e.clientX, pill0: last.current?.x ?? pill.offsetWidth * idx, moved: false, id: e.pointerId };
+  }
+  function move(e: React.PointerEvent<HTMLElement>) {
+    const d = drag.current;
+    const pill = selRef.current;
+    const nav = navRef.current;
+    if (!d || !pill || !nav || d.id !== e.pointerId) return;
+    if (!d.moved) {
+      if (Math.abs(e.clientX - d.x0) < 6) return;
+      d.moved = true;
+      nav.setPointerCapture(e.pointerId);
+      pill.getAnimations().forEach((a) => a.cancel());
+      setDragging(true);
+    }
+    const w = pill.offsetWidth;
+    const x = Math.min(w * (TABS.length - 1), Math.max(0, d.pill0 + e.clientX - d.x0));
+    pill.style.transform = `translateX(${x}px)`;
+    if (last.current) last.current.x = x;
+    // The bright rim of the whole capsule leans toward the pill while it is dragged.
+    nav.style.setProperty("--light-x", `${((x + w / 2) / nav.clientWidth) * 100}%`);
+  }
+  function up(e: React.PointerEvent<HTMLElement>) {
+    const d = drag.current;
+    const pill = selRef.current;
+    const nav = navRef.current;
+    drag.current = null;
+    if (!d || !d.moved || !pill || !nav) return;
+    setDragging(false);
+    nav.style.removeProperty("--light-x");
+    justDragged.current = true;
+    window.setTimeout(() => (justDragged.current = false), 0); // the click that follows a drag must not open a tab twice
+    if (e.type === "pointercancel") return;
+    const w = pill.offsetWidth;
+    const from = last.current?.x ?? 0;
+    const k = Math.min(TABS.length - 1, Math.max(0, Math.round(from / w)));
+    const to = k * w;
+    pill.style.transform = `translateX(${to}px)`;
+    if (!reduced && typeof pill.animate === "function") pill.animate(navFrames(from, to), { duration: MOTION.nav.durationMs, easing: "linear", fill: "none" });
+    last.current = { idx: k, x: to };
+    if (k !== idx) {
+      snapped.current = k;
+      router.push(TABS[k].href);
+    }
+  }
+
   return (
-    <nav ref={navRef} className="ng-nav ng-glass" aria-label="North navigation">
+    <nav
+      ref={navRef} className={`ng-nav ng-glass${dragging ? " ng-nav-drag" : ""}`} aria-label="North navigation"
+      onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+      onClickCapture={(e) => { if (justDragged.current) { e.preventDefault(); e.stopPropagation(); } }}
+    >
       <span ref={selRef} className="ng-nav-selector" aria-hidden="true" />
       {TABS.map((t, i) => (
-        <Link key={t.href} href={t.href} aria-current={i === idx ? "page" : undefined}>
+        <Link key={t.href} href={t.href} aria-current={i === idx ? "page" : undefined} draggable={false}>
           <t.Icon aria-hidden="true" />
           {t.label}
         </Link>
@@ -137,30 +203,29 @@ function AppearancePanel({ open, onClose, triggerRef }: { open: boolean; onClose
 const HELP_TEXT =
   "North helps you shop. You set the rules, and North follows them. Before any payment, North checks the item, the seller and the total against your rules. Making a rule stricter starts right away. Making it weaker starts tomorrow.";
 
-// Each new thing that appears on a screen eases in once, one after another, with the approved spring. Nothing loops. Off with reduced motion.
+// Moving to another page: the page area fades in and rises a few pixels, over about 0.2 seconds (nothing slower than 250ms). Things that
+// appear later on the same page (results arriving, an answer) ease in the same short way, once. Nothing loops. Off with reduced motion.
 const REVEAL = ".ng-hero, .ng-page-title, .ng-askbox, .ng-quick, .n-card, .ng-money, .ng-saved, .ng-trust, .n-note, .ng-section, .n-reveal";
+const PAGE_MS = 220;
+const EASE = "cubic-bezier(0.22, 0.7, 0.2, 1)";
 function PageMotion({ path }: { path: string }) {
   const { reduced } = useAppearance();
   useEffect(() => {
     if (reduced) return;
     const main = document.getElementById("main");
     if (!main || typeof main.animate !== "function") return;
-    const frames = springSamples(MOTION.nav.durationMs, MOTION.nav.stiffness, MOTION.nav.damping);
+    const t0 = performance.now();
+    main.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: PAGE_MS, easing: EASE });
     let raf = 0;
     const seen = new WeakSet<Element>(); // not an attribute: React owns the DOM attributes
     const run = () => {
       raf = 0;
-      let n = 0;
+      const covered = performance.now() - t0 < PAGE_MS + 60; // already carried in by the page's own fade
       main.querySelectorAll<HTMLElement>(REVEAL).forEach((el) => {
         if (seen.has(el) || el.parentElement?.closest(REVEAL)) return;
         seen.add(el);
-        const r = el.getBoundingClientRect();
-        if (r.top > window.innerHeight * 1.5) return; // far below the fold: no need
-        el.animate(
-          frames.map((f) => ({ opacity: Math.min(1, f.v * 1.6), transform: `translateY(${(1 - Math.min(1.04, f.v)) * 18}px)`, offset: f.offset })),
-          { duration: MOTION.nav.durationMs, delay: Math.min(n, 8) * 55, easing: "linear", fill: "backwards" },
-        );
-        n++;
+        if (covered || el.getBoundingClientRect().top > window.innerHeight * 1.5) return;
+        el.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: PAGE_MS, easing: EASE, fill: "backwards" });
       });
     };
     const schedule = () => void (raf || (raf = requestAnimationFrame(run)));

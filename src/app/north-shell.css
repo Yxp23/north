@@ -21,26 +21,22 @@ body { margin: 0; background: #f9f3f3; }
 .north-app :focus-visible { outline: 3px solid var(--n-focus); outline-offset: 3px; border-radius: 10px; box-shadow: 0 0 0 6px var(--n-halo); }
 .north-app .ng-nav button:focus-visible { outline-offset: -3px; box-shadow: none; }
 
-/* ---- glass: fill, backdrop, bright edge, pointer highlight and one brief sweep. These rules belong together. ---- */
+/* ---- glass: fill, backdrop, and a thin bright RIM that catches the light. The rim is only the border (masked to a 1.5px ring), and the bright
+   part leans toward the pointer (--light-x / --light-y, set by MotionLayer, or by dragging the tab pill). Nothing sweeps across the surface. ---- */
 .ng-glass {
   --light-x: 27%; --light-y: 0%; background: var(--n-glass); border: 1px solid var(--n-glass-light);
   box-shadow: inset 0 1px 1px 0 var(--n-glass-light), inset 1px 0 1px var(--n-glass-light), inset 0 -2px 3px var(--n-lens), 0 4px 13px var(--n-glass-shade), 0 0 0 1px #ffffff35;
   -webkit-backdrop-filter: blur(14px) saturate(1.65); backdrop-filter: blur(14px) saturate(1.65); position: relative; isolation: isolate; overflow: hidden;
 }
-.ng-glass::before {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1; pointer-events: none; opacity: .58;
-  background: radial-gradient(ellipse at var(--light-x) var(--light-y), #ffffffed 0%, #ffffff65 22%, transparent 59%), linear-gradient(130deg, #ffffffb0 0%, transparent 25%, transparent 67%, #ffffff80 100%);
+.ng-glass::before, .ng-nav-selector::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none; z-index: 1; opacity: .9;
+  background: radial-gradient(130px 100px at var(--light-x) var(--light-y), #fffffff2 0%, #ffffffa6 35%, transparent 75%), linear-gradient(130deg, #ffffffa0 0%, transparent 28%, transparent 72%, #ffffff70 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
 }
-.ng-glass::after {
-  content: ""; position: absolute; width: 70%; inset: -60% auto -60% -90%; transform: rotate(26deg); pointer-events: none; opacity: 0;
-  background: linear-gradient(90deg, transparent, #ffffffba 44%, #ffffffdb 51%, transparent);
-}
-.ng-glass.ng-shine::after { animation: ng-shine 700ms ease-out 1; }
-@keyframes ng-shine { 0% { left: -90%; opacity: 0; } 20% { opacity: .85; } 80% { opacity: .65; } 100% { left: 140%; opacity: 0; } }
 
 /* Solid surfaces: no blur, no reflection. Independent of theme and motion. */
 .north-app.ng-solid .ng-glass { background: var(--n-content); backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: 0 2px 5px var(--n-glass-shade); border-color: var(--n-line); }
-.north-app.ng-solid .ng-glass::before, .north-app.ng-solid .ng-glass::after { display: none; }
+.north-app.ng-solid .ng-glass::before, .north-app.ng-solid .ng-nav-selector::after { display: none; }
 .north-app.ng-solid .ng-nav-selector { background: var(--n-quiet); border-color: var(--n-edge); box-shadow: none; }
 .north-app.ng-solid .ng-sheet-dimmer { backdrop-filter: none; }
 .north-app.ng-reduced *, .north-app.ng-reduced *::after, .north-app.ng-reduced *::before { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
@@ -78,6 +74,14 @@ body { margin: 0; background: #f9f3f3; }
 }
 .ng-nav a[aria-current] { font-weight: 500; }
 .ng-nav a:not([aria-current]) { opacity: .92; }
+.ng-nav { touch-action: none; user-select: none; -webkit-user-select: none; }
+/* While the pill is dragged it picks up a faint refraction tint (a little more blur, colour and light), and the capsule's rim leans toward it. */
+.ng-nav-selector { transition: backdrop-filter .15s, background .15s, box-shadow .15s; }
+.ng-nav.ng-nav-drag .ng-nav-selector {
+  background: linear-gradient(135deg, #ffffffee, color-mix(in srgb, var(--n-lens) 70%, #ffffffd8)); -webkit-backdrop-filter: blur(6px) saturate(1.9) brightness(1.06); backdrop-filter: blur(6px) saturate(1.9) brightness(1.06);
+  box-shadow: inset 0 1px 2px #fff, 0 6px 16px var(--n-glass-shade), 0 0 0 1px #ffffffa0;
+}
+.north-app.ng-solid .ng-nav.ng-nav-drag .ng-nav-selector { background: var(--n-quiet); backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; }
 .ng-nav svg { height: 20px; width: 20px; stroke-width: 1.7; flex-shrink: 0; }
 
 /* ---- page area ---- */
@@ -122,9 +126,6 @@ body { margin: 0; background: #f9f3f3; }
   box-shadow: inset 0 1px 1px #ffffff60, inset 0 -1px 1px #00000024, 0 5px 13px var(--n-glass-shade);
 }
 .n-btn-primary::before { content: ""; position: absolute; inset: 0; background: linear-gradient(170deg, #ffffff21, transparent 50%); z-index: -1; pointer-events: none; }
-.n-btn-primary::after { content: ""; position: absolute; inset: -90% auto -90% -90%; width: 55%; background: linear-gradient(90deg, transparent, #ffffff60, transparent); transform: rotate(25deg); opacity: 0; pointer-events: none; }
-.n-btn-primary.ng-shine::after { animation: ng-shine 700ms ease-out 1; }
-.north-app.ng-solid .n-btn-primary::after { display: none; }
 .n-btn-secondary { color: var(--n-ink); background: var(--n-content); border: 1px solid var(--n-muted); box-shadow: 0 2px 6px var(--n-glass-shade); }
 .n-btn-quiet { color: var(--n-ink); background: transparent; border: 0; text-decoration: underline; text-underline-offset: 4px; min-height: 48px; font-weight: 400; font-size: 17px; padding: 12px 10px; }
 .n-btn-auto { width: auto; }

@@ -50,6 +50,31 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     ok((await sheets(p)).length === 1 && back === "", `${w}: a short drag springs back and stays open`, JSON.stringify(back));
     await p.keyboard.press("Escape"); await p.waitForTimeout(500);
   }
+  // ---- the tab pill: one element, springs between tabs on a route change, and can be dragged
+  await p.goto(`${BASE}/find`, { waitUntil: "load" }); await p.waitForSelector("main h1"); await p.waitForTimeout(800);
+  ok(await p.locator(".ng-nav-selector").count() === 1, `${w}: one selected-pill element`);
+  await p.getByRole("link", { name: "Saved", exact: true }).first().click();
+  await p.waitForURL(/\/saved/); await p.waitForTimeout(30);
+  ok(await p.locator(".ng-nav-selector").evaluate((e) => e.getAnimations().length >= 1), `${w}: the pill springs to the new tab`);
+  const page = await p.evaluate(() => document.getElementById("main").getAnimations().map((a) => a.effect.getTiming().duration));
+  ok(page.length >= 1 && page.every((d) => d <= 250), `${w}: page change is a short fade (<= 250ms)`, JSON.stringify(page));
+  await p.waitForTimeout(800);
+  ok(await p.evaluate(() => document.getAnimations().every((a) => !String(a.animationName ?? "").includes("shine"))), `${w}: no sweep animation on click`);
+  const pill = await p.locator(".ng-nav-selector").boundingBox();
+  const nav = await p.locator(".ng-nav").boundingBox();
+  const cy = pill.y + pill.height / 2;
+  await p.mouse.move(pill.x + pill.width / 2, cy); await p.mouse.down();
+  await p.mouse.move(pill.x + pill.width / 2 + pill.width * 0.6, cy, { steps: 6 });
+  ok(await p.locator(".ng-nav").evaluate((n) => n.classList.contains("ng-nav-drag")), `${w}: dragging tints the pill`);
+  const mid = await p.locator(".ng-nav-selector").boundingBox();
+  ok(mid.x > pill.x + 10 && mid.x + mid.width <= nav.x + nav.width + 2, `${w}: the pill follows the pointer, inside the capsule`, `${Math.round(pill.x)} -> ${Math.round(mid.x)}`);
+  await p.mouse.move(pill.x + pill.width / 2 + pill.width * 1.1, cy, { steps: 6 }); await p.mouse.up();
+  await p.waitForURL(/\/money/, { timeout: 15000 });
+  await p.waitForTimeout(700);
+  ok(await p.getByRole("link", { name: "Money", exact: true }).first().getAttribute("aria-current") === "page", `${w}: letting go snaps to the nearest tab and goes there (aria-current follows)`);
+  const end = await p.locator(".ng-nav-selector").boundingBox();
+  const moneyLink = await p.getByRole("link", { name: "Money", exact: true }).first().boundingBox();
+  ok(Math.abs((end.x + end.width / 2) - (moneyLink.x + moneyLink.width / 2)) < 6, `${w}: the pill rests under Money`);
   await ctx.close();
 
   // ---- Reduce motion: everything instant
@@ -61,6 +86,9 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
   ok((await sheets(p))[0].anims === 0, `${w}: Reduce motion: opens with no animation`);
   await p.getByRole("button", { name: "Close" }).first().click();
   ok((await sheets(p)).length === 0, `${w}: Reduce motion: closes at once`);
+  await p.getByRole("link", { name: "Saved", exact: true }).first().click();
+  await p.waitForURL(/\/saved/); await p.waitForTimeout(30);
+  ok(await p.evaluate(() => document.getAnimations().length === 0), `${w}: Reduce motion: no animation anywhere on a page change`);
   await ctx.close();
 }
 await browser.close();

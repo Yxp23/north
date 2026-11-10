@@ -25,7 +25,6 @@ export const MOTION = {
   dialog: { openScale: 0.94, openMs: 520, closeMs: 200, backdropMs: 220, stiffness: 300, damping: 24 },
   /** Letting go of a dragged phone sheet: past this far (px) or this fast (px per ms) it closes; otherwise it springs back. */
   dismiss: { distance: 120, velocity: 0.6, backMs: 460 },
-  shineMs: 700,
 } as const;
 
 /** Button release: scale .955 back to 1, with the spring's overshoot. */
