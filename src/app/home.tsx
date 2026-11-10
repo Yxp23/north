@@ -2,7 +2,7 @@
 // Home: a greeting, ONE large Ask North box with three quick buttons, then this week's money, the last time North stepped in, and a small
 // peek at what is saved. Anything that needs the person (an assistant's one-tap card, price news) comes first. Every number comes from the server.
 import { Photo } from "@/components/photo";
-import { Bookmark, FilePlus2, ScanSearch, ShieldCheck, ShoppingBag, Wallet } from "lucide-react";
+import { Bell, Bookmark, ChevronDown, ChevronRight, FilePlus2, ScanSearch, ShieldAlert, ShieldCheck, ShoppingBag, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { card } from "@/components/classes";
@@ -45,32 +45,17 @@ export function Home() {
 
   return (
     <div className="ng-home">
-      <div className="ng-wide n-stack">
-        <SetupBanner newUser={!data.paypalSaved && data.purchases.length === 0} />
-      </div>
-      {needsYou && (
-        <div className="ng-wide n-stack">
-          {error && <p role="status" className="n-note n-note-wait">I could not check for news just now. I will try again.</p>}
-          {answered && <p role="status" className="n-note n-note-good">{answered}</p>}
-          {data.assistantAsks.length > 0 && (
-            <section aria-labelledby="asks-h" className="n-stack">
-              <h2 id="asks-h">Your assistant is asking</h2>
-              <ul className="n-stack" aria-live="polite">
-                {data.assistantAsks.map((a) => <AskRow key={a.id} a={a} onChange={load} onAnswered={setAnswered} />)}
-              </ul>
-            </section>
-          )}
-          {data.priceNotices.length > 0 && (
-            <section aria-labelledby="news-h" className="n-stack">
-              <h2 id="news-h">Price news</h2>
-              <ul className="n-stack" aria-live="polite">
-                {data.priceNotices.map((n) => <NoticeRow key={n.id} n={n} onChange={load} />)}
-              </ul>
-            </section>
-          )}
-        </div>
+      <SetupBanner newUser={!data.paypalSaved && data.purchases.length === 0} />
+      {(data.assistantAsks.length > 0 || data.priceNotices.length > 0) && (
+        <a href="#needs-you" className="n-note n-note-wait ng-wide ng-needs-banner">
+          <Bell aria-hidden="true" />
+          <span>
+            Waiting for you:{" "}
+            {[data.assistantAsks.length > 0 && `${data.assistantAsks.length} ${data.assistantAsks.length === 1 ? "question" : "questions"} from your assistant`, data.priceNotices.length > 0 && `${data.priceNotices.length} price news`].filter(Boolean).join(" and ")}. See below.
+          </span>
+          <ChevronDown aria-hidden="true" />
+        </a>
       )}
-
       <div className="ng-hero n-stack" style={{ gap: 22 }}>
         <div>
           <div className="ng-eyebrow">{hello()}</div>
@@ -89,7 +74,7 @@ export function Home() {
         />
       </div>
 
-      <div className="n-stack" style={{ minWidth: 0, gap: 30 }}>
+      <div className="n-stack" style={{ minWidth: 0, gap: 22 }}>
       <section className="ng-money" aria-labelledby="left-h">
         <div className="ng-money-top"><span id="left-h">Left to spend this week</span><Wallet aria-hidden="true" /></div>
         <BigMoney cents={data.leftCents} label="Left to spend this week" />
@@ -100,6 +85,17 @@ export function Home() {
         <div style={{ marginTop: 14 }}><SpeakButton text={hear} label="Hear my money" /></div>
         {data.buyNowThisWeek > 0 && <p className="ng-real" style={{ margin: "12px 0 0" }}>You chose Buy now {data.buyNowThisWeek} {data.buyNowThisWeek === 1 ? "time" : "times"} this week.</p>}
       </section>
+
+      <Link href="/activity" className="tw-card">
+        <span className="tw-title">North this week<span className="ng-vh">. See everything North did for you.</span></span>
+        <span className="tw-items">
+          {data.thisWeek.scamsStopped > 0 && <span className="tw-item"><ShieldAlert aria-hidden="true" />Stopped {data.thisWeek.scamsStopped} {data.thisWeek.scamsStopped === 1 ? "scam" : "scams"}</span>}
+          {data.thisWeek.savedForLater > 0 && <span className="tw-item"><Bookmark aria-hidden="true" />Saved {data.thisWeek.savedForLater} {data.thisWeek.savedForLater === 1 ? "thing" : "things"} for later</span>}
+          {data.thisWeek.scamsStopped === 0 && data.thisWeek.savedForLater === 0 && <span className="tw-item">Nothing needed stopping yet</span>}
+          <span className="tw-item"><ShieldCheck aria-hidden="true" />Rent and bills safe</span>
+        </span>
+        <ChevronRight aria-hidden="true" className="tw-go" />
+      </Link>
 
         {step && stepView && (
           <section aria-labelledby="step-h" className="n-stack" style={{ gap: 10 }}>
@@ -133,6 +129,29 @@ export function Home() {
           )}
         </section>
       </div>
+      {needsYou && (
+        <div id="needs-you" className="ng-wide n-stack ng-needs">
+          {error && <p role="status" className="n-note n-note-wait">I could not check for news just now. I will try again.</p>}
+          {answered && <p role="status" className="n-note n-note-good">{answered}</p>}
+          {data.assistantAsks.length > 0 && (
+            <section aria-labelledby="asks-h" className="n-stack">
+              <h2 id="asks-h">Your assistant is asking</h2>
+              <ul className="n-stack" aria-live="polite">
+                {data.assistantAsks.map((a) => <AskRow key={a.id} a={a} onChange={load} onAnswered={setAnswered} />)}
+              </ul>
+            </section>
+          )}
+          {data.priceNotices.length > 0 && (
+            <section aria-labelledby="news-h" className="n-stack">
+              <h2 id="news-h">Price news</h2>
+              <ul className="n-stack" aria-live="polite">
+                {data.priceNotices.map((n) => <NoticeRow key={n.id} n={n} onChange={load} />)}
+              </ul>
+            </section>
+          )}
+        </div>
+      )}
+
     </div>
   );
 }

@@ -1,17 +1,20 @@
 "use client";
 // Demo tools: for showing North to someone. A pretend clock for the late-night rule, video-safe mode, replaying first-run setup, the
 // Price Watcher, and the attack and assistant demos. They never change how long a rule takes to change.
-import { EyeOff, FlaskConical, RotateCcw } from "lucide-react";
+import { CalendarCheck, EyeOff, FlaskConical, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
 import { useAppearance } from "@/components/shell/appearance";
+import { ProblemNote } from "@/components/states";
 import type { StepEvent } from "@/lib/agents/loop";
 import { setDemoHour, useDemoHour } from "@/lib/demo-hour";
 import { postAgent } from "@/lib/ndjson-client";
 import type { WatchRunResult } from "@/lib/watcher/run";
+import type { SeedReport } from "@/lib/demo/seed-week";
+import { formatMoney } from "@/lib/format";
 import { writeSetup } from "../welcome/progress";
 import { useSummary } from "../summary-parts";
 
@@ -23,6 +26,15 @@ export function DemoTools() {
   const [busy, setBusy] = useState(false);
   const [check, setCheck] = useState<{ events: StepEvent[]; result?: WatchRunResult; error?: string; working: boolean } | null>(null);
   const deployed = !!data?.demoDeployment;
+  const [fresh, setFresh] = useState<{ events: StepEvent[]; report?: SeedReport; error?: string; working: boolean } | null>(null);
+
+  // "Start fresh": the demo week again, built by the real flows (a minute or so).
+  async function startFresh() {
+    setFresh({ events: [], working: true });
+    const r = await postAgent<SeedReport>("/api/demo/start-fresh", {}, (events) => setFresh({ events, working: true }));
+    setFresh({ events: r.events, report: r.payload ?? undefined, error: r.error ?? (r.payload && !r.payload.ok ? "Some steps did not work. The rest of the week is there." : undefined), working: false });
+    load();
+  }
 
   // The Price Watcher: look at the prices of what you are waiting on, now (normally a schedule does this).
   async function checkPrices(pretendDropPercent?: number) {
@@ -59,6 +71,24 @@ export function DemoTools() {
         <FlaskConical aria-hidden="true" />
         <span>They never change how long a rule takes to change: the pretend time only changes what time of day the late-night rule sees.</span>
       </p>
+
+      <section className={`${card} n-stack`} aria-labelledby="fresh-h">
+        <h2 id="fresh-h">Start fresh</h2>
+        <p>Puts the demo back to its starting week: about $95 spent of $400, three receipts (one refunded), one thing saved for later, a price news item, a scam stopped, and an assistant waiting for your answer. It is built by North&apos;s real flows, so it can take up to a minute. The Guardian&apos;s rules are not changed.</p>
+        <button type="button" className={btnPrimary} onClick={startFresh} disabled={fresh?.working}><CalendarCheck aria-hidden="true" />{fresh?.working ? "Setting up the week…" : "Start fresh"}</button>
+        {fresh && (
+          <div className="n-stack">
+            {!fresh.working && fresh.report && (
+              <p role="status" className="n-note n-note-good"><span>Done. {formatMoney(fresh.report.spentCents)} spent this week, {formatMoney(fresh.report.leftCents)} left.</span></p>
+            )}
+            {fresh.error && <ProblemNote message={fresh.error} />}
+            {!fresh.working && fresh.report && fresh.report.steps.some((x) => x.status !== "done") && (
+              <ul className="n-list">{fresh.report.steps.filter((x) => x.status !== "done").map((x) => <li key={x.name}>{x.name}: {x.status === "skipped" ? "skipped" : "did not work"}{x.note ? `. ${x.note}` : ""}</li>)}</ul>
+            )}
+            <ActivityPanel events={fresh.events} title="What North is doing" agents={[{ name: "Money Guardian", ai: false, did: "Decided every buy in the week, like it does in the app." }]} />
+          </div>
+        )}
+      </section>
 
       <section className={`${card} n-stack`} aria-labelledby="clock-h">
         <h2 id="clock-h">Pretend clock</h2>
@@ -106,7 +136,7 @@ export function DemoTools() {
         )}
       </section>
 
-      <button type="button" onClick={reset} disabled={busy} className={btnSecondary}>{busy ? "Starting over…" : "Start over (clear buys)"}</button>
+      <button type="button" onClick={reset} disabled={busy} className={btnSecondary}>{busy ? "Starting over…" : "Start empty (clear everything)"}</button>
     </div>
   );
 }

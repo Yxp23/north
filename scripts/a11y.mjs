@@ -11,7 +11,20 @@ const require = createRequire(import.meta.url);
 const axeSource = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
 const THEMES = process.argv[2] === "quick" ? ["bloom", "opal"] : ["tide", "dune", "grove", "opal", "bloom"];
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
-const PAGES = ["/", "/find", "/saved", "/money", "/rules", "/rules/new", "/rules/change/big_buy", "/assistants", "/connect", "/check", "/welcome", "/demo", "/how-it-works", "/try-to-break", "/assistant-demo"];
+const PAGES = ["/", "/find", "/saved", "/money", "/rules", "/rules/new", "/rules/change/big_buy", "/assistants", "/connect", "/check", "/welcome", "/demo", "/activity", "/how-it-works", "/try-to-break", "/assistant-demo"];
+
+
+// The dev server sometimes stalls on a first compile: try a page up to three times before giving up.
+async function go(page, url) {
+  for (let i = 1; ; i++) {
+    try {
+      return await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    } catch (e) {
+      if (i >= 3) throw e;
+      await page.waitForTimeout(3000);
+    }
+  }
+}
 
 async function scan(page, label, found) {
   await page.evaluate(axeSource);
@@ -24,7 +37,7 @@ const browser = await launch();
 const found = [];
 const ctx = await loggedInContext(browser, { width: 1440, height: 900 }, { reducedMotion: "reduce" });
 const page = await ctx.newPage();
-await page.goto(`${BASE}/find`, { waitUntil: "domcontentloaded", timeout: 90000 });
+await go(page, `${BASE}/find`);
 const productHref = await page.locator('a[href^="/shop/"]').first().getAttribute("href");
 const pages = [...PAGES, productHref];
 let runs = 0;
@@ -35,7 +48,7 @@ for (const mode of MODES) for (const theme of THEMES) {
     const setPrefs = (behind) => page.evaluate(([t, s, m, b]) => localStorage.setItem("north-appearance", JSON.stringify({ theme: t, mode: m, reduce: true, solid: s, behind: b })), [theme, solid, mode, behind]);
     await setPrefs(false);
     for (const path of pages) {
-      await page.goto(BASE + path, { waitUntil: "domcontentloaded", timeout: 90000 });
+      await go(page, BASE + path);
       await page.waitForSelector("main h1, main h2", { timeout: 20000 }).catch(() => {});
       await page.waitForTimeout(500);
       await scan(page, `${theme}-${mode}${solid ? "+solid" : ""} ${path}`, found);
@@ -43,7 +56,7 @@ for (const mode of MODES) for (const theme of THEMES) {
     }
     // Overlays: Help, Ask North, Appearance, Behind the scenes (with real steps), the review dialog and a decision.
     const tag = `${theme}-${mode}${solid ? "+solid" : ""}`;
-    await page.goto(BASE + "/saved", { waitUntil: "domcontentloaded", timeout: 90000 });
+    await go(page, BASE + "/saved");
     await page.waitForSelector("main h1", { timeout: 20000 });
     await page.getByRole("button", { name: "Menu" }).click();
     await scan(page, `${tag} panel:Menu`, found);
@@ -59,7 +72,7 @@ for (const mode of MODES) for (const theme of THEMES) {
     await page.getByRole("button", { name: "Appearance" }).click();
     await scan(page, `${tag} panel:Appearance`, found);
     await page.keyboard.press("Escape");
-    await page.goto(BASE + productHref, { waitUntil: "domcontentloaded", timeout: 90000 });
+    await go(page, BASE + productHref);
     // The page must be interactive before the click counts, so click again if the dialog has not opened.
     await page.waitForSelector("text=Buy this", { timeout: 60000 });
     for (let tries = 0; tries < 4; tries++) {
@@ -85,11 +98,11 @@ for (const mode of MODES) for (const theme of THEMES) {
 const anon = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 const lp = await anon.newPage();
 for (const mode of MODES) for (const theme of THEMES) for (const solid of [false, true]) {
-  await lp.goto(`${BASE}/login`, { waitUntil: "domcontentloaded", timeout: 90000 });
+  await go(lp, `${BASE}/login`);
   await lp.evaluate(([t, s, m]) => localStorage.setItem("north-appearance", JSON.stringify({ theme: t, mode: m, reduce: true, solid: s, behind: false })), [theme, solid, mode]);
   // The pages anyone can open without logging in: the front page, How North works and the login page.
   for (const path of ["/login", "/", "/how-it-works"]) {
-    await lp.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded", timeout: 90000 });
+    await go(lp, `${BASE}${path}`);
     await lp.waitForSelector("main h1", { timeout: 60000 });
     await lp.waitForTimeout(600);
     await scan(lp, `${theme}-${mode}${solid ? "+solid" : ""} ${path} (logged out)`, found);

@@ -24,7 +24,7 @@ function useCountUp(target: number): number {
     const t0 = performance.now();
     let raf = 0;
     const tick = (now: number) => {
-      const p = Math.min(1, (now - t0) / MOTION.nav.durationMs);
+      const p = Math.min(1, Math.max(0, (now - t0) / MOTION.nav.durationMs)); // never before the start (the first frame can report an earlier time)
       const f = frames[Math.min(48, Math.round(p * 48))];
       setShown(Math.round(start + (target - start) * Math.min(1, f.v)));
       if (p < 1) raf = requestAnimationFrame(tick);

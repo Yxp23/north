@@ -9,7 +9,7 @@ export function SetupBanner({ newUser }: { newUser: boolean }) {
   const state = useSyncExternalStore(subscribeSetup, () => readSetup().state, () => "done");
   if (!newUser || state === "done" || state === "skipped") return null;
   return (
-    <div className="n-note n-note-quiet" role="note">
+    <div className="n-note n-note-quiet ng-wide" role="note">
       <Sparkles aria-hidden="true" />
       <div className="n-stack" style={{ gap: 10 }}>
         <p><strong>Let&apos;s set North up.</strong> It takes three short steps, and you can skip any of them.</p>

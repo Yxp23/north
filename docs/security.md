@@ -101,3 +101,12 @@ at runtime by the toolkit entry we use (checked), and a real sandbox `list_trans
 3. Turn OFF sign-ups in Supabase Auth. Create people with `scripts/seed-demo-user.mjs` (practice account only).
 4. For the judges' demo only: `DEMO_MODE=1`, `DEMO_DEPLOYMENT=1`, `DEMO_USER_ID`, `DEMO_LOGIN_EMAIL`, `DEMO_LOGIN_PASSWORD`. Never `PAYMENTS_MODE`.
 5. `npm run audit:verify` after a demo day, and `npm audit` in CI.
+
+
+## The public front page and the judges' demo (Nov 10)
+
+- **Public pages:** only "/" (the front page; Home when signed in), "/how-it-works" and "/login". They hold nothing private (a test checks they do not touch the ledger or login-checked routes). "Is someone signed in?" (`lib/auth/viewer.ts`) only chooses what to draw; every API route still checks the login.
+- **Try the demo** uses the normal login route with the practice account's own login, which the login page already shows in a deployed demo. No new route, no bypass; the login's rate limits apply. It is offered only when DEMO_MODE=1, DEMO_DEPLOYMENT=1 and DEMO_USER_ID are all set.
+- **Demo week and Start fresh** are demo-only (`demoAllowed`, practice account only). The seed's practice payments check and spend the same signed Guardian approval as real payments, never call PayPal, and record DEMO- order ids. Tests pin that no route builds that gateway.
+- **Cron routes** (`/api/cron/daily`, `/api/cron/demo-reset`) need `Authorization: Bearer $CRON_SECRET`, compared in constant time; with no CRON_SECRET they cannot be started.
+- **Cost limits:** per visitor per hour and per day for the whole demo, for AI and Channel3 calls, so a crowd or a script cannot run up the bill. Honest limit: the practice account is shared, so anyone in the demo can press Start fresh (limited to 6 an hour).

@@ -1,5 +1,6 @@
 // Ledger rules: pure functions over LedgerData (no files, no network).
 import type { ParsedWebhook } from "../paypal-webhook";
+import { thisWeekStats } from "./activity";
 import type { Rules, UserState } from "../guardian";
 import type { AgentCheckpointData, AuditEntry, HomeSummary, LastStepIn, LedgerData, PurchaseRecord, StoredChangeable, StoredRules, WaitingItem, WaitingView } from "./types";
 
@@ -180,6 +181,7 @@ export function summarize(data: LedgerData, now: Date): HomeSummary {
     priceNotices: data.priceWatch.notices.filter((n) => !n.dismissed).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5),
     watching: data.priceWatch.watches.filter((w) => w.active).map((w) => ({ productId: w.productId, name: w.name, imageUrl: w.imageUrl })),
     lastStepIn: lastStepIn(data),
+    thisWeek: thisWeekStats(data, now),
     assistantAsks: data.agentCheckpoint.requests
       .filter((r) => r.status === "pending" && now.getTime() - new Date(r.createdAt).getTime() < REQUEST_LIFETIME_MS)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))

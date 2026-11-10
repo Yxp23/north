@@ -26,7 +26,7 @@ function realExample() {
 }
 
 export function DecisionCardPreview() {
-  const { view, sub, result } = realExample();
+  const { view, sub } = realExample();
   return (
     <figure className="lp-card" aria-label="Example of a North decision">
       <div className="lp-card-body">
@@ -41,7 +41,7 @@ export function DecisionCardPreview() {
         </div>
       </div>
       <figcaption>
-        A real answer from North&apos;s Guardian ({result.code}) for running shoes at {formatMoney(PRICE_CENTS)}. In the app, you choose.
+        A real answer from North&apos;s Guardian for running shoes at {formatMoney(PRICE_CENTS)}. In the app, you choose.
       </figcaption>
     </figure>
   );

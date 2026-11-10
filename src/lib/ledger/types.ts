@@ -264,6 +264,8 @@ export type HomeSummary = {
   assistantAsks: AssistantAskView[];
   /** The most recent Guardian decision that was not an approval, or null. */
   lastStepIn: LastStepIn | null;
+  /** What North did this week, counted from the audit log. */
+  thisWeek: { scamsStopped: number; savedForLater: number; stoppedBuys: number };
 };
 
 /** A one-tap card: "Your assistant wants to buy Warm Socks, $11." */
