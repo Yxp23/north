@@ -43,6 +43,7 @@ export function Dialog({
     const laptop = window.matchMedia("(min-width: 651px)").matches;
     if (!reduced && typeof sheet.animate === "function") sheet.animate(sheetFrames(laptop), { duration: MOTION.sheet.durationMs, easing: "linear", fill: "none" });
     (sheet.querySelector<HTMLElement>("[data-autofocus]") ?? sheet).focus({ preventScroll: true });
+    sheet.scrollTop = 0;
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && dismissable) {
@@ -73,6 +74,11 @@ export function Dialog({
       if (opener && document.contains(opener)) opener.focus({ preventScroll: true });
     };
   }, [root, reduced, dismissable]);
+
+  // A new screen inside the same dialog (the check finishing, an answer replacing "checking") always starts at the top.
+  useEffect(() => {
+    if (sheetRef.current) sheetRef.current.scrollTop = 0;
+  }, [label, root]);
 
   if (!root) return null;
   return createPortal(

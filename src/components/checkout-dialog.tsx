@@ -67,6 +67,8 @@ export function CheckoutDialog({
     const p = o.purchase;
     return (
       <DecisionDialog view={view} onClose={onClose} hear={`Approved. You bought ${p.name} for ${formatMoney(p.amountCents)}. You'll still have ${formatMoney(o.leftCents)} this week.`}>
+        <Link href="/money" className="n-btn n-btn-primary">See my money</Link>
+        <Link href="/find" className="n-btn n-btn-quiet">Keep looking</Link>
         <div className="ng-review" role="group" aria-label="Your receipt">
           <Row label="Item">{p.name}</Row>
           <Row label="Total">{formatMoney(p.amountCents)}</Row>
@@ -83,8 +85,6 @@ export function CheckoutDialog({
             </div>
           </Disclosure>
         )}
-        <Link href="/money" className="n-btn n-btn-primary">See my money</Link>
-        <Link href="/find" className="n-btn n-btn-quiet">Keep looking</Link>
         {panel}
       </DecisionDialog>
     );

@@ -465,3 +465,22 @@ html { scroll-padding-top: 96px; }
 .ng-mode-opt:has(input:checked) { border-color: var(--n-accent); box-shadow: inset 0 0 0 1px var(--n-accent); font-weight: 500; }
 .ng-mode-opt input { width: 22px; height: 22px; accent-color: var(--n-accent); flex-shrink: 0; }
 .ng-mode-opt:has(input:focus-visible) { outline: 3px solid var(--n-focus); outline-offset: 2px; }
+
+/* ---- Decision dialog: the pinned answer, breathing room at the top, and a quiet "How North decided" (Nov 10) ---- */
+/* The pinned block sticks to the very top of the scrolling area and has its own top padding, so the badge never touches the edge. */
+.ng-sheet .gd-pin { top: 0; padding: 24px 0 16px; margin: 0; z-index: 3; }
+.ng-sheet { padding-top: 0; }
+.ng-sheet { --sheet-gap: 20px; gap: var(--sheet-gap); }
+@media (max-width: 650px) { .ng-sheet { --sheet-gap: 22px; } }
+/* the close button stays in the top corner while the dialog scrolls, without taking any room of its own */
+.ng-sheet > .ng-sheet-top { position: sticky; top: 0; height: 0; min-height: 0; margin: 0 0 calc(-1 * var(--sheet-gap)) !important; z-index: 5; overflow: visible; }
+.ng-sheet > .ng-sheet-top .ng-sheet-close { position: absolute; top: 6px; right: 0; }
+.ng-sheet .gd-pin { padding-right: 56px; } /* room for the close button, so it never overlaps the answer */
+/* "How North decided" is a plain row at the end: no box, so no stray side lines when it is open and scrolled. */
+.ng-sheet .gd-how.n-disc { border: 0; border-top: 1px solid var(--n-line); border-radius: 0; background: transparent; margin-top: 4px; }
+.ng-sheet .gd-how .n-disc-btn { padding-left: 0; padding-right: 0; }
+.ng-sheet .gd-how .n-disc-body { padding-left: 0; padding-right: 0; }
+.ng-sheet { scrollbar-gutter: stable; }
+.n-hint { margin: 0; color: var(--n-ink); font-size: 16px; }
+/* a button that is not ready yet keeps its shape and reads as "not yet", with a hint under it */
+.n-btn[disabled] { opacity: .7; }

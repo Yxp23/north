@@ -41,14 +41,21 @@ for (const [w, h, mode] of [[1440, 900, "light"], [390, 844, "light"], [1440, 90
   await page.goto(`${BASE}/find`, { waitUntil: "load" });
   await ready();
   await page.getByText("Running Series Sneakers").first().click();
-  await page.getByRole("button", { name: "Buy this", exact: true }).click();
+  await page.waitForSelector("text=Buy this", { timeout: 60000 });
+  for (let i = 0; i < 4; i++) { // click again if the page was not interactive yet
+    await page.waitForTimeout(700);
+    await page.getByRole("button", { name: "Buy this", exact: true }).click();
+    if (await page.waitForSelector("text=Check before you pay", { timeout: 8000 }).then(() => true).catch(() => false)) break;
+  }
   await page.getByRole("button", { name: /Pay with your saved PayPal/ }).click();
   await page.waitForFunction(() => { const h = document.querySelector("[role=dialog] h2"); return h && !/Checking|Check before/.test(h.textContent); }, null, { timeout: 40000 });
+  await page.waitForTimeout(900);
+  await shot("3-wait-decision"); // how it opens: at the top, "How North decided" collapsed
   await page.getByRole("button", { name: "How North decided" }).click();
   await page.waitForTimeout(900);
-  await page.evaluate(() => { const d = document.querySelector(".ng-sheet"); const t = document.querySelector(".gd-how"); if (d && t) d.scrollTop = t.offsetTop - 80; });
+  await page.evaluate(() => { const d = document.querySelector(".ng-sheet"); const t = document.querySelector(".gd-how"); if (d && t) d.scrollTop = t.offsetTop - 120; });
   await page.waitForTimeout(200);
-  await shot("3-wait-decision");
+  await shot("3-wait-decision-expanded");
   await page.keyboard.press("Escape");
   await page.evaluate(() => localStorage.removeItem("north-demo-hour"));
 

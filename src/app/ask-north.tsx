@@ -41,6 +41,7 @@ const CONCIERGE = { name: "Concierge", ai: true, did: "Read what you wrote and c
 
 export function AskNorth({ variant = "dialog", below }: { variant?: "dialog" | "home"; /** Shown right under the form, above any answer (Home puts its quick buttons here). */ below?: React.ReactNode }) {
   const home = variant === "home";
+  const hintId = home ? "ask-hint-home" : "ask-hint";
   const [text, setText] = useState("");
   const [picture, setPicture] = useState<Picture | null>(null);
   const [busy, setBusy] = useState(false);
@@ -48,6 +49,8 @@ export function AskNorth({ variant = "dialog", below }: { variant?: "dialog" | "
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [error, setError] = useState("");
   const [price, setPrice] = useState("");
+
+  const empty = !text.trim() && !picture;
 
   async function ask(extra?: { route: string; extra: Record<string, unknown> }) {
     if (busy || (!text.trim() && !picture)) return;
@@ -78,7 +81,8 @@ export function AskNorth({ variant = "dialog", below }: { variant?: "dialog" | "
           <textarea value={text} onChange={(e) => setText(e.target.value)} rows={home ? 3 : 2} maxLength={500} className={`${field}${home ? " ng-askbox-field" : ""}`} placeholder="Tell North what you need, paste a deal, or add a photo" />
         </label>
         <PicturePicker id={home ? "ask-picture-home" : "ask-picture"} label="Or add a photo" picture={picture} onChange={setPicture} compact={home} />
-        <button type="submit" className={btnPrimary} disabled={busy || (!text.trim() && !picture)}>{busy ? "One moment…" : "Ask North"}</button>
+        <button type="submit" className={btnPrimary} disabled={busy || empty} aria-describedby={empty && !busy ? `${hintId}` : undefined}>{busy ? "One moment…" : "Ask North"}</button>
+        {empty && !busy && <p id={hintId} className="n-hint">Type or add a photo first.</p>}
       </form>
       {below}
       {error && <p role="alert" className="n-note n-note-stop"><span>{error}</span></p>}
