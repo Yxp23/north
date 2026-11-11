@@ -31,9 +31,10 @@ export function PicturePicker({ id, label, picture, onChange, compact = false, v
         )}
         {/* The real file input stays in the page (keyboards, screen readers); the label is the button you see. On a phone it offers the camera or the photos. */}
         <input id={id} className="n-pic-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => { void choose(e.target.files?.[0]); e.target.value = ""; }} />
-        <label htmlFor={id} className="fs-photo" title={label} aria-label={picture ? "Choose a different photo" : label}>
+        <label htmlFor={id} className="fs-photo" title={label}>
           <Camera aria-hidden="true" />
-          <span className="fs-photo-word">Photo</span>
+          {/* The word stays in the page for screen readers; on a phone it is hidden from the eye only. */}
+          <span className="fs-photo-word">{picture ? "Different photo" : "Photo"}</span>
         </label>
         {error && <span role="alert" className="fs-error">{error}</span>}
       </>
