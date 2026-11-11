@@ -2,13 +2,13 @@
 // Find: one place for words or a photo. The Concierge reads what you wrote and decides between a search, "help me choose" (3 picks that fit this
 // week's money) and the other helpers. A photo with no words is read as "buy this again": the top matches, each with a one-tap Buy that goes
 // through the same review and the same Money Guardian. Finding never buys anything.
-import { Search, Wallet } from "lucide-react";
+import { ArrowRight, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
 import { BuyFlow, type BuyItem } from "@/components/buy-flow";
-import { btnPrimary, btnSecondary } from "@/components/classes";
+import { btnSecondary } from "@/components/classes";
 import { PicturePicker, type Picture } from "@/components/picture-picker";
 import { Channel3Credit } from "@/components/channel3-credit";
 import { ProductCard } from "@/components/product-card";
@@ -151,20 +151,20 @@ export function FindIt() {
 
   return (
     <div className="n-col" style={{ maxWidth: 980 }}>
-      <div className="ng-page-title" style={{ maxWidth: 760 }}>
-        <div className="ng-eyebrow">Find</div>
-        <h1>What are you<br />looking for?</h1>
-        <p>Type what you want, or add a photo. North finds it, and shows every store&apos;s price.</p>
-      </div>
+      <h1 className="ng-vh">Find something</h1>
 
-      <form className="n-stack" style={{ gap: 18, maxWidth: 760 }} onSubmit={(e) => { e.preventDefault(); submit(); }}>
-        <p className="ng-vh">A photo with no words finds the same thing so you can buy it again.</p>
-        <label className="n-block">
-          <span className="n-label">What do you need?</span>
-          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={500} className="n-field" placeholder="Running shoes, size 8. Or: something warm for my feet, not too expensive." />
-        </label>
-        <PicturePicker id="find-picture" label="Or add a photo of it" picture={picture} onChange={setPicture} />
-        <button type="submit" className={btnPrimary} disabled={stage.name === "thinking" || (!text.trim() && !picture)}><Search aria-hidden="true" />{stage.name === "thinking" ? "Looking…" : "Find it"}</button>
+      {/* ONE slim search bar: words in the middle, a Photo button and the round Find it button on the right. Enter searches. */}
+      <form className="fs-form" role="search" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+        <p id="find-hint" className="ng-vh">A photo with no words finds the same thing so you can buy it again.</p>
+        <div className="fs-bar">
+          <label htmlFor="find-q" className="ng-vh">What do you need?</label>
+          <input
+            id="find-q" type="text" enterKeyHint="search" autoComplete="off" value={text} onChange={(e) => setText(e.target.value)} maxLength={500}
+            className="fs-input" aria-describedby="find-hint" placeholder="What do you need? Try 'running shoes' or 'a phone under $100'"
+          />
+          <PicturePicker variant="bar" id="find-picture" label="Add a photo" picture={picture} onChange={setPicture} />
+          <button type="submit" className="fs-go" aria-label="Find it" title="Find it" disabled={stage.name === "thinking" || (!text.trim() && !picture)}><ArrowRight aria-hidden="true" /></button>
+        </div>
       </form>
 
       {stage.name === "thinking" && <Loading what="your results" />}

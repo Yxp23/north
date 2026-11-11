@@ -94,15 +94,17 @@
 .n-list-num { list-style: decimal; }
 .n-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .n-between { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
-/* One photo frame everywhere: a fixed shape, rounded, and the photo FILLS it (cover, centred), so a store's own grey or white photo
-   background never shows as a block inside our frame. The soft theme surface only shows while a photo loads. The full-screen viewer is the one
-   place a photo is shown whole (contain). */
-.ph-frame { display: block; position: relative; overflow: hidden; isolation: isolate; background: var(--n-photo); border-radius: 14px; }
-.ph-frame > img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+/* One photo tile everywhere: the SAME white tile in light and dark mode (product photos are shot on white), rounded, with a fine inner border in
+   dark mode, and the whole product always visible (contain, about 8% breathing room). Never cropped, so a tall phone is not blown up. The full-screen
+   viewer is separate. */
+.ph-frame { display: block; position: relative; overflow: hidden; isolation: isolate; background: #fff; border-radius: 14px; }
+.ph-frame > img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; padding: 8%; box-sizing: border-box; }
+html[data-mode="dark"] .ph-frame::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px #ffffff29; pointer-events: none; }
 .n-photo { width: 100%; aspect-ratio: 4 / 3; }
 .n-photo-md { aspect-ratio: auto; height: 112px; }
 .n-photo-sm { aspect-ratio: auto; height: 96px; }
-.ph-hero { width: 100%; aspect-ratio: 1 / 1; max-height: 440px; border-radius: 16px; }
+.ph-hero { width: 100%; aspect-ratio: 1 / 1; max-height: 420px; border-radius: 16px; }
+@media (max-width: 650px) { .ph-hero { max-height: 300px; } }
 .n-tile { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; height: 100%; text-align: center; cursor: pointer; }
 .n-tile:hover { border-color: var(--n-accent); }
 .n-tilecard { display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; text-align: center; text-decoration: none; color: inherit; }
@@ -196,3 +198,28 @@
 .pv-zoom { display: flex; gap: 10px; }
 .pv-hint { margin: 0; font-size: 16px; text-align: center; color: #fff; }
 @media (max-width: 650px) { .pv-prev, .pv-next { top: auto; bottom: 120px; transform: none; } }
+
+/* ---- Find: one slim search bar ---- */
+.fs-form { margin: 0; width: 100%; }
+.fs-bar { display: flex; align-items: center; gap: 8px; min-height: 56px; padding: 4px 4px 4px 22px; border-radius: 999px; background: var(--n-content); border: 1px solid var(--n-edge); box-shadow: 0 10px 26px -16px var(--n-skin-shadow); position: relative; }
+.fs-bar:focus-within { outline: 3px solid var(--n-focus); outline-offset: 3px; box-shadow: 0 0 0 6px var(--n-halo); }
+.north-app .fs-bar .fs-input { flex: 1 1 auto; min-width: 0; height: 48px; min-height: 0; padding: 0; margin: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; color: var(--n-ink); font: inherit; font-size: 17px; outline: none; text-overflow: ellipsis; }
+.fs-bar .fs-input::placeholder { color: var(--n-muted); opacity: 1; }
+.fs-photo { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 48px; height: 48px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--n-line); background: var(--n-quiet); color: var(--n-ink); font-size: 16px; font-weight: 500; cursor: pointer; }
+.fs-photo:hover { border-color: var(--n-accent); }
+.fs-photo svg { width: 20px; height: 20px; }
+.n-pic-input:focus-visible + .fs-photo { outline: 3px solid var(--n-focus); outline-offset: 3px; box-shadow: 0 0 0 6px var(--n-halo); }
+.fs-go { flex: none; width: 48px; height: 48px; border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--n-accent); color: var(--n-action); cursor: pointer; }
+.fs-go svg { width: 22px; height: 22px; }
+.fs-go:disabled { opacity: .5; cursor: default; }
+.fs-thumb { flex: none; display: inline-flex; align-items: center; gap: 2px; }
+.fs-thumb img { width: 40px; height: 40px; border-radius: 12px; object-fit: cover; border: 1px solid var(--n-line); }
+.fs-remove { width: 48px; height: 48px; border-radius: 50%; border: 0; background: transparent; color: var(--n-ink); display: grid; place-items: center; cursor: pointer; }
+.fs-remove svg { width: 20px; height: 20px; }
+.fs-error { position: absolute; left: 22px; right: 22px; top: calc(100% + 8px); color: var(--n-stop); font-size: 16px; }
+@media (max-width: 650px) {
+  .fs-bar { padding-left: 16px; gap: 4px; }
+  .north-app .fs-bar .fs-input { font-size: 16px; }
+  .fs-photo { padding: 0; width: 48px; }
+  .fs-photo-word { display: none; }
+}

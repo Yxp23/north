@@ -7,7 +7,7 @@ import { shrinkPicture } from "@/lib/image-client";
 
 export type Picture = { name: string; base64: string };
 
-export function PicturePicker({ id, label, picture, onChange, compact = false }: { id: string; label: string; picture: Picture | null; onChange: (p: Picture | null) => void; /** A smaller button, with the label read only by a screen reader. */ compact?: boolean }) {
+export function PicturePicker({ id, label, picture, onChange, compact = false, variant = "field" }: { id: string; label: string; picture: Picture | null; onChange: (p: Picture | null) => void; /** A smaller button, with the label read only by a screen reader. */ compact?: boolean; /** "bar": the camera button that sits inside the Find search bar (a "Photo" button, with a small preview and Remove). */ variant?: "field" | "bar" }) {
   const [error, setError] = useState("");
   async function choose(file: File | undefined) {
     setError("");
@@ -18,6 +18,26 @@ export function PicturePicker({ id, label, picture, onChange, compact = false }:
       onChange(null);
       setError("I couldn't open that picture. Nothing was changed. Please try a different one.");
     }
+  }
+  if (variant === "bar") {
+    return (
+      <>
+        {picture && (
+          <span className="fs-thumb">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`data:image/jpeg;base64,${picture.base64}`} alt={`Your picture: ${picture.name}`} />
+            <button type="button" className="fs-remove" onClick={() => { onChange(null); setError(""); }} aria-label="Remove the picture" title="Remove the picture"><X aria-hidden="true" /></button>
+          </span>
+        )}
+        {/* The real file input stays in the page (keyboards, screen readers); the label is the button you see. On a phone it offers the camera or the photos. */}
+        <input id={id} className="n-pic-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => { void choose(e.target.files?.[0]); e.target.value = ""; }} />
+        <label htmlFor={id} className="fs-photo" title={label} aria-label={picture ? "Choose a different photo" : label}>
+          <Camera aria-hidden="true" />
+          <span className="fs-photo-word">Photo</span>
+        </label>
+        {error && <span role="alert" className="fs-error">{error}</span>}
+      </>
+    );
   }
   return (
     <div className="n-stack" style={{ gap: 10 }}>
