@@ -8,7 +8,7 @@ html {
   --n-success-bg: #e3efe6;
   --n-focus: #1f2a2e;
   --n-halo: #ffffffd0;
-  background: var(--n-paper, #f9f3f3);
+  background: var(--n-paper, #f0f7f8);
 }
 
 html[data-theme="tide"] {

@@ -12,7 +12,7 @@ export const THEMES = [
   { id: "bloom", name: "Bloom", note: "Petals · soft rosewood", disc: "linear-gradient(145deg,#f9f3f3 8%,#e4c6d0 55%,#78505f)" },
 ] as const;
 export type ThemeId = (typeof THEMES)[number]["id"];
-export const DEFAULT_THEME: ThemeId = "bloom";
+export const DEFAULT_THEME: ThemeId = "tide";
 
 /** Light, Dark, or "auto" = match the device (the default). */
 export type Mode = "light" | "dark" | "auto";

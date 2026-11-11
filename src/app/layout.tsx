@@ -21,12 +21,12 @@ async function Shell({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" data-theme="bloom" data-mode="light" suppressHydrationWarning>
+    <html lang="en" data-theme="tide" data-mode="light" suppressHydrationWarning>
       <body>
         {/* Runs before the first paint: puts the saved theme and the light/dark choice on <html>, so the page never flashes the wrong look.
             It only reads the display choices saved by Appearance. */}
         <Script id="north-appearance-init" strategy="beforeInteractive">
-          {`(function(){try{var p=JSON.parse(localStorage.getItem("north-appearance")||"{}");var t=["tide","dune","grove","opal","bloom"].indexOf(p.theme)>-1?p.theme:"bloom";var d=p.mode==="dark"||(p.mode!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);var r=document.documentElement;r.dataset.theme=t;r.dataset.mode=d?"dark":"light";}catch(e){}})();`}
+          {`(function(){try{var p=JSON.parse(localStorage.getItem("north-appearance")||"{}");var t=["tide","dune","grove","opal","bloom"].indexOf(p.theme)>-1?p.theme:"tide";var d=p.mode==="dark"||(p.mode!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);var r=document.documentElement;r.dataset.theme=t;r.dataset.mode=d?"dark":"light";}catch(e){}})();`}
         </Script>
         <CsrfFetch />
         <RateLimitWatch />
