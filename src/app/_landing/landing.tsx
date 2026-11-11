@@ -1,8 +1,10 @@
 // The public front page (V2, "the checkpoint"): what North is, one tap to try it, the animated checkpoint, how it decides, who it is for, and the
 // proof. Nothing here is private: it is the same for everyone. Built from design/landing-v2-reference.html in our design system (src/app/north-landing.css).
 // The numbers come from the same places "How North works" reads them (content/actors.ts, the approval's own lifetime, the attacker scoreboard).
-import { ShieldCheck } from "lucide-react";
+import { CircleDollarSign, ListChecks, PenLine, ShieldCheck, SlidersHorizontal, Timer, Volume2, type LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { CountNumber } from "./count-number";
+import { LandingMotion } from "./landing-motion";
 import { CheckpointStage } from "./stage";
 import { LandingAppearance } from "./landing-appearance";
 import { TryDemo } from "./try-demo";
@@ -20,25 +22,28 @@ const OUTCOMES = [
   { tag: "Stopped", cls: "lp2-no", title: "Rent money or a scam? Never.", text: "Some walls never move: rent and bills, your weekly money, and sellers flagged as scams. Nothing is charged." },
 ];
 
-const MADE_FOR = [
-  { title: "Money in real things", text: "$72 is about 6 lunches. Numbers come with something you can picture." },
-  { title: "Hear it out loud", text: "Every answer can read itself to you, in plain words." },
-  { title: "One choice at a time", text: "Big buttons, one decision per screen, nothing hidden in small print." },
-  { title: "Rules in your own words", text: "\"Wait a day on anything after 9 PM.\" North turns it into a rule it follows." },
-  { title: "Stricter now, easier tomorrow", text: "Tightening a rule works right away. Loosening one waits a day, so a bad moment can't undo it." },
-  { title: "You stay in charge", text: "Gentle, Firm or Locked. You pick how strict each rule is, and you can override the gentle ones." },
+const MADE_FOR: { Icon: LucideIcon; title: string; text: string }[] = [
+  { Icon: CircleDollarSign, title: "Money in real things", text: "$72 is about 6 lunches." },
+  { Icon: Volume2, title: "Hear it out loud", text: "Answers can be read aloud." },
+  { Icon: ListChecks, title: "One choice at a time", text: "Big buttons. One choice." },
+  { Icon: PenLine, title: "Rules in your own words", text: "Say it your way." },
+  { Icon: Timer, title: "Stricter now, easier tomorrow", text: "Tighter now. Looser tomorrow." },
+  { Icon: SlidersHorizontal, title: "You stay in charge", text: "Gentle, Firm or Locked." },
 ];
+
 
 export function Landing({ practice }: { practice: PracticeLogin | null }) {
   const { tried, breaches } = scoreboard.totals;
   const numbers = [
-    { n: String(AI_HELPER_COUNT), text: "AI helpers. None of them can pay." },
-    { n: String(PLAIN_CODE_COUNT), text: "Guardian, plain code, the only thing that can approve." },
-    { n: `${APPROVAL_TTL_MS / 60_000} min`, text: "Each approval is signed, works once and expires." },
-    { n: `${breaches} / ${tried}`, text: "Attacks from our own AI red team that got through." },
+    { n: <CountNumber to={AI_HELPER_COUNT} />, text: "AI helpers. None of them can pay." },
+    { n: <CountNumber to={PLAIN_CODE_COUNT} />, text: "Guardian, plain code, the only thing that can approve." },
+    { n: <CountNumber to={APPROVAL_TTL_MS / 60_000} suffix=" min" />, text: "Each approval is signed, works once and expires." },
+    { n: <><CountNumber to={breaches} /> / <CountNumber to={tried} /></>, text: "Attacks from our own AI red team that got through." },
   ];
   return (
     <div className="lp2" id="top">
+      <LandingMotion />
+      <noscript><style>{".lp2-rv{opacity:1!important;transform:none!important}.lp2-out .tag{opacity:1!important;transform:none!important}"}</style></noscript>
       <div className="lp2-first">
         <div className="lp2-shapes" aria-hidden="true"><div className="lp2-shape lp2-shape-a" /><div className="lp2-shape lp2-shape-b" /></div>
 
@@ -62,7 +67,8 @@ export function Landing({ practice }: { practice: PracticeLogin | null }) {
               {WORDS_2.map((w, i) => <span key={w + i}><span className="lp2-w lp2-w2" style={{ animationDelay: `${0.62 + i * 0.08}s` }}>{w}</span>{" "}</span>)}
             </h1>
             <p className="lp2-sub lp2-up" style={{ animationDelay: ".9s" }}>
-              North is the checkpoint between any AI and your PayPal. It checks every buy against rules you set in your own words. Built first for adults with cognitive disabilities.
+              <span className="long">The checkpoint between any AI and your PayPal. Built first for adults with cognitive disabilities.</span>
+              <span className="phone-only">Between any AI and your PayPal. Built first for adults with cognitive disabilities.</span>
             </p>
             <div className="lp2-actions lp2-up" style={{ animationDelay: "1.05s" }}>
               <TryDemo practice={practice} variant="v2" />
@@ -73,12 +79,12 @@ export function Landing({ practice }: { practice: PracticeLogin | null }) {
         </main>
       </div>
 
-      <section id="how" className="lp2-sec" aria-labelledby="how-h">
-        <p className="lp2-eyebrow">How North decides</p>
-        <h2 id="how-h" className="lp2-h2">Three answers. You set every one of them.</h2>
+      <section id="how" className="lp2-sec" aria-labelledby="how-h" data-rv-group>
+        <p className="lp2-eyebrow lp2-rv" style={{ "--i": 0 } as React.CSSProperties}>How North decides</p>
+        <h2 id="how-h" className="lp2-h2 lp2-rv" style={{ "--i": 1 } as React.CSSProperties}>Three answers. You set every one of them.</h2>
         <ul className="lp2-three">
-          {OUTCOMES.map((o) => (
-            <li key={o.tag} className="lp2-out">
+          {OUTCOMES.map((o, i) => (
+            <li key={o.tag} className="lp2-out lp2-rv lp2-card" style={{ "--i": 2 + i * 2 } as React.CSSProperties}>
               <span className={`tag ${o.cls}`}>{o.tag}</span>
               <h3>{o.title}</h3>
               <p>{o.text}</p>
@@ -87,30 +93,35 @@ export function Landing({ practice }: { practice: PracticeLogin | null }) {
         </ul>
       </section>
 
-      <section className="lp2-sec" aria-labelledby="made-h">
-        <p className="lp2-eyebrow">Built first for adults with cognitive disabilities</p>
-        <h2 id="made-h" className="lp2-h2">Made for the way you think.</h2>
+      <section className="lp2-sec" aria-labelledby="made-h" data-rv-group>
+        <p className="lp2-eyebrow lp2-rv" style={{ "--i": 0 } as React.CSSProperties}>Built first for adults with cognitive disabilities</p>
+        <h2 id="made-h" className="lp2-h2 lp2-rv" style={{ "--i": 1 } as React.CSSProperties}>Made for the way you think.</h2>
         <ul className="lp2-six">
-          {MADE_FOR.map((m) => <li key={m.title} className="lp2-item"><h3>{m.title}</h3><p>{m.text}</p></li>)}
+          {MADE_FOR.map((m, i) => (
+            <li key={m.title} className="lp2-item lp2-rv lp2-card" style={{ "--i": 2 + i } as React.CSSProperties}>
+              <span className="ico" aria-hidden="true"><m.Icon strokeWidth={1.8} /></span>
+              <div><h3>{m.title}</h3><p>{m.text}</p></div>
+            </li>
+          ))}
         </ul>
       </section>
 
-      <section className="lp2-sec" aria-labelledby="code-h" style={{ paddingBottom: 0 }}>
+      <section className="lp2-sec" aria-labelledby="code-h" data-rv-group>
         <div className="lp2-big">
-          <p className="lp2-eyebrow">Behind the scenes</p>
-          <h2 id="code-h" className="lp2-h2">AI suggests. Code decides.</h2>
-          <p className="lp2-lead">North&apos;s AI helpers find products, check deals and read your rules. None of them can pay. Only the Money Guardian can approve a payment, and it is plain code you can read and test.</p>
+          <p className="lp2-eyebrow lp2-rv" style={{ "--i": 0 } as React.CSSProperties}>Behind the scenes</p>
+          <h2 id="code-h" className="lp2-h2 lp2-rv" style={{ "--i": 1 } as React.CSSProperties}>AI suggests. Code decides.</h2>
+          <p className="lp2-lead lp2-rv" style={{ "--i": 2 } as React.CSSProperties}>North&apos;s AI helpers find products, check deals and read your rules. None of them can pay. Only the Money Guardian can approve a payment, and it is plain code you can read and test.</p>
           <ul className="lp2-nums">
-            {numbers.map((x) => <li key={x.text}><div className="lp2-num">{x.n}</div><p>{x.text}</p></li>)}
+            {numbers.map((x, i) => <li key={x.text} className="lp2-rv" style={{ "--i": 3 + i } as React.CSSProperties}><div className="lp2-num">{x.n}</div><p>{x.text}</p></li>)}
           </ul>
-          <p className="lp2-plug"><ShieldCheck aria-hidden="true" size={18} style={{ verticalAlign: "-3px", marginRight: 8 }} />Any AI assistant can plug into North&apos;s checkpoint. It asks to buy; you get one Yes or No.</p>
+          <p className="lp2-plug lp2-rv" style={{ "--i": 7 } as React.CSSProperties}><ShieldCheck aria-hidden="true" size={20} /><span>Any AI assistant can plug into North&apos;s checkpoint. It asks to buy; you get one Yes or No.</span></p>
         </div>
       </section>
 
-      <section className="lp2-final" aria-labelledby="final-h">
-        <h2 id="final-h">See it decide in under a minute.</h2>
-        <div className="row"><TryDemo practice={practice} variant="v2" /></div>
-        <p className="fine">Practice money only. Payments in the PayPal sandbox · Live prices from Channel3</p>
+      <section className="lp2-final" aria-labelledby="final-h" data-rv-group>
+        <h2 id="final-h" className="lp2-rv" style={{ "--i": 0 } as React.CSSProperties}>See it decide in under a minute.</h2>
+        <div className="row lp2-rv" style={{ "--i": 1 } as React.CSSProperties}><TryDemo practice={practice} variant="v2" /></div>
+        <p className="fine lp2-rv" style={{ "--i": 2 } as React.CSSProperties}>Practice money only. Payments in the PayPal sandbox · Live prices from Channel3</p>
       </section>
 
       <footer className="lp2-foot">
