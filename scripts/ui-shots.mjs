@@ -43,6 +43,7 @@ for (const [w, h, mode] of [[1440, 900, "light"], [390, 844, "light"], [1440, 90
   await ready();
   await page.getByText("Running Series Sneakers").first().click();
   await page.waitForSelector("text=Buy this", { timeout: 60000 });
+  if (await page.locator(".sz-opt").count()) await page.locator(".sz-opt").nth(3).click(); // the sneakers come in sizes: pick one
   for (let i = 0; i < 4; i++) { // click again if the page was not interactive yet
     await page.waitForTimeout(700);
     await page.getByRole("button", { name: "Buy this", exact: true }).click();

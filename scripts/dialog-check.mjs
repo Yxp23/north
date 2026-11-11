@@ -17,6 +17,7 @@ for (const mode of ["light", "dark"]) for (const w of [1440, 390]) {
   for (const [label, name] of [["approved", "Mild Shampoo"], ["wait", "White T-Shirt"], ["stopped", "Over-Ear Headphones"]]) {
     await p.goto(BASE + "/find", { waitUntil: "domcontentloaded" }); await p.waitForSelector("main h1");
     await p.getByText(name).first().click(); await p.waitForSelector("text=Buy this", { timeout: 60000 });
+    if (await p.locator(".sz-opt").count()) await p.locator(".sz-opt").nth(2).click(); // products with sizes need one first
     for (let i = 0; i < 4; i++) { await p.waitForTimeout(700); await p.getByRole("button", { name: "Buy this", exact: true }).click(); if (await p.waitForSelector("text=Check before you pay", { timeout: 8000 }).then(() => true).catch(() => false)) break; }
     await p.getByRole("button", { name: /Pay with your saved PayPal/ }).click();
     await p.waitForFunction(() => { const h = document.querySelector("[role=dialog] .ng-sheet-head h2"); return !!h; }, null, { timeout: 60000 });
