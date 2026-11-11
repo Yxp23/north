@@ -134,35 +134,6 @@
 .hw-actor-name { display: flex; gap: 8px; align-items: center; }
 .n-credit { margin: 0; font-size: 16px; color: var(--n-muted); }
 
-/* ---- Landing page ---- */
-.lp { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, .88fr); gap: 56px; align-items: center; max-width: 1080px; margin: 0 auto; }
-.lp-hero { display: grid; gap: 18px; align-content: start; }
-.lp-hero h1 { font-size: clamp(34px, 3.6vw, 50px); line-height: 1.08; letter-spacing: -1.6px; font-weight: 500; }
-.lp-sub { font-size: 19px; line-height: 1.5; color: var(--n-ink); max-width: 520px; margin: 0; }
-.lp-sub strong { font-weight: 500; }
-.lp-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
-.lp-error { flex-basis: 100%; }
-.lp-proof { list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.lp-proof > li { display: grid; gap: 4px; padding: 16px; align-content: start; }
-.lp-proof svg { width: 22px; height: 22px; color: var(--n-muted); }
-.lp-proof strong { font-size: 30px; font-weight: 400; letter-spacing: -1px; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.lp-proof span { font-size: 16px; line-height: 1.35; color: var(--n-ink); }
-.lp-card { margin: 0; display: grid; gap: 12px; }
-.lp-card-body { background: var(--n-content); border: 1px solid var(--n-line); border-radius: 26px; padding: 24px; display: grid; gap: 14px; box-shadow: 0 15px 45px var(--n-skin-shadow); }
-.lp-card-body h2 { margin: 0; font-size: 28px; letter-spacing: -.7px; }
-.lp-card-body .gd-badge { margin: 0; justify-self: start; }
-.lp-card-sub { margin: 0; font-size: 19px; line-height: 1.45; color: var(--n-ink); }
-.lp-card-hear { margin: 0; }
-.lp-card-actions { display: grid; gap: 10px; }
-.lp-card-actions .n-btn { cursor: default; }
-.lp-card figcaption { font-size: 16px; color: var(--n-muted); padding: 0 6px; }
-@media (max-width: 900px) {
-  .lp { grid-template-columns: 1fr; gap: 32px; }
-  .lp-proof { grid-template-columns: 1fr; }
-  .lp-proof > li { grid-template-columns: auto auto 1fr; align-items: center; gap: 12px; }
-  .lp-actions .n-btn { width: 100%; }
-}
-
 /* Home: "North this week" */
 .tw-card { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; padding: 16px 18px; border-radius: 20px; background: var(--n-content); border: 1px solid var(--n-line); color: var(--n-ink); text-decoration: none; min-height: 48px; }
 .tw-card:hover { border-color: var(--n-accent); }

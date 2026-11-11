@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>North landing page, the checkpoint</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}
+.lp{--paper:#f9f3f3;--content:#fffafa;--card:#fffafae6;--ink:#4c343e;--muted:#775e68;--accent:#78505f;--action:#ffffff;--line:#e6d8dd;--haze:#e4c6d0;--light:#f4e5e9;--deep:#c29aa9;--quiet:#f0e2e7;--edge:#c6a8b4;--shade:#63364c2e;--rim:#ffffffc8;--glow:#b2718c;--stop:#8a403b;--stop-bg:#faeae6;--wait:#855114;--wait-bg:#fff3dc;--ok:#365c43;--ok-bg:#e3eee6;--shapes:.76;--cw:252px}
+.lp.dark{--paper:#181114;--content:#2a2026;--card:#221a1ee0;--ink:#f4e6ea;--muted:#b99aa6;--accent:#e0a3b6;--action:#1f1015;--line:#3a2b33;--haze:#35242d;--light:#1d151a;--deep:#85586a;--quiet:#2a1f25;--edge:#5a4350;--shade:#00000080;--rim:#ffffff1c;--glow:#e0a3b6;--stop:#f2a59c;--stop-bg:#3b2020;--wait:#f0c473;--wait-bg:#38290f;--ok:#94d3a8;--ok-bg:#1c3124;--shapes:.55}
+@media (max-width:700px){.lp{--cw:196px}}
+.w{display:inline-block;animation:wrise .8s cubic-bezier(.22,1.2,.36,1) both}
+@keyframes wrise{from{opacity:0;transform:translateY(22px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+.up{animation:up .8s cubic-bezier(.22,1,.36,1) both}
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.stagein{animation:stagein 1.1s cubic-bezier(.22,1,.36,1) .9s both}
+@keyframes stagein{from{opacity:0;transform:translateY(30px) scale(.96)}to{opacity:1;transform:none}}
+.breathe{animation:breathe 14s ease-in-out infinite alternate}
+@keyframes breathe{from{transform:rotate(-28deg) scale(1)}to{transform:rotate(-24deg) scale(1.05)}}
+.breathe2{animation:breathe2 16s ease-in-out infinite alternate}
+@keyframes breathe2{from{transform:rotate(-22deg) scale(1)}to{transform:rotate(-26deg) scale(1.06)}}
+.gate{animation:gate 3s ease-in-out infinite}
+@keyframes gate{0%,100%{opacity:.75;box-shadow:0 0 18px 2px var(--glow)}50%{opacity:1;box-shadow:0 0 34px 6px var(--glow)}}
+.ch{position:absolute;width:var(--cw);height:50px;transform:translateY(-50%);left:-400px;animation-duration:9s;animation-iteration-count:infinite;animation-timing-function:cubic-bezier(.45,0,.2,1);animation-fill-mode:both}
+.ch .b,.ch .a{position:absolute;inset:0;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:0 16px;border-radius:999px;font-size:16px;white-space:nowrap;animation-duration:9s;animation-iteration-count:infinite;animation-fill-mode:both;animation-delay:inherit}
+.ch .b{background:var(--content);border:1px solid var(--line);color:var(--ink);box-shadow:0 10px 24px -14px var(--shade),inset 0 1px 0 var(--rim);animation-name:bout}
+.ch .a{opacity:0;font-weight:600;animation-name:ain}
+.ch .p{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600}
+@keyframes bout{0%,44%{opacity:1}49%,100%{opacity:0}}
+@keyframes ain{0%,44%{opacity:0;transform:scale(.96)}49%{opacity:1;transform:scale(1.04)}55%,100%{opacity:1;transform:none}}
+.pass{animation-name:mvpass}
+.stop{animation-name:mvstop}
+.wait{animation-name:mvwait}
+@keyframes mvpass{0%{left:calc(-1 * var(--cw) - 30px);opacity:0}5%{opacity:1}44%{left:calc(50% - var(--cw) / 2)}54%{left:calc(50% - var(--cw) / 2 + 8px)}88%{left:calc(100% + 10px);opacity:1}92%,100%{left:calc(100% + 30px);opacity:0}}
+@keyframes mvstop{0%{left:calc(-1 * var(--cw) - 30px);opacity:0}5%{opacity:1}44%{left:calc(50% - var(--cw) - 2px)}47%{left:calc(50% - var(--cw) + 8px)}53%{left:calc(50% - var(--cw) - 46px)}57%{left:calc(50% - var(--cw) - 34px);opacity:1}64%,100%{left:calc(50% - var(--cw) - 34px);opacity:0}}
+@keyframes mvwait{0%{left:calc(-1 * var(--cw) - 30px);opacity:0}5%{opacity:1}44%{left:calc(50% - var(--cw) - 14px)}50%{left:calc(50% - var(--cw) - 8px)}54%{left:calc(50% - var(--cw) - 12px);opacity:1}64%,100%{left:calc(50% - var(--cw) - 12px);opacity:0}}
+.cta{transition:transform .3s cubic-bezier(.34,1.56,.64,1),filter .2s}
+.cta:hover{transform:translateY(-1px);filter:brightness(1.07)}
+.cta:active{transform:scale(.97)}
+.tlink{text-decoration:none;border-bottom:1px solid var(--edge);padding-bottom:2px}
+.tlink:hover{border-color:var(--ink)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.lp :focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){
+.w,.up,.stagein,.breathe,.breathe2,.gate,.cta,.ch,.ch .b,.ch .a{animation:none;transition:none}
+.ch .b{opacity:0}.ch .a{opacity:1}
+.rmhide{display:none}
+.ch.pass{left:calc(75% - var(--cw) / 2)}
+.ch.stop,.ch.wait{left:calc(50% - var(--cw) - 34px)}
+}
+</style>
+</helmet>
+<main class="lp {{modeClass}}" style="position: relative; overflow: hidden; box-sizing: border-box; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', sans-serif; font-size: 17px; line-height: 1.45;">
+
+  <div style="position: relative; min-height: 100vh; display: flex; flex-direction: column; background: linear-gradient(155deg, var(--paper) 0%, var(--paper) 28%, var(--light) 70%, var(--haze) 100%);">
+    <div aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: var(--shapes);">
+      <div class="breathe" style="position: absolute; width: 540px; height: 650px; right: -65px; top: -420px; border: 1px solid var(--rim); border-radius: 82% 12% 78% 14%; background: linear-gradient(145deg, var(--light), var(--haze)); box-shadow: -120px 65px 0 -26px var(--light); transform: rotate(-28deg);"></div>
+      <div class="breathe2" style="position: absolute; width: 670px; height: 650px; left: -390px; bottom: -290px; border: 1px solid var(--rim); border-radius: 12% 85% 17% 82%; background: linear-gradient(120deg, var(--haze), var(--light)); box-shadow: 120px -48px 0 -37px var(--haze); transform: rotate(-22deg);"></div>
+    </div>
+
+    <header style="position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px clamp(20px, 3vw, 40px);">
+      <a href="#top" aria-label="North home" style="display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink);">
+        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5 L14.2 9.8 L22.5 12 L14.2 14.2 L12 22.5 L9.8 14.2 L1.5 12 L9.8 9.8 Z" fill="currentColor"></path></svg>
+        <span style="font-size: 25px; font-weight: 600; letter-spacing: -0.045em;">north</span>
+      </a>
+      <nav aria-label="Site" style="display: flex; align-items: center; gap: 20px; font-size: 16px;">
+        <a class="tlink" href="#how" style="color: var(--ink);">How it works</a>
+        <a href="#login" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--edge); background: var(--card); color: var(--ink); text-decoration: none; font-weight: 500;">Log in</a>
+      </nav>
+    </header>
+
+    <section style="position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; padding: clamp(8px, 3vh, 36px) clamp(16px, 3vw, 40px) 40px;">
+      <h1 style="margin: 0; font-size: clamp(42px, 5.6vw, 82px); line-height: 1; font-weight: 650; letter-spacing: -0.05em; max-width: 16ch;">
+        <span class="w" style="animation-delay: .05s;">AI</span> <span class="w" style="animation-delay: .12s;">can</span> <span class="w" style="animation-delay: .19s;">spend</span> <span class="w" style="animation-delay: .26s;">your</span> <span class="w" style="animation-delay: .33s;">money</span> <span class="w" style="animation-delay: .40s;">now.</span><br><span class="w" style="animation-delay: .62s; color: var(--accent);">Not</span> <span class="w" style="animation-delay: .70s; color: var(--accent);">without</span> <span class="w" style="animation-delay: .78s; color: var(--accent);">your</span> <span class="w" style="animation-delay: .86s; color: var(--accent);">rules.</span>
+      </h1>
+      <p class="up" style="animation-delay: .9s; margin: 20px 0 0; max-width: 600px; font-size: clamp(17px, 1.4vw, 20px); color: var(--muted);">North is the checkpoint between any AI and your PayPal. It checks every buy against rules you set in your own words. Built first for adults with cognitive disabilities.</p>
+      <div class="up" style="animation-delay: 1.05s; margin-top: 26px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 26px;">
+        <a class="cta" href="#demo" style="display: inline-flex; align-items: center; gap: 10px; min-height: 54px; padding: 0 30px; border-radius: 999px; background: var(--accent); color: var(--action); text-decoration: none; font-weight: 600; font-size: 17px; box-shadow: inset 0 1px 0 #ffffff40, 0 14px 30px -12px var(--shade);">Try the demo<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>
+        <a class="tlink" href="#how" style="color: var(--ink); font-size: 17px;">See how North decides</a>
+      </div>
+
+      <div class="stagein" style="position: relative; margin-top: clamp(28px, 4.5vh, 52px); width: 100%; max-width: 1120px;">
+        <p class="sr">An animation: purchase requests from you and from AI assistants move toward North. Groceries, a phone bill and a water bottle pass and are paid. Gift cards from an AI and $349 headphones are stopped. Running shoes at $72.54 wait because of your own rule.</p>
+        <div aria-hidden="true" style="position: relative; height: clamp(300px, 34vh, 340px); border-radius: 32px; background: var(--card); border: 1px solid var(--line); box-shadow: inset 0 1px 0 var(--rim), 0 40px 80px -40px var(--shade); backdrop-filter: blur(20px) saturate(1.2); -webkit-backdrop-filter: blur(20px) saturate(1.2); overflow: hidden;">
+          <div style="position: absolute; left: 20px; top: 18px; display: flex; align-items: center; gap: 8px; font-size: 16px; color: var(--muted);">You and your AI assistants</div>
+          <div style="position: absolute; right: 20px; top: 18px; display: flex; align-items: center; gap: 8px; font-size: 16px; color: var(--muted);">PayPal pays</div>
+          <div style="position: absolute; left: 0; right: 0; top: 36%; border-top: 1px dashed var(--line);"></div>
+          <div style="position: absolute; left: 0; right: 0; top: 60%; border-top: 1px dashed var(--line);"></div>
+          <div style="position: absolute; left: 0; right: 0; top: 84%; border-top: 1px dashed var(--line);"></div>
+          <div class="gate" style="position: absolute; left: calc(50% - 1px); top: 54px; bottom: 0; width: 2px; border-radius: 2px; background: linear-gradient(180deg, var(--accent), var(--accent) 80%, transparent);"></div>
+          <div style="position: absolute; left: 50%; top: 14px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; background: var(--content); border: 1px solid var(--edge); box-shadow: 0 8px 20px -10px var(--shade); font-size: 16px; font-weight: 600; white-space: nowrap;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path></svg>North · your rules</div>
+
+          <div class="ch pass" style="top: 36%; animation-delay: 1.6s;">
+            <span class="b"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>Groceries<span class="p">$42.10</span></span>
+            <span class="a" style="background: var(--ok-bg); color: var(--ok); border: 1px solid transparent;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Paid<span class="p">$42.10</span></span>
+          </div>
+          <div class="ch stop rmhide" style="top: 36%; animation-delay: 6.1s;">
+            <span class="b"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="2"></rect><path d="M12 8V4H8"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg>Gift cards<span class="p">$500</span></span>
+            <span class="a" style="background: var(--stop-bg); color: var(--stop);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"></path><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"></path><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"></path><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path></svg>Stopped: scam</span>
+          </div>
+
+          <div class="ch stop" style="top: 60%; animation-delay: 3.1s;">
+            <span class="b"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="2"></rect><path d="M12 8V4H8"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg>Headphones<span class="p">$349</span></span>
+            <span class="a" style="background: var(--stop-bg); color: var(--stop);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"></path><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"></path><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"></path><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path></svg>Stopped: rent money</span>
+          </div>
+          <div class="ch pass rmhide" style="top: 60%; animation-delay: 7.6s;">
+            <span class="b"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>Phone bill<span class="p">$65.00</span></span>
+            <span class="a" style="background: var(--ok-bg); color: var(--ok);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Paid: bills first</span>
+          </div>
+
+          <div class="ch wait" style="top: 84%; animation-delay: 4.6s;">
+            <span class="b"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>Shoes, 11 PM<span class="p">$72.54</span></span>
+            <span class="a" style="background: var(--wait-bg); color: var(--wait);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>Saved till morning</span>
+          </div>
+          <div class="ch pass rmhide" style="top: 84%; animation-delay: 9.1s;">
+            <span class="b"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="2"></rect><path d="M12 8V4H8"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg>Water bottle<span class="p">$18.00</span></span>
+            <span class="a" style="background: var(--ok-bg); color: var(--ok);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Paid<span class="p">$18.00</span></span>
+          </div>
+        </div>
+        <div class="up" style="animation-delay: 1.6s; margin-top: 16px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; font-size: 16px; color: var(--muted);">
+          <span style="display: inline-flex; align-items: center; gap: 8px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: var(--ok);"></span>Paid: fits your rules</span>
+          <span style="display: inline-flex; align-items: center; gap: 8px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: var(--wait);"></span>Wait: your rule says so</span>
+          <span style="display: inline-flex; align-items: center; gap: 8px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: var(--stop);"></span>Stopped: never allowed</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section id="how" style="position: relative; padding: clamp(64px, 9vw, 120px) clamp(16px, 4vw, 48px) 40px; max-width: 1180px; margin: 0 auto;">
+    <p style="margin: 0; font-size: 16px; font-weight: 600; color: var(--accent);">How North decides</p>
+    <h2 style="margin: 10px 0 0; font-size: clamp(32px, 3.6vw, 52px); line-height: 1.05; font-weight: 650; letter-spacing: -0.04em; max-width: 18ch;">Three answers. You set every one of them.</h2>
+    <div style="margin-top: 36px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px;">
+      <div style="padding: 26px; border-radius: 26px; background: var(--card); border: 1px solid var(--line); box-shadow: inset 0 1px 0 var(--rim);">
+        <span style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: var(--ok-bg); color: var(--ok); font-weight: 700; font-size: 16px;">Approved</span>
+        <h3 style="margin: 16px 0 0; font-size: 22px; letter-spacing: -0.02em;">Fits your rules? PayPal pays.</h3>
+        <p style="margin: 8px 0 0; color: var(--muted);">Groceries, bills, the things you planned. North says yes in a second, and shows what is left for the week.</p>
+      </div>
+      <div style="padding: 26px; border-radius: 26px; background: var(--card); border: 1px solid var(--line); box-shadow: inset 0 1px 0 var(--rim);">
+        <span style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: var(--wait-bg); color: var(--wait); font-weight: 700; font-size: 16px;">Wait</span>
+        <h3 style="margin: 16px 0 0; font-size: 22px; letter-spacing: -0.02em;">Your rule says wait? I save it.</h3>
+        <p style="margin: 8px 0 0; color: var(--muted);">Late-night buys and big ones wait for you, and I watch the price meanwhile. Gentle rules still let you tap Buy now.</p>
+      </div>
+      <div style="padding: 26px; border-radius: 26px; background: var(--card); border: 1px solid var(--line); box-shadow: inset 0 1px 0 var(--rim);">
+        <span style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: var(--stop-bg); color: var(--stop); font-weight: 700; font-size: 16px;">Stopped</span>
+        <h3 style="margin: 16px 0 0; font-size: 22px; letter-spacing: -0.02em;">Rent money or a scam? Never.</h3>
+        <p style="margin: 8px 0 0; color: var(--muted);">Some walls never move: rent and bills, your weekly money, and sellers flagged as scams. Nothing is charged.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="position: relative; padding: clamp(48px, 7vw, 96px) clamp(16px, 4vw, 48px) 40px; max-width: 1180px; margin: 0 auto;">
+    <p style="margin: 0; font-size: 16px; font-weight: 600; color: var(--accent);">Built first for adults with cognitive disabilities</p>
+    <h2 style="margin: 10px 0 0; font-size: clamp(32px, 3.6vw, 52px); line-height: 1.05; font-weight: 650; letter-spacing: -0.04em; max-width: 18ch;">Made for the way you think.</h2>
+    <div style="margin-top: 36px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px 40px;">
+      <div style="border-top: 1px solid var(--line); padding-top: 18px;"><h3 style="margin: 0; font-size: 20px;">Money in real things</h3><p style="margin: 6px 0 0; color: var(--muted);">$72 is about 6 lunches. Numbers come with something you can picture.</p></div>
+      <div style="border-top: 1px solid var(--line); padding-top: 18px;"><h3 style="margin: 0; font-size: 20px;">Hear it out loud</h3><p style="margin: 6px 0 0; color: var(--muted);">Every answer can read itself to you, in plain words.</p></div>
+      <div style="border-top: 1px solid var(--line); padding-top: 18px;"><h3 style="margin: 0; font-size: 20px;">One choice at a time</h3><p style="margin: 6px 0 0; color: var(--muted);">Big buttons, one decision per screen, nothing hidden in small print.</p></div>
+      <div style="border-top: 1px solid var(--line); padding-top: 18px;"><h3 style="margin: 0; font-size: 20px;">Rules in your own words</h3><p style="margin: 6px 0 0; color: var(--muted);">"Wait a day on anything after 9 PM." North turns it into a rule it follows.</p></div>
+      <div style="border-top: 1px solid var(--line); padding-top: 18px;"><h3 style="margin: 0; font-size: 20px;">Stricter now, easier tomorrow</h3><p style="margin: 6px 0 0; color: var(--muted);">Tightening a rule works right away. Loosening one waits a day, so a bad moment can't undo it.</p></div>
+      <div style="border-top: 1px solid var(--line); padding-top: 18px;"><h3 style="margin: 0; font-size: 20px;">You stay in charge</h3><p style="margin: 6px 0 0; color: var(--muted);">Gentle, Firm or Locked. You pick how strict each rule is, and you can override the gentle ones.</p></div>
+    </div>
+  </section>
+
+  <section style="position: relative; padding: clamp(48px, 7vw, 96px) clamp(16px, 4vw, 48px); max-width: 1180px; margin: 0 auto;">
+    <div style="padding: clamp(28px, 4vw, 56px); border-radius: 36px; background: var(--card); border: 1px solid var(--line); box-shadow: inset 0 1px 0 var(--rim), 0 40px 80px -50px var(--shade);">
+      <p style="margin: 0; font-size: 16px; font-weight: 600; color: var(--accent);">Behind the scenes</p>
+      <h2 style="margin: 10px 0 0; font-size: clamp(32px, 3.6vw, 52px); line-height: 1.05; font-weight: 650; letter-spacing: -0.04em;">AI suggests. Code decides.</h2>
+      <p style="margin: 14px 0 0; max-width: 640px; color: var(--muted);">North's AI helpers find products, check deals and read your rules. None of them can pay. Only the Money Guardian can approve a payment, and it is plain code you can read and test.</p>
+      <div style="margin-top: 36px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 28px;">
+        <div><div style="font-size: clamp(40px, 4vw, 56px); font-weight: 650; letter-spacing: -0.04em; line-height: 1;">4</div><p style="margin: 8px 0 0; color: var(--muted);">AI helpers. None of them can pay.</p></div>
+        <div><div style="font-size: clamp(40px, 4vw, 56px); font-weight: 650; letter-spacing: -0.04em; line-height: 1;">1</div><p style="margin: 8px 0 0; color: var(--muted);">Guardian, plain code, the only thing that can approve.</p></div>
+        <div><div style="font-size: clamp(40px, 4vw, 56px); font-weight: 650; letter-spacing: -0.04em; line-height: 1;">2 min</div><p style="margin: 8px 0 0; color: var(--muted);">Each approval is signed, works once and expires.</p></div>
+        <div><div style="font-size: clamp(40px, 4vw, 56px); font-weight: 650; letter-spacing: -0.04em; line-height: 1;">0 / 612</div><p style="margin: 8px 0 0; color: var(--muted);">Attacks from our own AI red team that got through.</p></div>
+      </div>
+      <p style="margin: 32px 0 0; padding-top: 22px; border-top: 1px solid var(--line); color: var(--ink);">Any AI assistant can plug into North's checkpoint. It asks to buy; you get one Yes or No.</p>
+    </div>
+  </section>
+
+  <section style="position: relative; padding: 24px clamp(16px, 4vw, 48px) clamp(64px, 8vw, 110px); text-align: center;">
+    <h2 style="margin: 0 auto; font-size: clamp(32px, 3.6vw, 52px); line-height: 1.05; font-weight: 650; letter-spacing: -0.04em; max-width: 16ch;">See it decide in under a minute.</h2>
+    <div style="margin-top: 26px; display: flex; justify-content: center;">
+      <a class="cta" href="#demo" style="display: inline-flex; align-items: center; gap: 10px; min-height: 54px; padding: 0 30px; border-radius: 999px; background: var(--accent); color: var(--action); text-decoration: none; font-weight: 600; font-size: 17px; box-shadow: inset 0 1px 0 #ffffff40, 0 14px 30px -12px var(--shade);">Try the demo<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>
+    </div>
+    <p style="margin: 18px 0 0; color: var(--muted); font-size: 16px;">Practice money only. Payments in the PayPal sandbox · Live prices from Channel3</p>
+  </section>
+
+  <footer style="position: relative; padding: 22px clamp(16px, 4vw, 48px) 30px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: 16px; color: var(--muted);">
+    <span>You set the rules. You can override them.</span>
+    <span style="display: flex; gap: 20px;"><a class="tlink" href="#how" style="color: var(--muted);">How North works</a><a class="tlink" href="#help" style="color: var(--muted);">Help is always here</a></span>
+  </footer>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var mode = this.props.mode ?? 'light';
+    return { modeClass: mode === 'dark' ? 'dark' : '' };
+  }
+}
+</script>
+</body>
+</html>

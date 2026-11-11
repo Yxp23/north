@@ -9,12 +9,13 @@ import { ProblemNote } from "@/components/states";
 import type { PracticeLogin } from "@/lib/demo/practice";
 import { isRateLimitMessage } from "@/lib/ui/rate-limit";
 
-export function TryDemo({ practice }: { practice: PracticeLogin | null }) {
+export function TryDemo({ practice, variant = "v1" }: { practice: PracticeLogin | null; /** "v2" is the front page's own button style. */ variant?: "v1" | "v2" }) {
+  const v2 = variant === "v2";
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   if (!practice) {
-    return <Link href="/login" className="n-btn n-btn-primary n-btn-auto">Log in <ArrowRight aria-hidden="true" /></Link>;
+    return <Link href="/login" className={v2 ? "lp2-cta" : "n-btn n-btn-primary n-btn-auto"}>Log in <ArrowRight aria-hidden="true" /></Link>;
   }
 
   // "Start fresh" is not offered here: a first-time visitor would not know what it means, and it would let one judge reset another's demo.
@@ -40,10 +41,10 @@ export function TryDemo({ practice }: { practice: PracticeLogin | null }) {
 
   return (
     <>
-      <button type="button" className="n-btn n-btn-primary n-btn-auto" onClick={go} disabled={busy}>
-        <Play aria-hidden="true" />{busy ? "Starting the demo…" : "Try the demo"}
+      <button type="button" className={v2 ? "lp2-cta" : "n-btn n-btn-primary n-btn-auto"} onClick={go} disabled={busy}>
+        {busy ? "Starting the demo…" : "Try the demo"}{v2 ? <ArrowRight aria-hidden="true" /> : <Play aria-hidden="true" />}
       </button>
-      {error && <div className="lp-error"><ProblemNote message={error} /></div>}
+      {error && <div className={v2 ? "lp2-error" : "lp-error"}><ProblemNote message={error} /></div>}
     </>
   );
 }

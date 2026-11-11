@@ -2,6 +2,7 @@
 @import "./north-theme.css";
 @import "./north-shell.css";
 @import "./north-pages.css";
+@import "./north-landing.css";
 
 /* The colours the screens already use (bg-card, text-muted, bg-good-bg…) now come from the approved design's tokens, so every screen
    follows the chosen theme. The status colours (good, wait, stop) are the same in every theme. */

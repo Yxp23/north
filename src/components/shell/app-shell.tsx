@@ -295,6 +295,13 @@ export function AppShell({ children, signedIn = true }: { children: ReactNode; s
   const menuBtn = useRef<HTMLButtonElement>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const closeAppearance = useCallback(() => setAppearanceOpen(false), []);
+  // The front page has its own header, and its Appearance button asks the shell to open the panel.
+  const landing = !signedIn && path === "/";
+  useEffect(() => {
+    const open = () => setAppearanceOpen(true);
+    window.addEventListener("north:appearance", open);
+    return () => window.removeEventListener("north:appearance", open);
+  }, []);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   // Demo tools only show for the practice account in demo mode (the server says so).
@@ -327,6 +334,9 @@ export function AppShell({ children, signedIn = true }: { children: ReactNode; s
     <StoreLiveContext.Provider value={storeLive}>
       <MotionLayer />
       <PageMotion path={path} />
+      {landing ? (
+        <div className="ng-content ng-landing">{children}</div>
+      ) : (
       <div className="ng-content">
         <a href="#main" className="ng-skip">Skip to the page</a>
         <header className="ng-top">
@@ -375,6 +385,7 @@ export function AppShell({ children, signedIn = true }: { children: ReactNode; s
           </span>
         </footer>
       </div>
+      )}
 
       <SettingsMenu
         open={menuOpen && !onLogin} onClose={closeMenu} triggerRef={menuBtn} demo={demo} onLogout={logOut} loggingOut={loggingOut}

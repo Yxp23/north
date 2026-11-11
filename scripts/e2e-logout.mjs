@@ -14,6 +14,16 @@ const isLanding = (t) => /spend your money/i.test(t);
 const browser = await launch();
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 const p = await ctx.newPage();
+// A first-time visitor: the front page's "Try the demo" signs in through the normal login and opens Home.
+await p.goto(`${BASE}/`, { waitUntil: "load" });
+await p.waitForSelector(".lp2-stage");
+ok(isLanding(await heroText(p)), "a visitor sees the front page", await heroText(p));
+ok((await p.getByRole("button", { name: /Try the demo/ }).count()) >= 2, "'Try the demo' is offered (hero and the end of the page)");
+await p.getByRole("button", { name: /Try the demo/ }).first().click();
+await p.waitForFunction(() => /need today/i.test(document.querySelector("h1")?.textContent ?? ""), null, { timeout: 30000 }).catch(() => undefined);
+ok(/need today/i.test(await heroText(p)), "'Try the demo' opens Home", await heroText(p));
+await p.evaluate(() => fetch("/api/auth/logout", { method: "POST", headers: { "x-north-csrf": document.cookie.split("; ").find((c) => c.startsWith("north_csrf="))?.split("=")[1] ?? "" } }));
+await ctx.clearCookies();
 const res = await ctx.request.post(`${BASE}/api/auth/login`, { headers: { Origin: new URL(BASE).origin }, data: { email, password } });
 ok(res.ok(), "log in", `status=${res.status()}`);
 
