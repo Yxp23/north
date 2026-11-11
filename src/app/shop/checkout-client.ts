@@ -15,14 +15,14 @@ export const toStep = (line: { [k: string]: unknown }): StepEvent => ({
 
 /** Buys one product. `seenCents` is the price on screen: if the live price is different, nothing is charged. */
 export async function streamCheckout(
-  opts: { productId: string; seenCents: number; overrideWait: boolean; pretendHour?: number },
+  opts: { productId: string; seenCents: number; overrideWait: boolean; pretendHour?: number; /** The size picked, for a product that has sizes. */ size?: string },
   onSteps: (events: StepEvent[]) => void,
 ): Promise<{ outcome: CheckoutOutcome; events: StepEvent[] }> {
   const events: StepEvent[] = [];
   const res = await fetch("/api/checkout?stream=1", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ productId: opts.productId, attemptId: newAttemptId(), overrideWait: opts.overrideWait, seenCents: opts.seenCents, pretendHour: opts.pretendHour }),
+    body: JSON.stringify({ productId: opts.productId, attemptId: newAttemptId(), overrideWait: opts.overrideWait, seenCents: opts.seenCents, pretendHour: opts.pretendHour, size: opts.size }),
   });
   if (!res.ok) throw new Error(String(res.status));
   let outcome: CheckoutOutcome | null = null;

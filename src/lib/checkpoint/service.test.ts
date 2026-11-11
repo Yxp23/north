@@ -5,7 +5,10 @@ import { checkout, type PayGateway } from "../checkout/checkout";
 import { MemoryLedger } from "../ledger/ledger";
 import { flagSeller } from "../ledger/logic";
 import type { ConnectedAgent } from "../ledger/types";
+import seed from "../../../data/demo-products.json";
+import traps from "../../../data/demo-trap-listings.json";
 import { DemoStore } from "../store/demo-store";
+import type { StoreProduct } from "../store";
 import { connectAgent, revokeAgent } from "./keys";
 import { answerRequest, MAX_PENDING_PER_AGENT, requestStatus, requestPurchase, rulesForAgent, weekMoneyForAgent, type CheckpointDeps } from "./service";
 
@@ -23,7 +26,8 @@ async function setup(opts: { at?: Date; underCents?: number; vault?: string | nu
   const ledger = new MemoryLedger("America/New_York", () => clock);
   const charge = vi.fn<PayGateway["charge"]>(async (a) => ({ ok: true, orderId: `ORD-${a.customId}`, captureId: `CAP-${a.customId}`, status: "COMPLETED" }));
   let n = 0;
-  const store = new DemoStore();
+  // The sizes are left off the demo shoes here, so these tests keep exercising the Guardian's rules. (A sized product has its own test below.)
+  const store = new DemoStore(([...seed.products, ...traps.products] as StoreProduct[]).map((p) => ({ ...p, sizes: undefined })));
   const deps: CheckpointDeps = {
     ledger, store, now: () => clock, newId: () => `id${++n}`,
     checkout: (input, onStep) => checkout(input, { ...TEST_IDENTITY, ledger, store, gateway: { charge }, getVaultId: async () => (opts.vault === undefined ? "VAULT-SECRET-1" : opts.vault), now: () => clock, newId: () => `pur_${++n}`, onStep }),
@@ -533,5 +537,25 @@ describe("a served wait can't be used by an assistant to buy with no yes (red-te
     expect(five.status).not.toBe("bought");
     expect(s.charge).not.toHaveBeenCalled();
     expect((await s.ledger.read()).purchases).toHaveLength(0);
+  });
+});
+
+describe("a product that comes in sizes", () => {
+  it("an assistant can't buy it: North never picks a size for the person", async () => {
+    const ledger = new MemoryLedger("America/New_York", () => NOON);
+    const charge = vi.fn<PayGateway["charge"]>();
+    let n = 0;
+    const store = new DemoStore(); // the real demo shop: the sneakers have sizes
+    const deps: CheckpointDeps = {
+      ledger, store, now: () => NOON, newId: () => `id${++n}`,
+      checkout: (input, onStep) => checkout(input, { ...TEST_IDENTITY, ledger, store, gateway: { charge }, getVaultId: async () => "V", now: () => NOON, newId: () => `pur_${++n}`, onStep }),
+    };
+    await ledger.update((d) => void connectAgent(d, "Any AI assistant", NOON, () => "agt_1", TEST_USER_ID));
+    const agent = (await ledger.read()).agentCheckpoint.agents[0];
+    const a = await requestPurchase(deps, agent, { product: "OpovWAw", reason: "needs new shoes", triggeredBy: "user_request" });
+    expect(a.decision).toBe("refuse");
+    expect(a.reason).toMatch(/sizes/i);
+    expect(charge).not.toHaveBeenCalled();
+    expect((await ledger.read()).purchases).toHaveLength(0);
   });
 });

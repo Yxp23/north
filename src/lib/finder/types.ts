@@ -10,6 +10,8 @@ export type ShelfItem = {
   /** The store with that price. */
   domain: string;
   storeCount: number;
+  /** The lowest price is far below the other stores (a kids' size or another version, perhaps): it is not headlined as the price. */
+  priceVaries?: boolean;
   /** The sizes it comes in, when it has a size choice. */
   sizes?: string[];
 };

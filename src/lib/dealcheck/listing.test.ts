@@ -31,6 +31,18 @@ describe("deal check from a product page", () => {
   it("one store alone is still fine (no false alarm)", () => {
     expect(computeVerdict(evidenceForListing({ title: "x", offers: [offers[0]] }, null)).kind).toBe("fine");
   });
+  it("a cheapest price far below the other stores is a warning, not 'fine' (the Samba case)", () => {
+    const samba = [{ domain: "kids-outlet.example", cents: 2998 }, { domain: "shop-a.example", cents: 6499 }, { domain: "shop-b.example", cents: 6599 }, { domain: "shop-c.example", cents: 9999 }];
+    const v = computeVerdict(evidenceForListing({ title: "Samba", offers: samba }, null));
+    expect(v.kind).toBe("careful");
+    expect(v.code).toBe("prices_vary");
+    expect(v.reasons[0]).toMatch(/Prices vary a lot.*kids' size.*Check the size/);
+  });
+  it("it never makes a scam look better: a lookalike seller is still a scam", () => {
+    // (the warning is only ever added; the seller checks and price checks run as before)
+    const v = computeVerdict(evidenceForListing({ title: "x", offers }, null));
+    expect(v.kind).toBe("fine");
+  });
   it("only a live Channel3 product with offers is checked this way (the made-up demo listings are not)", () => {
     expect(isCheckableListing({ live: true, offers })).toBe(true);
     expect(isCheckableListing({ live: false, offers })).toBe(false);

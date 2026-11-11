@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { DemoStore } from "./demo-store";
 import { getStore } from "./index";
 
 // Real brand names we saw while picking products. Demo data must not show any of them.
@@ -87,5 +88,15 @@ describe("demo store", () => {
     expect((await store.search("clothes")).length).toBeGreaterThanOrEqual(2);
     expect(await store.search("   ")).toEqual([]);
     expect(await store.search("zzz-not-here")).toEqual([]);
+  });
+});
+
+describe("the demo shop's shoes and shirts have realistic sizes", () => {
+  it("the sneakers, and both shirts, come in sizes; the clips do not (nothing is faked)", async () => {
+    const store = new DemoStore();
+    expect((await store.getProduct("OpovWAw"))!.sizes).toEqual(["6", "7", "8", "9", "10", "11", "12"]);
+    expect((await store.getProduct("7b5sz6i"))!.sizes).toEqual(["XS", "S", "M", "L", "XL", "XXL"]);
+    expect((await store.getProduct("z6AiKn7"))!.sizes).toEqual(["XS", "S", "M", "L", "XL", "XXL"]);
+    expect((await store.getProduct("912yTCL"))!.sizes).toBeUndefined();
   });
 });

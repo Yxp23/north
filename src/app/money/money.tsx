@@ -14,6 +14,7 @@ import { PurchaseRow, useSummary } from "../summary-parts";
 import { setupFinished } from "@/lib/setup/finished";
 import { MoneyStep } from "../welcome/setup";
 import { readSetup, subscribeSetup } from "../welcome/progress";
+import { MySizes } from "./my-sizes";
 import { PaymentsSection } from "./payments-section";
 import { useSyncExternalStore } from "react";
 
@@ -113,6 +114,7 @@ export function MoneyPage() {
           <p>{data.paypalSaved ? "This is how North pays, after your rules say yes. North never shows your PayPal details." : "You need to save a PayPal before North can pay for anything."}</p>
           <Link href="/connect" className="n-btn n-btn-secondary">{data.paypalSaved ? "See my saved PayPal" : "Connect PayPal"}</Link>
         </section>
+        <MySizes />
         {setup !== "done" && !setupFinished(data) && (
           <section aria-labelledby="setup-h" className="n-stack">
             <h2 id="setup-h">Setting up North</h2>

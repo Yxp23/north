@@ -26,7 +26,16 @@
       "priceCents": 7254,
       "currency": "USD",
       "imageUrl": "https://cdn.trychannel3.com/cfdffc59-f8a8-4d24-8bd0-20cfc490fbc2?aid=01M6SVTTKWBXS437G255AE4VCH&mid=hHvi",
-      "tracked": true
+      "tracked": true,
+      "sizes": [
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12"
+      ]
     },
     {
       "id": "VIYcSuc",
@@ -62,7 +71,15 @@
       "priceCents": 2799,
       "currency": "USD",
       "imageUrl": "https://cdn.trychannel3.com/08faf804-3156-412a-9abb-4c35aa8fabe6?aid=01M6SVTV1R33AFT3G3CHD7DWY5&mid=Z87s",
-      "tracked": false
+      "tracked": false,
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ]
     },
     {
       "id": "7b5sz6i",
@@ -71,7 +88,15 @@
       "priceCents": 6500,
       "currency": "USD",
       "imageUrl": "https://cdn.trychannel3.com/c4ca73ae-45ce-4ce8-9cc7-66ed4b783e63?aid=01M6SVTV5AZEDK89SXQG8PSYKT&mid=rWaY",
-      "tracked": false
+      "tracked": false,
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ]
     },
     {
       "id": "0HzVACz",

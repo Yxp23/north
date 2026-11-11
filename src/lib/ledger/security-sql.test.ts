@@ -156,7 +156,7 @@ describe("10 buys at once (race safety)", () => {
       const ledger = ledgerFor(userId, `buyer-${randomUUID()}`);
       return (productId: string, i: number) =>
         checkout(
-          { productId, attemptId: `race-${productId}-${i}`, overrideWait: true },
+          { productId, attemptId: `race-${productId}-${i}`, overrideWait: true, ...(productId === SNEAKERS ? { size: "9" } : {}) },
           { userId, signer: { key: KEY, now: () => NOON.getTime() }, ledger, store: new DemoStore(), gateway: { charge }, getVaultId: async () => "V", now: () => NOON, newId: () => `pur_${userId.slice(0, 8)}_${++n}` },
         );
     };

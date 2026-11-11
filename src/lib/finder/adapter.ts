@@ -1,5 +1,6 @@
 // Fills the Finder's small shapes from the store layer. The agents never see the store itself.
 import type { StoreProduct, StoreProvider } from "../store";
+import { pricesVary } from "../store/spread";
 import type { FindBackend, ShelfItem } from "./types";
 
 export function shelfItemOf(p: StoreProduct): ShelfItem {
@@ -11,6 +12,7 @@ export function shelfItemOf(p: StoreProduct): ShelfItem {
     priceCents: p.priceCents,
     domain: p.offers?.[0]?.domain ?? p.sellerDomain ?? "the demo shop",
     storeCount: p.offers?.length ?? 1,
+    ...(p.offers && pricesVary(p.offers) ? { priceVaries: true } : {}),
     ...(p.sizes?.length ? { sizes: p.sizes } : {}),
   };
 }

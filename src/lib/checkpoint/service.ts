@@ -134,6 +134,15 @@ export async function requestPurchase(deps: CheckpointDeps, agent: ConnectedAgen
     return refuse("I couldn't find that in the shop. Nothing was bought.");
   }
   const { product, byId } = found;
+  // A product that comes in sizes needs a person to pick one. An assistant can't, and North never guesses a size, so nothing is asked or bought.
+  if (product.sizes?.length) {
+    await deps.ledger.update((d) => {
+      addAudit(d, "agent_request", `An assistant (${live.name}) asked to buy ${product.name}, which comes in sizes. Refused: a person must pick the size.`, now);
+      const a = d.agentCheckpoint.agents.find((x) => x.id === agent.id);
+      if (a) a.lastUsedAt = now.toISOString();
+    });
+    return refuse(`${product.name} comes in sizes, and North can't choose a size for the person. Nothing was bought. Ask the person to open it in North and pick their size.`);
+  }
   const unitCents = product.priceCents;
   const amountCents = unitCents * quantity;
   const label = quantity > 1 ? `${product.name} × ${quantity}` : product.name;

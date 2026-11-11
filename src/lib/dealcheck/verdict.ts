@@ -14,6 +14,7 @@
 // Things we can't check (no product found, none in stock, no price) are careful: we never say "fine" blind.
 // If no listing is exactly the product, we compare with SIMILAR products. That can warn, but never says "fine".
 import { dollarsLabel } from "../rules/describe";
+import { PRICES_VARY_NOTE, pricesVary } from "../store/spread";
 import type { Evidence, Verdict, VerdictKind } from "./types";
 
 const LEVEL: VerdictKind[] = ["fine", "careful", "scam"];
@@ -88,6 +89,9 @@ export function computeVerdict(e: Evidence): Verdict {
       add(1, "price_trap", cheapest.cents < e.claimedCents! ? `This isn't a deal. You can get it for ${dollarsLabel(cheapest.cents)} at ${cheapest.domain}.` : `This isn't a deal. The lowest real price ${history ? "in 30 days was" : "I found was"} ${dollarsLabel(lowestReal)}.`);
     }
   }
+
+  // ---- a cheapest price far below the other stores of the same product (from a product page): a warning, never "fine" ----
+  if (e.fromListing && pricesVary(e.offers)) add(1, "prices_vary", PRICES_VARY_NOTE);
 
   // ---- the seller (can only make it worse) ---------------------------------------------------
   const s = e.seller;

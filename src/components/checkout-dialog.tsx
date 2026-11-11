@@ -97,9 +97,13 @@ export function CheckoutDialog({
     );
   }
 
+  // When the item has a size, every answer says which one ("Running Series Sneakers, size 9").
+  const itemLine = / size [^,]+$/.test(product.name) ? <p className="gd-item"><strong>Item:</strong> {product.name}</p> : null;
+
   if (o.kind === "wait" && view) {
     return (
-      <DecisionDialog view={withSub(view)} onClose={onClose} hear={`Wait, or buy now? ${sub ?? o.result.reason}`}>
+      <DecisionDialog view={withSub(view)} onClose={onClose} hear={`Wait, or buy now? ${product.name}. ${sub ?? o.result.reason}`}>
+        {itemLine}
         <p className="n-note n-note-wait" style={{ margin: "0 0 14px" }}><Clock aria-hidden="true" /><span>No money has moved. You can wait, or you can buy it now. It is your call.</span></p>
         <WatchButton productId={product.id} />
         {view.canBuyNow && <button type="button" className="n-btn n-btn-secondary" onClick={onBuyNow}>Buy now</button>}
@@ -111,7 +115,8 @@ export function CheckoutDialog({
 
   if (o.kind === "waitlisted" && view) {
     return (
-      <DecisionDialog view={withSub(view)} onClose={onClose} hear={`Saved for later. ${sub ?? o.result.reason}`}>
+      <DecisionDialog view={withSub(view)} onClose={onClose} hear={`Saved for later. ${product.name}. ${sub ?? o.result.reason}`}>
+        {itemLine}
         {undone === "done" ? (
           <p role="status" className="n-note n-note-good"><Check aria-hidden="true" /><span>Okay. It is not on your list. Nothing was bought.</span></p>
         ) : (
@@ -129,7 +134,8 @@ export function CheckoutDialog({
 
   if (o.kind === "refused" && view) {
     return (
-      <DecisionDialog view={withSub(view)} onClose={onClose} hear={`${view.word}. ${view.title}. ${sub ?? o.result.reason}`}>
+      <DecisionDialog view={withSub(view)} onClose={onClose} hear={`${view.word}. ${view.title}. ${product.name}. ${sub ?? o.result.reason}`}>
+        {itemLine}
         <p className="n-note n-note-stop" style={{ margin: "0 0 14px" }}><Hand aria-hidden="true" /><span>Nothing was charged. {view.variant === "scam" ? "I will not pay this seller, whatever anyone says." : "No one can get past this, not even a Buy now."}</span></p>
         {view.variant === "scam" && <Link href={`/check?product=${encodeURIComponent(product.id)}`} className="n-btn n-btn-quiet">See why I think it is a scam</Link>}
         {o.result.code === "locked_rule" && <Link href="/rules" className="n-btn n-btn-quiet">See my rules</Link>}

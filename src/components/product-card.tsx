@@ -3,11 +3,13 @@
 // "Compare stores" opens the same store comparison as the product page (every in-stock store, cheapest first). It is read from the store when opened.
 import { ProblemNote } from "./states";
 import { Photo } from "./photo";
+import { TriangleAlert } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Disclosure } from "@/components/disclosure";
 import { RealThingsLine } from "@/components/money";
 import { StoreComparison } from "@/components/store-comparison";
 import { formatMoney } from "@/lib/format";
+import { PRICES_VARY_SHORT } from "@/lib/store/spread";
 import type { ShelfItem } from "@/lib/finder/types";
 import type { StoreProduct } from "@/lib/store";
 import { card } from "./classes";
@@ -35,9 +37,10 @@ export function ProductCard({ item, children, openCompare = false, compare = tru
     <div className={`${card} n-stack`}>
       <Photo src={item.imageUrl} alt={name} className="n-photo" />
       <p className="n-t-xl">{name}</p>
-      <p className="n-price">{formatMoney(item.priceCents)}</p>
+      <p className="n-price">{item.priceVaries && <span className="n-t-base n-muted">from </span>}{formatMoney(item.priceCents)}</p>
+      {item.priceVaries && <p role="note" className="n-note n-note-wait"><TriangleAlert aria-hidden="true" /><span>{PRICES_VARY_SHORT}</span></p>}
       <RealThingsLine cents={item.priceCents} className="ng-real" />
-      <p className="n-break n-muted">Cheapest at {m.store(item.domain)}{item.storeCount > 1 ? `, ${item.storeCount} stores in all` : ""}</p>
+      <p className="n-break n-muted">{item.priceVaries ? "Lowest listed" : "Cheapest"} at {m.store(item.domain)}{item.storeCount > 1 ? `, ${item.storeCount} stores in all` : ""}</p>
       {compare && item.storeCount > 1 && (
         <Disclosure summary="Compare stores" defaultOpen={openCompare}>
           <Compare id={item.id} />

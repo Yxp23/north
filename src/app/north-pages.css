@@ -223,3 +223,26 @@ html[data-mode="dark"] .ph-frame::after { content: ""; position: absolute; inset
   .fs-photo { padding: 0; width: 48px; }
   .fs-photo-word { display: none; }
 }
+
+/* ---- Choose your size ---- */
+.sz { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 12px; }
+.sz-legend { padding: 0; font-size: 22px; font-weight: 500; letter-spacing: -.4px; }
+.sz-usual { margin: 0; display: flex; align-items: center; gap: 8px; color: var(--n-success); font-size: 16px; font-weight: 500; }
+.sz-usual svg { width: 18px; height: 18px; }
+.sz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 10px; }
+.sz-opt { position: relative; display: block; }
+.sz-opt input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.sz-opt > span { display: grid; place-items: center; min-height: 56px; border-radius: 16px; border: 2px solid var(--n-edge); background: var(--n-content); color: var(--n-ink); font-size: 19px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.sz-opt:hover > span { border-color: var(--n-accent); }
+.sz-opt input:checked + span { background: var(--n-accent); border-color: var(--n-accent); color: var(--n-action); font-weight: 600; }
+.sz-opt input:focus-visible + span { outline: 3px solid var(--n-focus); outline-offset: 3px; box-shadow: 0 0 0 6px var(--n-halo); }
+.sz-out > span { border-style: dashed; color: var(--n-muted); text-decoration: line-through; background: var(--n-quiet); }
+.sz-out input { cursor: not-allowed; }
+.sz-hint { margin: 0; color: var(--n-ink); font-size: 16px; }
+.sz-remember { display: grid; gap: 10px; padding: 14px 16px; border-radius: 18px; background: var(--n-quiet); border: 1px solid var(--n-line); }
+.sz-remember p { margin: 0; }
+.sz-remember .row { display: flex; flex-wrap: wrap; gap: 10px; }
+.sz-remember .n-btn { min-height: 48px; width: auto; }
+.ms-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.ms-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: 16px; background: var(--n-content); border: 1px solid var(--n-line); }
+.gd-item { margin: 0 0 14px; font-size: 17px; color: var(--n-ink); }

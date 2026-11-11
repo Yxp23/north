@@ -36,7 +36,8 @@ function setup(opts: { vault?: string | null; gateway?: Partial<PayGateway>; sto
   const buy = (productId: string, extra: Partial<Parameters<typeof checkout>[0]> & { at?: Date } = {}) => {
     const { at, ...input } = extra;
     if (at) clock = at;
-    return checkout({ productId, attemptId: `attempt-${++a}`, ...input }, deps);
+    // The sneakers come in sizes now: a buy names one (size 9), like a person would.
+    return checkout({ productId, attemptId: `attempt-${++a}`, ...(productId === SNEAKERS && !("size" in input) ? { size: "9" } : {}), ...input }, deps);
   };
   const setClock = (d: Date) => void (clock = d);
   return { charge, ledger, deps, buy, setClock };
@@ -813,6 +814,55 @@ describe("the demo clock (pretendHour) can only change the hour the late-night r
     for (const bad of [-1, 24, 1.5, Number.NaN, Infinity]) {
       expect((await buy(NOTEBOOK, { pretendHour: bad })).kind).toBe("failed");
     }
+    expect(charge).not.toHaveBeenCalled();
+  });
+});
+
+// Sizes: a product that comes in sizes needs a real one, checked against the store's fresh read. Never trusted from the page, never guessed.
+describe("sizes", () => {
+  const SIZED = "OpovWAw"; // Running Series Sneakers: sizes 6 to 12 in the demo shop
+
+  it("a sized product with no size is not bought: 'Pick your size first.'", async () => {
+    const { buy, charge, ledger } = setup();
+    const out = await buy(SIZED, { at: NOON, size: undefined as unknown as string });
+    expect(out).toEqual({ kind: "failed", message: "Pick your size first." });
+    expect(charge).not.toHaveBeenCalled();
+    expect((await ledger.read()).purchases).toHaveLength(0);
+  });
+  it("a size the store does not list is refused, and nothing is charged", async () => {
+    const { buy, charge } = setup();
+    for (const bad of ["99", "M", "<b>", "9 "]) {
+      const out = await buy(SIZED, { at: NOON, size: bad });
+      expect(out.kind).toBe("failed");
+    }
+    expect(charge).not.toHaveBeenCalled();
+  });
+  it("the size goes into the buy's name: the Guardian's decision, the receipt and the saved item all show it", async () => {
+    const { buy, ledger } = setup();
+    const noon = await buy(SIZED, { at: NOON, size: "10", overrideWait: true });
+    expect(noon.kind).toBe("paid");
+    const d = await ledger.read();
+    expect(d.purchases[0].name).toBe("Running Series Sneakers, size 10");
+    expect(d.audit.some((a) => a.detail.includes("Running Series Sneakers, size 10"))).toBe(true);
+    if (noon.kind === "paid") expect(noon.purchase.name).toBe("Running Series Sneakers, size 10");
+  });
+  it("a firm wait saves it with its size", async () => {
+    const { buy } = setup();
+    const out = await buy(SIZED, { at: ELEVEN_PM, size: "8" });
+    expect(out.kind).toBe("waitlisted");
+    if (out.kind === "waitlisted") expect(out.item.name).toBe("Running Series Sneakers, size 8");
+  });
+  it("a product with no sizes ignores a size that is sent (nothing is made up)", async () => {
+    const { buy, ledger } = setup();
+    const out = await buy(NOTEBOOK, { at: NOON, size: "9" });
+    expect(out.kind).toBe("paid");
+    expect((await ledger.read()).purchases[0].name).toBe("Box of Paper Clips");
+  });
+  it("a product whose every size is sold out is not bought, even if the store lists an offer", async () => {
+    const soldOut = { id: "ALLOUT", name: "Boots", category: "shoes", priceCents: 4000, currency: "USD", imageUrl: "https://x/y.jpg", tracked: false, live: true, soldOutSizes: ["8", "9"] } as StoreProduct;
+    const store = { getProduct: async () => soldOut, listProducts: async () => [soldOut], search: async () => [], searchByPicture: async () => [] } as unknown as StoreProvider;
+    const { buy, charge } = setup({ store });
+    expect(await buy("ALLOUT", { at: NOON })).toEqual({ kind: "failed", message: "Every size is sold out right now." });
     expect(charge).not.toHaveBeenCalled();
   });
 });

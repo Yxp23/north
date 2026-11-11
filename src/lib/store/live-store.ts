@@ -72,5 +72,6 @@ export class LiveStore implements StoreProvider {
 function overlay(live: StoreProduct, saved: StoreProduct | null): StoreProduct {
   if (!saved) return live;
   // The curated picture only: the live store's other photos can show real brands, and this product was picked to have none.
-  return { ...live, images: undefined, name: saved.name, category: saved.category, imageUrl: saved.imageUrl, tracked: saved.tracked };
+  // A curated product keeps the sizes we chose for it too (realistic for the demo), not whatever the live listing has.
+  return { ...live, images: undefined, sizes: saved.sizes, soldOutSizes: undefined, kidsListing: undefined, name: saved.name, category: saved.category, imageUrl: saved.imageUrl, tracked: saved.tracked };
 }

@@ -3,9 +3,9 @@
 // The price on screen comes from the store. The reason text comes from the Guardian. Every action shows its steps, in plain words.
 import { ProblemNote } from "@/components/states";
 import { ProductGallery } from "@/components/product-gallery";
-import { Bot, ShieldCheck, TriangleAlert, Wallet } from "lucide-react";
+import { Bot, Check, ShieldCheck, TriangleAlert, Wallet } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { ActivityPanel } from "@/components/activity-panel";
 import { btnPrimary, btnSecondary, card } from "@/components/classes";
 import { BackToResults } from "@/components/back-to-results";
@@ -14,6 +14,7 @@ import { DecisionDialog, Row } from "@/components/decision-dialog";
 import { BigMoney, RealThingsLine } from "@/components/money";
 import { Dialog } from "@/components/shell/dialog";
 import { useMask } from "@/components/shell/mask";
+import { SizePicker } from "@/components/size-picker";
 import { SpeakButton } from "@/components/shell/speak";
 import { StoreComparison } from "@/components/store-comparison";
 import { HowDecided } from "@/components/trace-view";
@@ -22,6 +23,8 @@ import { useDemoHour } from "@/lib/demo-hour";
 import { formatMoney } from "@/lib/format";
 import { readNdjson } from "@/lib/ndjson-client";
 import type { StoreProduct } from "@/lib/store";
+import { pricesVary, PRICES_VARY_SHORT } from "@/lib/store/spread";
+import { mySizesServerSnapshot, mySizesSnapshot, rememberSize, shouldOfferToRemember, sizeKindOf, subscribeMySizes, usualSizeFor } from "@/lib/ui/my-sizes";
 import { toStep } from "../checkout-client";
 
 type HelperResult = {
@@ -48,6 +51,21 @@ export function BuyScreen({ product, demoMode }: { product: StoreProduct; demoMo
   const m = useMask();
   const seller = product.offers?.[0]?.domain ?? product.sellerDomain;
   const shownName = m.item(product.name, product.category);
+  // The cheapest store is far below the others (a kids' size or another version, perhaps): it is not headlined as "the price".
+  const varies = !!product.offers && pricesVary(product.offers);
+  // Sizes: a product that comes in sizes needs one before it can be bought. Your usual size (if you saved one and this product has it) is preselected.
+  const kind = sizeKindOf(product);
+  const hasSizes = !!product.sizes?.length;
+  const saved = useSyncExternalStore(subscribeMySizes, mySizesSnapshot, mySizesServerSnapshot);
+  const usual = usualSizeFor(saved, kind, product.sizes);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [askedRemember, setAskedRemember] = useState(false);
+  const [remembered, setRemembered] = useState("");
+  const size = hasSizes ? (picked ?? usual) : null;
+  const offerRemember = hasSizes && picked !== null && !askedRemember && shouldOfferToRemember(saved, kind, picked);
+  // Clothes, shoes and rings with no size data from the store: say so plainly. Never made-up sizes.
+  const allSoldOut = !hasSizes && !!product.soldOutSizes?.length;
+  const storeAsks = !hasSizes && !allSoldOut && (kind === "shoes" || kind === "clothes" || kind === "rings");
 
   async function askHelper(pretend: boolean) {
     const events: StepEvent[] = [];
@@ -95,8 +113,10 @@ export function BuyScreen({ product, demoMode }: { product: StoreProduct; demoMo
             <ProductGallery images={product.images?.length ? product.images : [product.imageUrl]} name={shownName} />
           </div>
           <div className="ng-money ng-b-price" style={{ minHeight: 0 }}>
-            <div className="ng-money-top"><span>Price</span><Wallet aria-hidden="true" /></div>
-            <BigMoney cents={product.priceCents} label="Price" />
+            <div className="ng-money-top"><span>{varies ? "Lowest listed price" : "Price"}</span><Wallet aria-hidden="true" /></div>
+            <BigMoney cents={product.priceCents} label={varies ? "Lowest listed price" : "Price"} />
+            {varies && <p role="note" className="n-note n-note-wait"><TriangleAlert aria-hidden="true" /><span>{PRICES_VARY_SHORT}</span></p>}
+            {product.kidsListing && <p role="note" className="n-note n-note-wait"><TriangleAlert aria-hidden="true" /><span>The store says this one is for kids. Check the size before you buy.</span></p>}
             <RealThingsLine cents={product.priceCents} />
             <SpeakButton text={hear} />
           </div>
@@ -105,8 +125,31 @@ export function BuyScreen({ product, demoMode }: { product: StoreProduct; demoMo
         <div className="n-stack" style={{ gap: 18 }}>
           <div className="ng-b-stores"><StoreComparison offers={product.offers} live={product.live} /></div>
           <div className="n-stack ng-b-actions" style={{ gap: 18 }}>
+          {allSoldOut && (
+            <div className="n-stack" style={{ gap: 12 }}>
+              <SizePicker sizes={[]} soldOut={product.soldOutSizes} value={null} onChange={() => undefined} />
+              <p role="note" className="n-note n-note-wait"><TriangleAlert aria-hidden="true" /><span>Every size is sold out right now.</span></p>
+            </div>
+          )}
+          {hasSizes && (
+            <div className="n-stack" style={{ gap: 12 }}>
+              <SizePicker sizes={product.sizes!} soldOut={product.soldOutSizes} value={size} onChange={(v) => { setPicked(v); setAskedRemember(false); setRemembered(""); }} usual={usual} kindWord={kind === "shoes" ? "shoe" : kind === "clothes" ? "clothing" : kind === "rings" ? "ring" : undefined} />
+              {offerRemember && (
+                <div className="sz-remember" role="group" aria-label="Remember this size">
+                  <p>Remember size {picked} for next time?</p>
+                  <div className="row">
+                    <button type="button" className="n-btn n-btn-secondary" onClick={() => { if (kind === "shoes" || kind === "clothes") rememberSize(kind, picked!); setAskedRemember(true); setRemembered(`Saved. You can see it in Money, under My sizes.`); }}>Yes, remember it</button>
+                    <button type="button" className="n-btn n-btn-quiet" onClick={() => setAskedRemember(true)}>No thanks</button>
+                  </div>
+                </div>
+              )}
+              {remembered && <p role="status" className="n-note n-note-good"><Check aria-hidden="true" /><span>{remembered}</span></p>}
+            </div>
+          )}
+          {storeAsks && <p role="note" className="n-note n-note-quiet"><span>The store will ask for your size at checkout.</span></p>}
           <p className="n-note n-note-quiet"><ShieldCheck aria-hidden="true" /><span>You pay with your saved PayPal. North checks your rules first.</span></p>
-          <button type="button" className={btnPrimary} onClick={() => setScreen({ name: "buy" })}>Buy this</button>
+          <button type="button" className={btnPrimary} disabled={(hasSizes && !size) || allSoldOut} aria-describedby={hasSizes && !size ? "size-hint" : undefined} onClick={() => setScreen({ name: "buy" })}>Buy this</button>
+          {hasSizes && !size && <p id="size-hint" className="sz-hint">Pick your size first.</p>}
           <button type="button" className={btnSecondary} onClick={() => askHelper(false)}><Bot aria-hidden="true" />Ask the helper about this</button>
           <Link href={`/check?product=${encodeURIComponent(product.id)}`} className={btnSecondary}>Is this deal real?</Link>
           <Link href="/find" className="n-btn n-btn-quiet">Back to Find</Link>
@@ -114,7 +157,7 @@ export function BuyScreen({ product, demoMode }: { product: StoreProduct; demoMo
         </div>
       </div>
 
-      {screen.name === "buy" && <BuyFlow item={{ id: product.id, name: product.name, imageUrl: product.imageUrl, priceCents: product.priceCents, seller, category: product.category }} onClose={back} />}
+      {screen.name === "buy" && <BuyFlow item={{ id: product.id, name: product.name, imageUrl: product.imageUrl, priceCents: product.priceCents, seller, category: product.category, ...(size ? { size } : {}) }} onClose={back} />}
 
       {screen.name === "helper" && <HelperDialog product={product} screen={screen} demoMode={demoMode} onAgain={() => askHelper(true)} onClose={back} />}
     </>

@@ -4,6 +4,9 @@
 // that sets a quantity.)
 import type { CheckoutInput } from "./checkout";
 
+/** A size label as stores write them: 7, 7.5, M, XXL, 52, S/M, 2T. */
+export const SIZE_RE = /^[A-Za-z0-9][A-Za-z0-9 ./-]{0,11}$/;
+
 export type ParsedCheckout = { ok: true; input: CheckoutInput } | { ok: false };
 
 export function parseCheckoutBody(body: unknown, opts: { demoOn: boolean }): ParsedCheckout {
@@ -15,5 +18,7 @@ export function parseCheckoutBody(body: unknown, opts: { demoOn: boolean }): Par
   const pretendHour = opts.demoOn && typeof b.pretendHour === "number" && Number.isInteger(b.pretendHour) && b.pretendHour >= 0 && b.pretendHour <= 23 ? b.pretendHour : undefined;
   // The price the person saw. It can only STOP a buy whose live price is different; it never sets a price.
   const seenCents = typeof b.seenCents === "number" && Number.isSafeInteger(b.seenCents) && b.seenCents > 0 ? b.seenCents : undefined;
-  return { ok: true, input: { productId: b.productId, attemptId: b.attemptId, overrideWait: b.overrideWait === true, pretendHour, seenCents } };
+  // The size the person picked: short plain text only. Checkout compares it with the sizes the store lists right now.
+  const size = typeof b.size === "string" && SIZE_RE.test(b.size) ? b.size : undefined;
+  return { ok: true, input: { productId: b.productId, attemptId: b.attemptId, overrideWait: b.overrideWait === true, pretendHour, seenCents, ...(size ? { size } : {}) } };
 }

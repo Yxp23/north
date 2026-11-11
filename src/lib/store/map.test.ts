@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ourCategory, sizesOf, stripBrands, toStoreProduct, type RawStoreProduct } from "./map";
+import { ourCategory, sizeChoices, sizesOf, stripBrands, toStoreProduct, type RawStoreProduct } from "./map";
 
 const offer = (domain: string, price: number, extra: object = {}) => ({ domain, price: { price, currency: "USD" }, availability: "InStock", ...extra });
 const raw = (over: Partial<RawStoreProduct> = {}): RawStoreProduct => ({
@@ -118,5 +118,38 @@ describe("sizes", () => {
   });
   it("ends up on the store product", () => {
     expect(toStoreProduct(withSizes([{ label: "8" }]))!.sizes).toEqual(["8"]);
+  });
+});
+
+// Real Channel3 shapes, checked against live responses on Nov 11: variants.options[] with a "Size" option (labels as the store writes them: "7.5", "M",
+// "52"), each value with exists and available ("InStock" / "OutOfStock", only on the product's own detail read, null in search results).
+// Prices are per store, never per size. Colours are other products. Many products have no variants at all.
+describe("Channel3 size data", () => {
+  const ring = raw({ variants: { options: [{ name: "Size", values: [
+    { label: "50", exists: true, available: "InStock" }, { label: "52", exists: true, available: "InStock" }, { label: "60", exists: true, available: "OutOfStock" },
+  ] }] } });
+  it("sizes that are out of stock are listed apart, so they can be shown but not picked", () => {
+    expect(sizeChoices(ring)).toEqual({ sizes: ["50", "52"], soldOut: ["60"] });
+    const p = toStoreProduct(ring)!;
+    expect(p.sizes).toEqual(["50", "52"]);
+    expect(p.soldOutSizes).toEqual(["60"]);
+  });
+  it("search results do not say what is in stock (available is null): those sizes can be picked", () => {
+    const fromSearch = raw({ variants: { options: [{ name: "Size", values: [{ label: "S", exists: true, available: null }, { label: "M", exists: true, available: null }] }] } });
+    expect(sizeChoices(fromSearch)).toEqual({ sizes: ["S", "M"], soldOut: [] });
+  });
+  it("a product with only a Color, Width or Style option, or variants: null, has no sizes (never made up)", () => {
+    expect(sizeChoices(raw({ variants: null }))).toEqual({ sizes: [], soldOut: [] });
+    expect(sizeChoices(raw({ variants: { options: [{ name: "Width", values: [{ label: "Wide" }] }, { name: "Color", values: [{ label: "Red" }] }] } }))).toEqual({ sizes: [], soldOut: [] });
+    expect(toStoreProduct(raw({ variants: null }))!.sizes).toBeUndefined();
+  });
+  it("odd labels are kept short and listed once", () => {
+    const odd = raw({ variants: { options: [{ name: "Size", values: [{ label: "  8  " }, { label: "8" }, { label: "" }, { label: "x".repeat(40) }] }] } });
+    expect(sizeChoices(odd).sizes).toEqual(["8", "x".repeat(12)]);
+  });
+  it("a kids listing is marked, an adult one is not", () => {
+    expect(toStoreProduct(raw({ age: "kids" }))!.kidsListing).toBe(true);
+    expect(toStoreProduct(raw({ age: "adult" }))!.kidsListing).toBeUndefined();
+    expect(toStoreProduct(raw())!.kidsListing).toBeUndefined();
   });
 });

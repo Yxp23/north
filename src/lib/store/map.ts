@@ -11,7 +11,8 @@ export type RawStoreProduct = {
   images?: { url?: string; is_main_image?: boolean }[];
   offers?: { domain?: string; price?: { price?: number; currency?: string }; availability?: string }[];
   category?: { title?: string; path?: { title?: string }[] };
-  variants?: { options?: { name?: string; values?: { label?: string; exists?: boolean }[] }[] };
+  age?: string | null;
+  variants?: { options?: { name?: string; values?: { label?: string; exists?: boolean; available?: string | null }[] }[] } | null;
 };
 
 const SAFE_ID = /^[A-Za-z0-9_-]{1,40}$/;
@@ -60,10 +61,27 @@ export function ourCategory(path: string[]): string {
   return leaf;
 }
 
+/**
+ * The Size choice Channel3 lists for a product (variants.options named "Size"): the labels as the store writes them, split into sizes that are in
+ * stock (or unknown, as search results do not say) and sizes the store says are OutOfStock. There is no price per size: Channel3 prices are per store.
+ * A product with no Size option has none, and we never make sizes up.
+ */
+export function sizeChoices(raw: RawStoreProduct): { sizes: string[]; soldOut: string[] } {
+  const opt = raw.variants?.options?.find((o) => /^size$/i.test(o.name ?? ""));
+  const sizes: string[] = [];
+  const soldOut: string[] = [];
+  for (const v of opt?.values ?? []) {
+    if (v.exists === false || typeof v.label !== "string") continue;
+    const label = v.label.trim().slice(0, 12);
+    if (!label || sizes.includes(label) || soldOut.includes(label)) continue;
+    (v.available === "OutOfStock" ? soldOut : sizes).push(label);
+  }
+  return { sizes, soldOut };
+}
+
 /** The sizes this product comes in, if it has a size choice at all. */
 export function sizesOf(raw: RawStoreProduct): string[] | undefined {
-  const opt = raw.variants?.options?.find((o) => /^size$/i.test(o.name ?? ""));
-  const sizes = (opt?.values ?? []).filter((v) => v.exists !== false && typeof v.label === "string" && v.label).map((v) => v.label!.trim());
+  const { sizes } = sizeChoices(raw);
   return sizes.length ? sizes : undefined;
 }
 
@@ -89,7 +107,7 @@ export function toStoreProduct(raw: RawStoreProduct): StoreProduct | null {
   // A wrong label must never loosen the rules: only cheap things can be must-haves.
   if (ESSENTIAL_CATEGORIES.has(category) && offers[0].cents > ESSENTIAL_MAX_CENTS) category = (path[path.length - 1] ?? "other").toLowerCase().slice(0, 40);
 
-  const sizes = sizesOf(raw);
+  const { sizes, soldOut } = sizeChoices(raw);
   return {
     id: raw.id,
     name,
@@ -102,7 +120,9 @@ export function toStoreProduct(raw: RawStoreProduct): StoreProduct | null {
     sellerDomain: offers[0].domain,
     ...(typeof raw.description === "string" && raw.description ? { description: raw.description.slice(0, 1500) } : {}),
     offers,
-    ...(sizes ? { sizes } : {}),
+    ...(sizes.length ? { sizes } : {}),
+    ...(soldOut.length ? { soldOutSizes: soldOut } : {}),
+    ...(raw.age === "kids" ? { kidsListing: true } : {}),
     live: true,
   };
 }

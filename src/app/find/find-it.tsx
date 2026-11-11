@@ -178,7 +178,7 @@ export function FindIt() {
               {stage.items.map(({ item }, i) => (
                 <li key={item.id}>
                   <ProductCard item={item} openCompare={i === 0}>
-                    <button type="button" className={btnSecondary} onClick={() => setBuying({ id: item.id, name: item.name, imageUrl: item.imageUrl, priceCents: item.priceCents, seller: item.domain, category: item.category })}><Wallet aria-hidden="true" />Buy this one</button>
+                    <button type="button" className={btnSecondary} onClick={() => setBuying({ id: item.id, name: item.name, imageUrl: item.imageUrl, priceCents: item.priceCents, seller: item.domain, category: item.category, sizes: item.sizes })}><Wallet aria-hidden="true" />Buy this one</button>
                     <Link href={`/shop/${item.id}`} className="n-btn n-btn-quiet">Look at this one</Link>
                   </ProductCard>
                 </li>

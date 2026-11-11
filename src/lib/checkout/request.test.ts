@@ -22,6 +22,12 @@ describe("what the browser may tell checkout", () => {
     expect(parseCheckoutBody(b, { demoOn: true }).ok).toBe(false);
   });
 
+  it("a size is plain short text, and nothing else gets through", () => {
+    const size = (v: unknown) => (parseCheckoutBody({ ...good, size: v }, { demoOn: false }) as { input: { size?: string } }).input.size;
+    for (const ok of ["9", "7.5", "M", "XXL", "52", "S/M", "2T", "One size"]) expect(size(ok)).toBe(ok);
+    for (const bad of ["", " 9", "x".repeat(13), "<script>", "9; DROP", 9, null, {}, ["9"]]) expect(size(bad)).toBeUndefined();
+  });
+
   it("'Buy now' is only true for exactly true", () => {
     for (const v of ["true", 1, "yes", {}, [], null]) expect((parseCheckoutBody({ ...good, overrideWait: v }, { demoOn: true }) as { input: { overrideWait: boolean } }).input.overrideWait).toBe(false);
     expect((parseCheckoutBody({ ...good, overrideWait: true }, { demoOn: false }) as { input: { overrideWait: boolean } }).input.overrideWait).toBe(true);

@@ -35,7 +35,7 @@ describe("comparing stores", () => {
   });
 
   it("no stores: nothing", () => {
-    expect(compareStores([])).toEqual({ rows: [], saveCents: 0 });
+    expect(compareStores([])).toEqual({ rows: [], saveCents: 0, varies: false });
   });
 
   it("shows the first six stores and says how many more there are", () => {

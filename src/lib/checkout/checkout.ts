@@ -63,6 +63,11 @@ export type CheckoutInput = {
    * be used to make a loosened rule count early. The route allows it only when demo tools are on.
    */
   pretendHour?: number;
+  /**
+   * The size the person picked, for a product that comes in sizes. It must be one of the sizes the store lists right now (checked here against
+   * the fresh store read, never trusted). It goes into the buy's name, so the Guardian's decision, the receipt and the waiting list all show it.
+   */
+  size?: string;
   /** How many to buy, 1 to 5. The Guardian and PayPal see the total (store price times this). Default 1. */
   quantity?: number;
   /**
@@ -149,10 +154,29 @@ async function guardedCheckout(input: CheckoutInput, deps: CheckoutDeps): Promis
     return { kind: "failed", message: "North can only buy things priced in US dollars." };
   }
 
+  // A product that comes in sizes needs a real one. The page keeps Buy off until a size is picked; this is the check that does not trust the page.
+  let size: string | undefined;
+  if (!product.sizes?.length && product.soldOutSizes?.length) {
+    said("Every size is sold out right now. I did not buy it.", true);
+    return { kind: "failed", message: "Every size is sold out right now." };
+  }
+  if (product.sizes?.length) {
+    if (!input.size) {
+      said("This comes in sizes. I need to know which one. I did not buy it.", true);
+      return { kind: "failed", message: "Pick your size first." };
+    }
+    if (!product.sizes.includes(input.size)) {
+      said(`The store does not have size ${input.size} right now. I did not buy it.`, true);
+      return { kind: "failed", message: "That size is not available. Please pick another size." };
+    }
+    size = input.size;
+  }
+
   // The Guardian and PayPal see the TOTAL. The price on screen (seenCents) is the price of one.
   const amountCents = product.priceCents * quantity;
   if (!Number.isSafeInteger(amountCents)) return { kind: "failed", message: "I can't read that price, so I can't buy it." };
-  const label = quantity > 1 ? `${product.name} × ${quantity}` : product.name;
+  const named = size ? `${product.name}, size ${size}` : product.name;
+  const label = quantity > 1 ? `${named} × ${quantity}` : named;
   const vaultId = await deps.getVaultId();
   const now = deps.now();
   const at = now; // always the real time: see pretendHour

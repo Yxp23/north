@@ -28,8 +28,12 @@ export type StoreProduct = {
   description?: string;
   /** Every in-stock offer, cheapest first. `priceCents` is always the first one. Missing for the offline demo products. */
   offers?: StoreOffer[];
-  /** The sizes this product comes in, when it has a size choice. */
+  /** The sizes this product comes in and that are in stock, when it has a size choice. The store's own labels (7, 7.5, M, 52…), in its order. */
   sizes?: string[];
+  /** Sizes the store lists but has none of right now. Shown, but can't be picked. (Only the product's own page knows this.) */
+  soldOutSizes?: string[];
+  /** The store says this listing is for kids. Shown plainly, because a kids' size is a common reason for a very low price. */
+  kidsListing?: boolean;
   /** True when the price was just read from the live store. False when it is the saved demo price (the store could not be reached). */
   live?: boolean;
 };

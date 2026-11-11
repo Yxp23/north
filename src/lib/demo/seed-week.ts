@@ -103,6 +103,8 @@ async function run(deps: SeedDeps): Promise<SeedReport> {
       newId: () => `pur_${deps.newId()}`,
       onStep,
     });
+  // A product that comes in sizes needs one: the demo week picks a middle size, like a person would.
+  const sizeFor = (p: { sizes?: string[] }) => (p.sizes?.length ? { size: p.sizes[Math.floor(p.sizes.length / 2)] } : {});
   // The demo tool "pretend it is noon" keeps the late-night rule out of the way for the daytime buys, exactly as it does in the app.
   const NOON = 12;
   const NIGHT = 23;
@@ -115,7 +117,7 @@ async function run(deps: SeedDeps): Promise<SeedReport> {
     for (const name of WEEK.paid) {
       const p = find(name);
       if (!p) throw new Error(`${name} is not in the shop.`);
-      const o = await buy(() => ago(30))({ productId: p.id, attemptId: `seed-${p.id}`, pretendHour: NOON, seenCents: p.priceCents });
+      const o = await buy(() => ago(30))({ productId: p.id, attemptId: `seed-${p.id}`, pretendHour: NOON, seenCents: p.priceCents, ...sizeFor(p) });
       if (o.kind !== "paid") throw new Error(`${name}: expected a paid buy, got ${o.kind}.`);
     }
   });
@@ -123,16 +125,16 @@ async function run(deps: SeedDeps): Promise<SeedReport> {
   await step("A bigger buy: the Guardian says wait, then Buy now", async () => {
     const p = find(WEEK.waitThenBuyNow);
     if (!p) throw new Error(`${WEEK.waitThenBuyNow} is not in the shop.`);
-    const first = await buy(() => ago(6))({ productId: p.id, attemptId: `seed-${p.id}-ask`, pretendHour: NOON, seenCents: p.priceCents });
+    const first = await buy(() => ago(6))({ productId: p.id, attemptId: `seed-${p.id}-ask`, pretendHour: NOON, seenCents: p.priceCents, ...sizeFor(p) });
     if (first.kind !== "wait") throw new Error(`Expected "Wait, or buy now?", got ${first.kind}.`);
-    const second = await buy(() => ago(6))({ productId: p.id, attemptId: `seed-${p.id}-now`, overrideWait: true, pretendHour: NOON, seenCents: p.priceCents });
+    const second = await buy(() => ago(6))({ productId: p.id, attemptId: `seed-${p.id}-now`, overrideWait: true, pretendHour: NOON, seenCents: p.priceCents, ...sizeFor(p) });
     if (second.kind !== "paid") throw new Error(`Expected Buy now to pay, got ${second.kind}.`);
   });
 
   await step("A buy that is then refunded", async () => {
     const p = find(WEEK.refunded);
     if (!p) throw new Error(`${WEEK.refunded} is not in the shop.`);
-    const o = await buy(() => ago(3))({ productId: p.id, attemptId: `seed-${p.id}`, pretendHour: NOON, seenCents: p.priceCents });
+    const o = await buy(() => ago(3))({ productId: p.id, attemptId: `seed-${p.id}`, pretendHour: NOON, seenCents: p.priceCents, ...sizeFor(p) });
     if (o.kind !== "paid") throw new Error(`Expected a paid buy, got ${o.kind}.`);
     const r = await refundPurchase(o.purchase.id, {
       userId: deps.userId, signer: { key: deps.crypto.key, now: deps.crypto.now }, ledger: deps.ledger, gateway: createSeedRefundGateway(deps.crypto),
@@ -145,7 +147,7 @@ async function run(deps: SeedDeps): Promise<SeedReport> {
     const p = find(WEEK.saved);
     if (!p) throw new Error(`${WEEK.saved} is not in the shop.`);
     // The real time, so the wait always ends in the future.
-    const o = await buy(deps.now)({ productId: p.id, attemptId: `seed-${p.id}`, pretendHour: NIGHT, seenCents: p.priceCents });
+    const o = await buy(deps.now)({ productId: p.id, attemptId: `seed-${p.id}`, pretendHour: NIGHT, seenCents: p.priceCents, ...sizeFor(p) });
     if (o.kind !== "waitlisted") throw new Error(`Expected "saved for later", got ${o.kind}.`);
   });
 

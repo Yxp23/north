@@ -8,6 +8,7 @@ import { btnPrimary } from "@/components/classes";
 import { CheckoutDialog, type CheckoutPhase } from "@/components/checkout-dialog";
 import { Row } from "@/components/decision-dialog";
 import { RealThingsLine } from "@/components/money";
+import { SizePicker } from "@/components/size-picker";
 import { Dialog } from "@/components/shell/dialog";
 import { useMask } from "@/components/shell/mask";
 import { SpeakButton } from "@/components/shell/speak";
@@ -17,7 +18,14 @@ import { useDemoHour } from "@/lib/demo-hour";
 import { formatMoney } from "@/lib/format";
 import { streamCheckout } from "@/app/shop/checkout-client";
 
-export type BuyItem = { id: string; name: string; imageUrl: string; priceCents: number; seller?: string; category?: string };
+export type BuyItem = {
+  id: string; name: string; imageUrl: string; priceCents: number; seller?: string; category?: string;
+  /** The size picked, for a product that comes in sizes. The server checks it against the store's own list. */
+  size?: string;
+  /** The sizes it comes in, for a buy that starts without a product page (Buy this again): the person picks one right here. */
+  sizes?: string[];
+  soldOutSizes?: string[];
+};
 
 export function BuyFlow({ item, onClose }: { item: BuyItem; onClose(): void }) {
   const [screen, setScreen] = useState<{ name: "review" } | { name: "checkout"; phase: CheckoutPhase } | { name: "error" }>({ name: "review" });
@@ -27,7 +35,11 @@ export function BuyFlow({ item, onClose }: { item: BuyItem; onClose(): void }) {
   const pretendHour = demoHour === "" ? null : Number(demoHour);
   const m = useMask();
   const busy = useRateLimited();
-  const shownName = m.item(item.name, item.category);
+  const [pickedHere, setPickedHere] = useState<string | null>(null);
+  const size = item.size ?? pickedHere ?? undefined;
+  const needsSize = !item.size && !!item.sizes?.length;
+  // The name with its size, so the review, the Guardian's decision and the receipt all say which one.
+  const shownName = `${m.item(item.name, item.category)}${size ? `, size ${size}` : ""}`;
 
   // What is left this week, to show before paying (read from the server, never typed in by the browser).
   useEffect(() => {
@@ -48,7 +60,7 @@ export function BuyFlow({ item, onClose }: { item: BuyItem; onClose(): void }) {
     setScreen({ name: "checkout", phase: { name: "working", events: [] } });
     try {
       const { outcome, events } = await streamCheckout(
-        { productId: item.id, seenCents: item.priceCents, overrideWait, pretendHour: pretendHour ?? undefined },
+        { productId: item.id, seenCents: item.priceCents, overrideWait, pretendHour: pretendHour ?? undefined, size },
         (events) => setScreen({ name: "checkout", phase: { name: "working", events } }),
       );
       setScreen({ name: "checkout", phase: { name: "done", outcome, events } });
@@ -78,6 +90,7 @@ export function BuyFlow({ item, onClose }: { item: BuyItem; onClose(): void }) {
   return (
     <Dialog label="Check before you pay" onClose={onClose}>
       <h2 data-autofocus tabIndex={-1} style={{ outline: "none" }}>Check before you pay</h2>
+      {needsSize && <SizePicker sizes={item.sizes!} soldOut={item.soldOutSizes} value={pickedHere} onChange={setPickedHere} />}
       <div className="ng-review" role="group" aria-label="Your buy">
         <Row label="Item">{shownName}</Row>
         <Row label="Seller">{item.seller ? m.store(item.seller) : "North practice shop"}</Row>
@@ -88,7 +101,8 @@ export function BuyFlow({ item, onClose }: { item: BuyItem; onClose(): void }) {
       <RealThingsLine cents={item.priceCents} className="gd-reason" />
       <p>North checks this against your rules first. If your rules say yes, your PayPal is charged. If not, nothing is charged.</p>
       <div style={{ margin: "0 0 14px" }}><SpeakButton text={`Check before you pay. ${shownName}. Total ${formatMoney(item.priceCents)}. Pay with your saved PayPal.`} /></div>
-      <button type="button" className={btnPrimary} onClick={() => buy(false)}><Wallet aria-hidden="true" />Pay with your saved PayPal</button>
+      <button type="button" className={btnPrimary} disabled={needsSize && !size} onClick={() => buy(false)}><Wallet aria-hidden="true" />Pay with your saved PayPal</button>
+      {needsSize && !size && <p className="sz-hint">Pick your size first.</p>}
       <button type="button" className="n-btn n-btn-quiet" onClick={onClose}>Not now</button>
     </Dialog>
   );

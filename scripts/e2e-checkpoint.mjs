@@ -35,7 +35,8 @@ const post = async (path, body) => {
 let cache = null;
 const refresh = async () => (cache = await (await fetchAs("/api/demo/ledger", { cache: "no-store" })).json());
 const ledger = () => cache;
-const buy = (productId, extra = {}) => post("/api/checkout", { productId, attemptId: `e2e-${randomUUID()}`, ...extra });
+// The sneakers come in sizes now, so the buy names one (size 9), as a person would.
+const buy = (productId, extra = {}) => post("/api/checkout", { productId, attemptId: `e2e-${randomUUID()}`, ...(productId === SNEAKERS ? { size: "9" } : {}), ...extra });
 async function waitFor(fn, seconds) {
   const t0 = Date.now();
   while ((Date.now() - t0) / 1000 < seconds) {
