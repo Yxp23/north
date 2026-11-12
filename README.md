@@ -10,7 +10,7 @@ Built solo for the PayPal AI Hackathon 2026.
 
 - **Live app:** https://north-sage-tau.vercel.app
 - **Try the demo:** click **Try the demo** on the front page, no signup
-- **Demo video:** YOUTUBE_LINK
+- **Demo video:** https://youtu.be/6KJDmRex4Zc
 
 ---
 
