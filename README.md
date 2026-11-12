@@ -112,7 +112,7 @@ flowchart LR
 - **1,900+ unit tests**, including property tests on the Guardian, plus an end-to-end script against the real PayPal sandbox with verified webhooks (`scripts/e2e-with-tunnel.sh`).
 - **Accessibility:** axe checks on every page in light and dark modes across all five themes, and a 16px minimum text check.
 - **The demo is safe to explore:** demo-only tools are on only when the deployment is explicitly marked as a demo, and they never weaken the rules outside demo mode.
-- **Honest limits:** read [docs/security.md](docs/security.md) and [docs/threat-model.md](docs/threat-model.md) for how North is protected, what was tested and what the limits are. The full decision table for the Guardian is in [docs/guardian-decision-table.md](docs/guardian-decision-table.md).
+- **Security,in depth:** read [docs/security.md](docs/security.md) and [docs/threat-model.md](docs/threat-model.md) for how North is protected, what was tested and what the limits are. The full decision table for the Guardian is in [docs/guardian-decision-table.md](docs/guardian-decision-table.md).
 
 ---
 
